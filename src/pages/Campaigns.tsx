@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Plus, Trash2, Edit, Copy, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Campaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -29,6 +29,8 @@ const Campaigns = () => {
     utmContent: '',
     utmTerm: '',
     pixel: '',
+    whatsappNumber: '',
+    eventType: 'lead',
     active: true
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
@@ -69,6 +71,10 @@ const Campaigns = () => {
     setCurrentCampaign({ ...currentCampaign, active: checked });
   };
 
+  const handleEventTypeChange = (value: string) => {
+    setCurrentCampaign({ ...currentCampaign, eventType: value as Campaign['eventType'] });
+  };
+
   const handleOpenAddDialog = () => {
     setCurrentCampaign({
       name: '',
@@ -78,6 +84,8 @@ const Campaigns = () => {
       utmContent: '',
       utmTerm: '',
       pixel: '',
+      whatsappNumber: '',
+      eventType: 'lead',
       active: true
     });
     setDialogMode('add');
@@ -343,6 +351,39 @@ const Campaigns = () => {
                     onChange={handleInputChange}
                     placeholder="Ex: marketing,whatsapp"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="whatsappNumber">Número do WhatsApp</Label>
+                  <Input
+                    id="whatsappNumber"
+                    name="whatsappNumber"
+                    value={currentCampaign.whatsappNumber}
+                    onChange={handleInputChange}
+                    placeholder="Ex: 5511999887766"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Informe o número que receberá as mensagens (formato internacional, sem espaços ou símbolos)
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="eventType">Tipo de Evento</Label>
+                  <Select
+                    value={currentCampaign.eventType || 'lead'}
+                    onValueChange={handleEventTypeChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de evento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contact">Contato</SelectItem>
+                      <SelectItem value="lead">Lead</SelectItem>
+                      <SelectItem value="page_view">Visualização de Página</SelectItem>
+                      <SelectItem value="sale">Venda</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define como o contato será registrado no sistema
+                  </p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="pixel">Código do Pixel (opcional)</Label>

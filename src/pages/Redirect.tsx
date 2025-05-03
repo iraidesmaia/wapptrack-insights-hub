@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 const Redirect = () => {
   const [searchParams] = useSearchParams();
@@ -14,7 +15,7 @@ const Redirect = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [campaign, setCampaign] = useState<{ name: string; pixel?: string } | null>(null);
+  const [campaign, setCampaign] = useState<{ name: string; pixel?: string; whatsappNumber?: string; eventType?: string } | null>(null);
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
@@ -63,14 +64,20 @@ const Redirect = () => {
 
     try {
       setLoading(true);
-      // Track the redirect in our system
-      await trackRedirect(campaignId, phone, name);
+      // Track the redirect in our system and get the target WhatsApp number
+      const result = await trackRedirect(campaignId, phone, name, campaign?.eventType);
       
-      // Format the phone number for WhatsApp
-      const formattedPhone = phone.replace(/\D/g, '');
+      // Format the phone number for WhatsApp - use campaign's number if available
+      const targetPhone = result.targetPhone || phone.replace(/\D/g, '');
+      
+      if (!targetPhone) {
+        toast.error('Número de WhatsApp não configurado para esta campanha');
+        setLoading(false);
+        return;
+      }
       
       // Redirect to WhatsApp
-      window.location.href = `https://wa.me/${formattedPhone}`;
+      window.location.href = `https://wa.me/${targetPhone}`;
     } catch (err) {
       console.error('Error tracking redirect:', err);
       setError('Erro ao processar redirecionamento');

@@ -1,4 +1,3 @@
-
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
 import { generateId } from "../lib/utils";
 
@@ -56,6 +55,8 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
+    whatsappNumber: '5511999887766',
+    eventType: 'lead',
     createdAt: new Date(Date.now() - 1000000000).toISOString(),
   },
   {
@@ -65,6 +66,8 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
+    whatsappNumber: '5511999887766',
+    eventType: 'contact',
     createdAt: new Date(Date.now() - 2000000000).toISOString(),
   },
   {
@@ -74,6 +77,8 @@ const campaigns: Campaign[] = [
     utmMedium: 'cpc',
     utmCampaign: 'search_traffic',
     active: true,
+    whatsappNumber: '5511999887766',
+    eventType: 'page_view',
     createdAt: new Date(Date.now() - 3000000000).toISOString(),
   },
   {
@@ -82,6 +87,8 @@ const campaigns: Campaign[] = [
     utmSource: 'website',
     utmMedium: 'organic',
     active: true,
+    whatsappNumber: '5511999887766',
+    eventType: 'sale',
     createdAt: new Date(Date.now() - 4000000000).toISOString(),
   },
 ];
@@ -344,17 +351,21 @@ export const getCampaignPerformance = async (): Promise<CampaignPerformance[]> =
 export const trackRedirect = async (
   campaignId: string, 
   phone: string, 
-  name?: string
-): Promise<void> => {
+  name?: string,
+  eventType?: string
+): Promise<{targetPhone?: string}> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const campaign = campaigns.find(c => c.id === campaignId);
   if (!campaign) {
     throw new Error('Campanha não encontrada');
   }
+
+  // Event type handling based on campaign settings
+  const type = eventType || campaign.eventType || 'lead';
   
-  // Create a lead if not exists
-  if (phone && !leads.some(lead => lead.phone === phone)) {
+  // Create a lead if the event type is 'lead' and the phone number doesn't exist yet
+  if (type === 'lead' && phone && !leads.some(lead => lead.phone === phone)) {
     const newLead: Lead = {
       id: generateId(),
       name: name || 'Lead via Tracking',
@@ -366,4 +377,7 @@ export const trackRedirect = async (
     
     leads.unshift(newLead);
   }
+  
+  // Return the campaign's WhatsApp number for redirection
+  return { targetPhone: campaign.whatsappNumber };
 };
