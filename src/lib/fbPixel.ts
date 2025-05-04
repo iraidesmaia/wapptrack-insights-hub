@@ -1,9 +1,9 @@
-
 // Facebook Pixel utility functions
 
 declare global {
   interface Window {
     fbq: any;
+    _fbq: any; // Add _fbq to the window interface
   }
 }
 
@@ -26,7 +26,7 @@ export const initFacebookPixel = (pixelId: string) => {
       n = f.fbq = function() {
         n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
       };
-      if (!f._fbq) f._fbq = n;
+      if (!f._fbq) f._fbq = n; // This line is now properly typed
       n.push = n;
       n.loaded = !0;
       n.version = '2.0';
@@ -35,7 +35,9 @@ export const initFacebookPixel = (pixelId: string) => {
       t.async = !0;
       t.src = v;
       s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s);
+      if (s && s.parentNode) { // Add null check
+        s.parentNode.insertBefore(t, s);
+      }
     })(
       window,
       document,

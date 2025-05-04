@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ const Campaigns = () => {
     utmCampaign: '',
     utmContent: '',
     utmTerm: '',
-    pixel: '',
+    pixelId: '', // Changed from pixel to pixelId
     whatsappNumber: '',
     eventType: 'lead',
     active: true
@@ -83,7 +84,7 @@ const Campaigns = () => {
       utmCampaign: '',
       utmContent: '',
       utmTerm: '',
-      pixel: '',
+      pixelId: '', // Changed from pixel to pixelId
       whatsappNumber: '',
       eventType: 'lead',
       active: true
