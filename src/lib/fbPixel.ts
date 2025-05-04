@@ -24,12 +24,13 @@ export const initFacebookPixel = (pixelId: string) => {
   
   try {
     // Initialize Facebook Pixel
-    !(function(f, b, e, v, n, t, s) {
+    // Rewrite the IIFE to avoid testing a void expression for truthiness
+    const fbInitFunction = function(f: any, b: any, e: any, v: any, n: any, t: any, s: any) {
       if (f.fbq) return;
       n = f.fbq = function() {
         n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
       };
-      if (!f._fbq) f._fbq = n; // This line is now properly typed
+      if (!f._fbq) f._fbq = n; 
       n.push = n;
       n.loaded = !0;
       n.version = '2.0';
@@ -41,7 +42,10 @@ export const initFacebookPixel = (pixelId: string) => {
       if (s && s.parentNode) { // Add null check
         s.parentNode.insertBefore(t, s);
       }
-    })(
+    };
+    
+    // Execute the function without the problematic truthiness check
+    fbInitFunction(
       window,
       document,
       'script',
