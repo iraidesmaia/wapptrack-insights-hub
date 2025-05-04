@@ -1,9 +1,11 @@
+
 // Facebook Pixel utility functions
 
 declare global {
   interface Window {
     fbq: any;
     _fbq: any; // Add _fbq to the window interface
+    fbPixelInitialized?: boolean; // Add a flag to track initialization
   }
 }
 
@@ -14,7 +16,8 @@ declare global {
 export const initFacebookPixel = (pixelId: string) => {
   if (!pixelId) return;
   
-  if ((window as any).fbPixelInitialized) {
+  // Check if the pixel is already initialized
+  if (window.fbPixelInitialized) {
     console.log('Facebook Pixel already initialized');
     return;
   }
@@ -46,7 +49,7 @@ export const initFacebookPixel = (pixelId: string) => {
     );
     
     window.fbq('init', pixelId);
-    (window as any).fbPixelInitialized = true;
+    window.fbPixelInitialized = true;
     console.log('Facebook Pixel initialized with ID:', pixelId);
   } catch (error) {
     console.error('Error initializing Facebook Pixel:', error);
