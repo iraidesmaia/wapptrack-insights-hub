@@ -1,4 +1,3 @@
-
 // Facebook Pixel utility functions
 
 declare global {
@@ -44,12 +43,15 @@ export const initFacebookPixel = (pixelId: string) => {
       }
     };
     
-    // Execute the function without the problematic truthiness check
+    // Execute the function with all 7 required parameters
     fbInitFunction(
       window,
       document,
       'script',
-      'https://connect.facebook.net/en_US/fbevents.js'
+      'https://connect.facebook.net/en_US/fbevents.js',
+      null,  // n - will be assigned in the function
+      null,  // t - will be assigned in the function
+      null   // s - will be assigned in the function
     );
     
     window.fbq('init', pixelId);
