@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
 
 const Redirect = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +16,12 @@ const Redirect = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [campaign, setCampaign] = useState<{ name: string; pixel?: string; whatsappNumber?: string; eventType?: string } | null>(null);
+  const [campaign, setCampaign] = useState<{ 
+    name: string; 
+    pixelId?: string; 
+    whatsappNumber?: string; 
+    eventType?: string 
+  } | null>(null);
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
@@ -31,11 +37,11 @@ const Redirect = () => {
         if (targetCampaign) {
           setCampaign(targetCampaign);
           
-          // If there's a pixel code, inject it
-          if (targetCampaign.pixel) {
-            const pixelScript = document.createElement('script');
-            pixelScript.innerHTML = targetCampaign.pixel;
-            document.head.appendChild(pixelScript);
+          // Initialize Facebook Pixel if there's a pixel ID
+          if (targetCampaign.pixelId) {
+            initFacebookPixel(targetCampaign.pixelId);
+            // Track PageView event automatically on page load
+            trackPageView();
           }
         } else {
           setError('Campanha não encontrada');
@@ -64,11 +70,17 @@ const Redirect = () => {
 
     try {
       setLoading(true);
+      
+      // Track the event based on the campaign's event type before redirecting
+      if (campaign && campaign.pixelId && campaign.eventType) {
+        trackEventByType(campaign.eventType);
+      }
+      
       // Track the redirect in our system and get the target WhatsApp number
       const result = await trackRedirect(campaignId, phone, name, campaign?.eventType);
       
       // Format the phone number for WhatsApp - use campaign's number if available
-      const targetPhone = result.targetPhone || phone.replace(/\D/g, '');
+      const targetPhone = result.targetPhone || campaign?.whatsappNumber;
       
       if (!targetPhone) {
         toast.error('Número de WhatsApp não configurado para esta campanha');

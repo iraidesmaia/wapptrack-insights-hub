@@ -1,3 +1,4 @@
+
 export interface Lead {
   id: string;
   name: string;
@@ -17,7 +18,7 @@ export interface Campaign {
   utmCampaign?: string;
   utmContent?: string;
   utmTerm?: string;
-  pixel?: string;
+  pixelId?: string;
   createdAt: string;
   active: boolean;
   whatsappNumber?: string;

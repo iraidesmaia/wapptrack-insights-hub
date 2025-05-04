@@ -3,7 +3,7 @@ import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/dataService';
@@ -382,18 +382,21 @@ const Campaigns = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Define como o contato será registrado no sistema
+                    Define como o contato será registrado no sistema e como o Pixel será disparado
                   </p>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="pixel">Código do Pixel (opcional)</Label>
+                  <Label htmlFor="pixelId">ID do Facebook Pixel</Label>
                   <Input
-                    id="pixel"
-                    name="pixel"
-                    value={currentCampaign.pixel}
+                    id="pixelId"
+                    name="pixelId"
+                    value={currentCampaign.pixelId}
                     onChange={handleInputChange}
-                    placeholder="ID do seu pixel de rastreamento"
+                    placeholder="Ex: 123456789012345"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Informe o ID do seu Facebook Pixel para rastreamento automático de eventos
+                  </p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="baseUrl">URL Base</Label>
