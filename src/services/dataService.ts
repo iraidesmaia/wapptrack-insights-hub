@@ -1,3 +1,4 @@
+
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
 import { generateId } from "../lib/utils";
 
@@ -55,7 +56,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
-    whatsappNumber: '5511999887766',
+    whatsappNumber: '5585998372658', // Updated to your number
     eventType: 'lead',
     createdAt: new Date(Date.now() - 1000000000).toISOString(),
   },
@@ -66,7 +67,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
-    whatsappNumber: '5511999887766',
+    whatsappNumber: '5585998372658', // Updated to your number
     eventType: 'contact',
     createdAt: new Date(Date.now() - 2000000000).toISOString(),
   },
@@ -77,7 +78,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'cpc',
     utmCampaign: 'search_traffic',
     active: true,
-    whatsappNumber: '5511999887766',
+    whatsappNumber: '5585998372658', // Updated to your number
     eventType: 'page_view',
     createdAt: new Date(Date.now() - 3000000000).toISOString(),
   },
@@ -87,7 +88,7 @@ const campaigns: Campaign[] = [
     utmSource: 'website',
     utmMedium: 'organic',
     active: true,
-    whatsappNumber: '5511999887766',
+    whatsappNumber: '5585998372658', // Updated to your number
     eventType: 'sale',
     createdAt: new Date(Date.now() - 4000000000).toISOString(),
   },
@@ -376,11 +377,12 @@ export const trackRedirect = async (
       leads.unshift(newLead);
       console.log('Created lead with default campaign:', newLead);
       
-      // Return a default phone number for testing
-      return { targetPhone: '5511999887766' };
+      // Return your WhatsApp number instead of the hardcoded one
+      return { targetPhone: '5585998372658' };
     }
     
-    return { targetPhone: '5511999887766' };
+    // Return your WhatsApp number as default
+    return { targetPhone: '5585998372658' };
   }
 
   // Event type handling based on campaign settings
