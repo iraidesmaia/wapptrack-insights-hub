@@ -44,11 +44,13 @@ const Redirect = () => {
             trackPageView();
           }
         } else {
-          setError('Campanha não encontrada');
+          // Display warning but don't prevent form submission
+          toast.warning('Campanha não encontrada. O contato será registrado em uma campanha padrão.');
         }
       } catch (err) {
         console.error('Error loading campaign:', err);
-        setError('Erro ao carregar detalhes da campanha');
+        // Display warning but don't block the form
+        toast.warning('Erro ao carregar detalhes da campanha, mas você ainda pode continuar.');
       }
     };
 
