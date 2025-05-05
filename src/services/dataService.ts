@@ -56,7 +56,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
-    whatsappNumber: '5585998372658', // Updated to your number
+    whatsappNumber: '5585998372658',
     eventType: 'lead',
     createdAt: new Date(Date.now() - 1000000000).toISOString(),
   },
@@ -67,7 +67,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'social',
     utmCampaign: 'promo_junho',
     active: true,
-    whatsappNumber: '5585998372658', // Updated to your number
+    whatsappNumber: '5585998372658',
     eventType: 'contact',
     createdAt: new Date(Date.now() - 2000000000).toISOString(),
   },
@@ -78,7 +78,7 @@ const campaigns: Campaign[] = [
     utmMedium: 'cpc',
     utmCampaign: 'search_traffic',
     active: true,
-    whatsappNumber: '5585998372658', // Updated to your number
+    whatsappNumber: '5585998372658',
     eventType: 'page_view',
     createdAt: new Date(Date.now() - 3000000000).toISOString(),
   },
@@ -88,7 +88,7 @@ const campaigns: Campaign[] = [
     utmSource: 'website',
     utmMedium: 'organic',
     active: true,
-    whatsappNumber: '5585998372658', // Updated to your number
+    whatsappNumber: '5585998372658',
     eventType: 'sale',
     createdAt: new Date(Date.now() - 4000000000).toISOString(),
   },
