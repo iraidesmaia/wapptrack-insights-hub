@@ -13,7 +13,18 @@ export const getLeads = async (): Promise<Lead[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return leads || [];
+    
+    // Map database fields to our Lead interface
+    return (leads || []).map(lead => ({
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      campaign: lead.campaign,
+      status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
+      createdAt: lead.created_at,
+      customFields: lead.custom_fields as Record<string, string>,
+      notes: lead.notes
+    }));
   } catch (error) {
     console.error("Error fetching leads:", error);
     return [];
@@ -44,9 +55,9 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lea
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
-      status: data.status,
+      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
       createdAt: data.created_at,
-      customFields: data.custom_fields,
+      customFields: data.custom_fields as Record<string, string>,
       notes: data.notes
     };
   } catch (error) {
@@ -82,9 +93,9 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
-      status: data.status,
+      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
       createdAt: data.created_at,
-      customFields: data.custom_fields,
+      customFields: data.custom_fields as Record<string, string>,
       notes: data.notes
     };
   } catch (error) {
@@ -130,7 +141,7 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       utmTerm: campaign.utm_term,
       pixelId: campaign.pixel_id,
       whatsappNumber: campaign.whatsapp_number,
-      eventType: campaign.event_type,
+      eventType: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: campaign.active,
       createdAt: campaign.created_at
     }));
@@ -173,7 +184,7 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
       utmTerm: data.utm_term,
       pixelId: data.pixel_id,
       whatsappNumber: data.whatsapp_number,
-      eventType: data.event_type,
+      eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
       createdAt: data.created_at
     };
@@ -219,7 +230,7 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       utmTerm: data.utm_term,
       pixelId: data.pixel_id,
       whatsappNumber: data.whatsapp_number,
-      eventType: data.event_type,
+      eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
       createdAt: data.created_at
     };
@@ -555,7 +566,7 @@ export const trackRedirect = async (
     const type = eventType || campaign.event_type || 'lead';
     
     // Create a lead if the event type is 'lead' and the phone number doesn't exist yet
-    if (type === 'lead' && phone) {
+    if ((type === 'lead' || type === 'contact') && phone) {
       // Check if the lead with this phone already exists
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
