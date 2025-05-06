@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          event_type: string | null
+          id: string
+          name: string
+          pixel_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          name: string
+          pixel_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          name?: string
+          pixel_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           card_positions: Json | null
@@ -50,6 +95,91 @@ export type Database = {
           teamwork?: number | null
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          campaign: string
+          campaign_id: string | null
+          created_at: string | null
+          custom_fields: Json | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          status: string | null
+        }
+        Insert: {
+          campaign: string
+          campaign_id?: string | null
+          created_at?: string | null
+          custom_fields?: Json | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          status?: string | null
+        }
+        Update: {
+          campaign?: string
+          campaign_id?: string | null
+          created_at?: string | null
+          custom_fields?: Json | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          campaign: string
+          date: string | null
+          id: string
+          lead_id: string | null
+          lead_name: string
+          notes: string | null
+          product: string | null
+          value: number
+        }
+        Insert: {
+          campaign: string
+          date?: string | null
+          id?: string
+          lead_id?: string | null
+          lead_name: string
+          notes?: string | null
+          product?: string | null
+          value: number
+        }
+        Update: {
+          campaign?: string
+          date?: string | null
+          id?: string
+          lead_id?: string | null
+          lead_name?: string
+          notes?: string | null
+          product?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
