@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
+import { initFacebookPixel, trackPageView, trackEventByType, togglePixelDebug } from '@/lib/fbPixel';
 
 const Redirect = () => {
   const [searchParams] = useSearchParams();
@@ -16,12 +16,16 @@ const Redirect = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pixelInitialized, setPixelInitialized] = useState(false);
   const [campaign, setCampaign] = useState<{ 
     name: string; 
     pixelId?: string; 
     whatsappNumber?: string; 
     eventType?: string 
   } | null>(null);
+
+  // Enable debug mode if "debug=true" is in the URL
+  const debug = searchParams.get('debug') === 'true';
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
@@ -39,9 +43,26 @@ const Redirect = () => {
           
           // Initialize Facebook Pixel if there's a pixel ID
           if (targetCampaign.pixelId) {
-            initFacebookPixel(targetCampaign.pixelId);
-            // Track PageView event automatically on page load
-            trackPageView();
+            // Trim the Pixel ID and check if it's valid
+            const cleanPixelId = targetCampaign.pixelId.trim();
+            if (cleanPixelId) {
+              const initialized = initFacebookPixel(cleanPixelId, debug);
+              setPixelInitialized(initialized);
+              
+              // Track PageView event automatically on page load if initialized successfully
+              if (initialized) {
+                trackPageView();
+                // For debugging purposes
+                console.log('Pixel initialized with ID:', cleanPixelId);
+                console.log('Campaign event type:', targetCampaign.eventType);
+              } else {
+                console.warn('Failed to initialize Facebook Pixel with ID:', cleanPixelId);
+              }
+            } else {
+              console.warn('Empty Pixel ID after trimming for campaign:', targetCampaign.name);
+            }
+          } else {
+            console.log('No Pixel ID found for campaign:', targetCampaign.name);
           }
         } else {
           // Display warning but don't prevent form submission
@@ -55,7 +76,7 @@ const Redirect = () => {
     };
 
     loadCampaignDetails();
-  }, [campaignId]);
+  }, [campaignId, debug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +95,19 @@ const Redirect = () => {
       setLoading(true);
       
       // Track the event based on the campaign's event type before redirecting
-      if (campaign && campaign.pixelId && campaign.eventType) {
-        trackEventByType(campaign.eventType);
+      if (campaign && campaign.eventType && pixelInitialized) {
+        console.log('Tracking event before redirect:', campaign.eventType);
+        const success = trackEventByType(campaign.eventType);
+        if (success) {
+          console.log('Event tracked successfully');
+        } else {
+          console.warn('Failed to track event:', campaign.eventType);
+        }
+      } else {
+        console.log('Not tracking any event, pixelInitialized:', pixelInitialized);
+        if (campaign) {
+          console.log('Campaign event type:', campaign.eventType);
+        }
       }
       
       // Track the redirect in our system and get the target WhatsApp number
@@ -97,6 +129,19 @@ const Redirect = () => {
       setError('Erro ao processar redirecionamento');
       setLoading(false);
     }
+  };
+
+  // Function to toggle debug mode
+  const handleToggleDebug = () => {
+    togglePixelDebug(!debug);
+    const newUrl = new URL(window.location.href);
+    if (!debug) {
+      newUrl.searchParams.set('debug', 'true');
+    } else {
+      newUrl.searchParams.delete('debug');
+    }
+    window.history.replaceState({}, '', newUrl.toString());
+    window.location.reload();
   };
 
   if (error) {
@@ -124,6 +169,20 @@ const Redirect = () => {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-primary">WappTrack</h1>
           {campaign && <p className="mt-2 text-gray-600">Campanha: {campaign.name}</p>}
+          {campaign?.pixelId && pixelInitialized && (
+            <p className="text-xs text-green-600 mt-1">Pixel ativo</p>
+          )}
+          {campaign?.pixelId && !pixelInitialized && (
+            <p className="text-xs text-red-600 mt-1">Falha na inicialização do Pixel</p>
+          )}
+          <div className="mt-2">
+            <button 
+              className="text-xs text-gray-500 underline"
+              onClick={handleToggleDebug}
+            >
+              {debug ? 'Desativar Debug' : 'Ativar Debug'}
+            </button>
+          </div>
         </div>
         
         <Card>
