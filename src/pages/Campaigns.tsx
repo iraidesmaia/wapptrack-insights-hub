@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/dataService';
 import { Campaign } from '@/types';
 import { buildUtmUrl, formatDate, generateTrackingUrl } from '@/lib/utils';
@@ -29,10 +29,11 @@ const Campaigns = () => {
     utmCampaign: '',
     utmContent: '',
     utmTerm: '',
-    pixelId: '', // Changed from pixel to pixelId
+    pixelId: '',
     whatsappNumber: '',
     eventType: 'lead',
-    active: true
+    active: true,
+    customMessage: ''
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
 
@@ -63,7 +64,7 @@ const Campaigns = () => {
     );
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setCurrentCampaign({ ...currentCampaign, [name]: value });
   };
@@ -84,10 +85,11 @@ const Campaigns = () => {
       utmCampaign: '',
       utmContent: '',
       utmTerm: '',
-      pixelId: '', // Changed from pixel to pixelId
+      pixelId: '',
       whatsappNumber: '',
       eventType: 'lead',
-      active: true
+      active: true,
+      customMessage: ''
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -364,6 +366,20 @@ const Campaigns = () => {
                   />
                   <p className="text-xs text-muted-foreground">
                     Informe o número que receberá as mensagens (formato internacional, sem espaços ou símbolos)
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="customMessage">Mensagem personalizada</Label>
+                  <Textarea
+                    id="customMessage"
+                    name="customMessage"
+                    value={currentCampaign.customMessage || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Essa mensagem será enviada automaticamente quando o lead clicar para conversar.
                   </p>
                 </div>
                 <div className="grid gap-2">

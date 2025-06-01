@@ -23,6 +23,7 @@ export interface Campaign {
   active: boolean;
   whatsappNumber?: string;
   eventType?: 'contact' | 'lead' | 'page_view' | 'sale';
+  customMessage?: string;
 }
 
 export interface Sale {
