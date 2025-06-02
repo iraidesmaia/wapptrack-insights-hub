@@ -169,19 +169,22 @@ const Redirect = () => {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-primary">WappTrack</h1>
           {campaign && <p className="mt-2 text-gray-600">Campanha: {campaign.name}</p>}
-          {campaign?.pixelId && pixelInitialized && (
-            <p className="text-xs text-green-600 mt-1">Pixel ativo</p>
-          )}
-          {campaign?.pixelId && !pixelInitialized && (
-            <p className="text-xs text-red-600 mt-1">Falha na inicialização do Pixel</p>
-          )}
-          <div className="mt-2">
-            <button 
-              className="text-xs text-gray-500 underline"
-              onClick={handleToggleDebug}
-            >
-              {debug ? 'Desativar Debug' : 'Ativar Debug'}
-            </button>
+          {/* Hidden debug information - only visible in console */}
+          <div style={{ display: 'none' }}>
+            {campaign?.pixelId && pixelInitialized && (
+              <p className="text-xs text-green-600 mt-1">Pixel ativo</p>
+            )}
+            {campaign?.pixelId && !pixelInitialized && (
+              <p className="text-xs text-red-600 mt-1">Falha na inicialização do Pixel</p>
+            )}
+            <div className="mt-2">
+              <button 
+                className="text-xs text-gray-500 underline"
+                onClick={handleToggleDebug}
+              >
+                {debug ? 'Desativar Debug' : 'Ativar Debug'}
+              </button>
+            </div>
           </div>
         </div>
         
