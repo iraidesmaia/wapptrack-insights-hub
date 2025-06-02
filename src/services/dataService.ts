@@ -1,4 +1,3 @@
-
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
 import { generateId } from "../lib/utils";
 import { supabase } from "../integrations/supabase/client";
@@ -143,7 +142,8 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       whatsappNumber: campaign.whatsapp_number,
       eventType: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: campaign.active,
-      createdAt: campaign.created_at
+      createdAt: campaign.created_at,
+      customMessage: campaign.custom_message
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -166,7 +166,8 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
         pixel_id: campaign.pixelId,
         whatsapp_number: campaign.whatsappNumber,
         event_type: campaign.eventType,
-        active: campaign.active
+        active: campaign.active,
+        custom_message: campaign.customMessage
       })
       .select()
       .single();
@@ -186,7 +187,8 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
       whatsappNumber: data.whatsapp_number,
       eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
-      createdAt: data.created_at
+      createdAt: data.created_at,
+      customMessage: data.custom_message
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -208,6 +210,7 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.whatsappNumber !== undefined) updateData.whatsapp_number = campaign.whatsappNumber;
     if (campaign.eventType !== undefined) updateData.event_type = campaign.eventType;
     if (campaign.active !== undefined) updateData.active = campaign.active;
+    if (campaign.customMessage !== undefined) updateData.custom_message = campaign.customMessage;
 
     // Update campaign in Supabase
     const { data, error } = await supabase
@@ -232,7 +235,8 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       whatsappNumber: data.whatsapp_number,
       eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
-      createdAt: data.created_at
+      createdAt: data.created_at,
+      customMessage: data.custom_message
     };
   } catch (error) {
     console.error("Error updating campaign:", error);
