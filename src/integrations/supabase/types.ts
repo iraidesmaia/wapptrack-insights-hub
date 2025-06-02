@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           active: boolean | null
           created_at: string | null
+          custom_message: string | null
           event_type: string | null
           id: string
           name: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           created_at?: string | null
+          custom_message?: string | null
           event_type?: string | null
           id?: string
           name: string
@@ -41,6 +43,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           created_at?: string | null
+          custom_message?: string | null
           event_type?: string | null
           id?: string
           name?: string
@@ -102,7 +105,9 @@ export type Database = {
           campaign_id: string | null
           created_at: string | null
           custom_fields: Json | null
+          first_contact_date: string | null
           id: string
+          last_contact_date: string | null
           name: string
           notes: string | null
           phone: string
@@ -113,7 +118,9 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          first_contact_date?: string | null
           id?: string
+          last_contact_date?: string | null
           name: string
           notes?: string | null
           phone: string
@@ -124,7 +131,9 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          first_contact_date?: string | null
           id?: string
+          last_contact_date?: string | null
           name?: string
           notes?: string | null
           phone?: string

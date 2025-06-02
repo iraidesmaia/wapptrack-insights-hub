@@ -1,3 +1,4 @@
+
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
 import { generateId } from "../lib/utils";
 import { supabase } from "../integrations/supabase/client";
@@ -22,7 +23,9 @@ export const getLeads = async (): Promise<Lead[]> => {
       status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
       createdAt: lead.created_at,
       customFields: lead.custom_fields as Record<string, string>,
-      notes: lead.notes
+      notes: lead.notes,
+      firstContactDate: lead.first_contact_date,
+      lastContactDate: lead.last_contact_date
     }));
   } catch (error) {
     console.error("Error fetching leads:", error);
@@ -41,7 +44,9 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lea
         campaign: lead.campaign,
         status: lead.status || 'new',
         custom_fields: lead.customFields || {},
-        notes: lead.notes || ''
+        notes: lead.notes || '',
+        first_contact_date: lead.firstContactDate || null,
+        last_contact_date: lead.lastContactDate || null
       })
       .select()
       .single();
@@ -57,7 +62,9 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lea
       status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
       createdAt: data.created_at,
       customFields: data.custom_fields as Record<string, string>,
-      notes: data.notes
+      notes: data.notes,
+      firstContactDate: data.first_contact_date,
+      lastContactDate: data.last_contact_date
     };
   } catch (error) {
     console.error("Error adding lead:", error);
@@ -75,6 +82,8 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.status) updateData.status = lead.status;
     if (lead.customFields) updateData.custom_fields = lead.customFields;
     if (lead.notes) updateData.notes = lead.notes;
+    if (lead.firstContactDate !== undefined) updateData.first_contact_date = lead.firstContactDate;
+    if (lead.lastContactDate !== undefined) updateData.last_contact_date = lead.lastContactDate;
 
     // Update lead in Supabase
     const { data, error } = await supabase
@@ -95,7 +104,9 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
       createdAt: data.created_at,
       customFields: data.custom_fields as Record<string, string>,
-      notes: data.notes
+      notes: data.notes,
+      firstContactDate: data.first_contact_date,
+      lastContactDate: data.last_contact_date
     };
   } catch (error) {
     console.error("Error updating lead:", error);

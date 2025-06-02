@@ -1,4 +1,3 @@
-
 export interface Lead {
   id: string;
   name: string;
@@ -8,6 +7,8 @@ export interface Lead {
   createdAt: string;
   customFields?: Record<string, string>;
   notes?: string;
+  firstContactDate?: string;
+  lastContactDate?: string;
 }
 
 export interface Campaign {

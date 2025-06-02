@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,9 @@ const Leads = () => {
     phone: '',
     campaign: '',
     status: 'new',
-    notes: ''
+    notes: '',
+    firstContactDate: '',
+    lastContactDate: ''
   });
 
   useEffect(() => {
@@ -76,7 +77,9 @@ const Leads = () => {
       phone: '',
       campaign: '',
       status: 'new',
-      notes: ''
+      notes: '',
+      firstContactDate: '',
+      lastContactDate: ''
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -183,20 +186,22 @@ const Leads = () => {
                     <th className="p-4 text-left font-medium">Telefone</th>
                     <th className="p-4 text-left font-medium">Campanha</th>
                     <th className="p-4 text-left font-medium">Status</th>
-                    <th className="p-4 text-left font-medium">Data</th>
+                    <th className="p-4 text-left font-medium">Data Criação</th>
+                    <th className="p-4 text-left font-medium">Primeiro Contato</th>
+                    <th className="p-4 text-left font-medium">Último Contato</th>
                     <th className="p-4 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="p-4 text-center">
+                      <td colSpan={8} className="p-4 text-center">
                         Carregando leads...
                       </td>
                     </tr>
                   ) : filteredLeads.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-4 text-center">
+                      <td colSpan={8} className="p-4 text-center">
                         Nenhum lead encontrado
                       </td>
                     </tr>
@@ -208,6 +213,8 @@ const Leads = () => {
                         <td className="p-4">{lead.campaign}</td>
                         <td className="p-4">{getStatusBadge(lead.status)}</td>
                         <td className="p-4">{formatDate(lead.createdAt)}</td>
+                        <td className="p-4">{lead.firstContactDate ? formatDate(lead.firstContactDate) : '-'}</td>
+                        <td className="p-4">{lead.lastContactDate ? formatDate(lead.lastContactDate) : '-'}</td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <Button
                             variant="ghost"
@@ -314,6 +321,26 @@ const Leads = () => {
                     <SelectItem value="lost">Perdido</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="firstContactDate">Data do Primeiro Contato</Label>
+                <Input
+                  id="firstContactDate"
+                  name="firstContactDate"
+                  type="datetime-local"
+                  value={currentLead.firstContactDate ? new Date(currentLead.firstContactDate).toISOString().slice(0, 16) : ''}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="lastContactDate">Data do Último Contato</Label>
+                <Input
+                  id="lastContactDate"
+                  name="lastContactDate"
+                  type="datetime-local"
+                  value={currentLead.lastContactDate ? new Date(currentLead.lastContactDate).toISOString().slice(0, 16) : ''}
+                  onChange={handleInputChange}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="notes">Observações</Label>
