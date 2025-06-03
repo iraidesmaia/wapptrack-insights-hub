@@ -21,7 +21,8 @@ const Redirect = () => {
     name: string; 
     pixelId?: string; 
     whatsappNumber?: string; 
-    eventType?: string 
+    eventType?: string;
+    customMessage?: string;
   } | null>(null);
 
   // Enable debug mode if "debug=true" is in the URL
@@ -122,8 +123,26 @@ const Redirect = () => {
         return;
       }
       
+      // Build WhatsApp URL with custom message if available
+      let whatsappUrl = `https://wa.me/${targetPhone}`;
+      
+      if (campaign?.customMessage) {
+        // Replace variables in the custom message
+        let message = campaign.customMessage;
+        if (name) {
+          message = message.replace(/\{nome\}/gi, name);
+        }
+        message = message.replace(/\{telefone\}/gi, phone);
+        
+        // Encode the message for URL
+        const encodedMessage = encodeURIComponent(message);
+        whatsappUrl += `?text=${encodedMessage}`;
+      }
+      
+      console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
+      
       // Redirect to WhatsApp
-      window.location.href = `https://wa.me/${targetPhone}`;
+      window.location.href = whatsappUrl;
     } catch (err) {
       console.error('Error tracking redirect:', err);
       setError('Erro ao processar redirecionamento');
