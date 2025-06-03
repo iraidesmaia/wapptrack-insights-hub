@@ -27,11 +27,11 @@ const Redirect = () => {
   // Enable debug mode if "debug=true" is in the URL
   const debug = searchParams.get('debug') === 'true';
 
-  // Company branding configuration
+  // Company branding configuration - PERSONALIZE AQUI
   const companyBranding = {
     logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
-    title: "Sua Empresa",
-    subtitle: "Sistema de Marketing"
+    title: "Sua Empresa", // Mude aqui o nome da sua empresa
+    subtitle: "Sistema de Marketing Digital" // Mude aqui a descrição da sua empresa
   };
 
   useEffect(() => {
