@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
@@ -27,6 +26,13 @@ const Redirect = () => {
 
   // Enable debug mode if "debug=true" is in the URL
   const debug = searchParams.get('debug') === 'true';
+
+  // Company branding configuration
+  const companyBranding = {
+    logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
+    title: "Sua Empresa",
+    subtitle: "Sistema de Marketing"
+  };
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
@@ -186,7 +192,19 @@ const Redirect = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-primary">WappTrack</h1>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="flex-shrink-0">
+              <img
+                src={companyBranding.logo}
+                alt="Logo da empresa"
+                className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-2xl text-primary">{companyBranding.title}</span>
+              <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+            </div>
+          </div>
           {campaign && <p className="mt-2 text-gray-600">Campanha: {campaign.name}</p>}
           {/* Hidden debug information - only visible in console */}
           <div style={{ display: 'none' }}>
