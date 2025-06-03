@@ -54,13 +54,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Company branding configuration
+  const companyBranding = {
+    logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
+    title: "Sua Empresa",
+    subtitle: "Sistema de Marketing"
+  };
+
+  const BrandingSection = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className={cn(
+      "flex items-center space-x-3 px-4 py-4",
+      isMobile ? "justify-center" : ""
+    )}>
+      <div className="flex-shrink-0">
+        <img
+          src={companyBranding.logo}
+          alt="Logo da empresa"
+          className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
+        />
+      </div>
+      <div className="flex flex-col">
+        <span className="font-bold text-lg text-primary">{companyBranding.title}</span>
+        <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Mobile menu button */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b">
-        <Link to="/dashboard" className="flex items-center">
-          <span className="font-bold text-xl text-primary">WappTrack</span>
-        </Link>
+        <BrandingSection isMobile />
         <Button
           variant="ghost"
           size="icon"
@@ -75,9 +99,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {/* Sidebar for desktop */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r">
           <div className="flex flex-col flex-1 h-full">
-            <div className="flex items-center h-16 flex-shrink-0 px-4 border-b">
-              <Link to="/dashboard" className="flex items-center space-x-2">
-                <span className="font-bold text-xl text-primary">WappTrack</span>
+            <div className="flex items-center h-20 flex-shrink-0 border-b">
+              <Link to="/dashboard" className="w-full">
+                <BrandingSection />
               </Link>
             </div>
             <nav className="flex-1 px-2 py-4 space-y-1">
@@ -126,9 +150,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {isMobileMenuOpen && (
           <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
-              <Link to="/dashboard" className="flex items-center">
-                <span className="font-bold text-xl text-primary">WappTrack</span>
-              </Link>
+              <BrandingSection isMobile />
               <Button
                 variant="ghost"
                 size="icon"
