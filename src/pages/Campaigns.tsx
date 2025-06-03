@@ -33,7 +33,9 @@ const Campaigns = () => {
     whatsappNumber: '',
     eventType: 'lead',
     active: true,
-    customMessage: ''
+    customMessage: '',
+    companyTitle: '',
+    companySubtitle: ''
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
 
@@ -89,7 +91,9 @@ const Campaigns = () => {
       whatsappNumber: '',
       eventType: 'lead',
       active: true,
-      customMessage: ''
+      customMessage: '',
+      companyTitle: '',
+      companySubtitle: ''
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -335,6 +339,32 @@ const Campaigns = () => {
                 </div>
               </TabsContent>
               <TabsContent value="advanced" className="space-y-4 mt-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="companyTitle">Título da Empresa</Label>
+                  <Input
+                    id="companyTitle"
+                    name="companyTitle"
+                    value={currentCampaign.companyTitle || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Minha Empresa"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Nome que aparecerá no cabeçalho da página de redirecionamento
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="companySubtitle">Subtítulo da Empresa</Label>
+                  <Input
+                    id="companySubtitle"
+                    name="companySubtitle"
+                    value={currentCampaign.companySubtitle || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Sistema de Marketing Digital"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Descrição que aparecerá abaixo do título no cabeçalho
+                  </p>
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="utmContent">Conteúdo (utm_content)</Label>
                   <Input

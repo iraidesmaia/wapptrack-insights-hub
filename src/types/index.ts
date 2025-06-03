@@ -1,3 +1,4 @@
+
 export interface Lead {
   id: string;
   name: string;
@@ -25,6 +26,8 @@ export interface Campaign {
   whatsappNumber?: string;
   eventType?: 'contact' | 'lead' | 'page_view' | 'sale';
   customMessage?: string;
+  companyTitle?: string;
+  companySubtitle?: string;
 }
 
 export interface Sale {
