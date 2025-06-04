@@ -28,6 +28,7 @@ export interface Campaign {
   customMessage?: string;
   companyTitle?: string;
   companySubtitle?: string;
+  logoUrl?: string;
 }
 
 export interface Sale {
