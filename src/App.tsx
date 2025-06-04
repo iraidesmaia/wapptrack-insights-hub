@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Campaigns from "./pages/Campaigns";
 import Sales from "./pages/Sales";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Redirect from "./pages/Redirect";
 import NotFound from "./pages/NotFound";
@@ -49,6 +50,12 @@ const App = () => (
             <Route path="/sales" element={
               <ProtectedRoute>
                 <Sales />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } />
             

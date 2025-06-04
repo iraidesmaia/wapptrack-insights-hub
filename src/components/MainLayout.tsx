@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -8,11 +8,14 @@ import {
   DollarSign, 
   LogOut,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import type { CompanySettings } from '@/types';
 
 type MainLayoutProps = {
   children: React.ReactNode;
@@ -22,6 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   
   const navigation = [
     { 
@@ -48,17 +52,52 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       icon: DollarSign, 
       current: location.pathname === '/sales' 
     },
+    { 
+      name: 'Configurações', 
+      href: '/settings', 
+      icon: Settings, 
+      current: location.pathname === '/settings' 
+    },
   ];
+
+  useEffect(() => {
+    loadCompanySettings();
+  }, []);
+
+  const loadCompanySettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading company settings:', error);
+        return;
+      }
+
+      setCompanySettings(data);
+    } catch (error) {
+      console.error('Error loading company settings:', error);
+    }
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Company branding configuration
-  const companyBranding = {
+  // Default company branding configuration
+  const defaultCompanyBranding = {
     logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
     title: "Sua Empresa",
     subtitle: "Sistema de Marketing"
+  };
+
+  // Use company settings if available, otherwise use default
+  const companyBranding = {
+    logo: companySettings?.logo_url || defaultCompanyBranding.logo,
+    title: companySettings?.company_name || defaultCompanyBranding.title,
+    subtitle: companySettings?.company_subtitle || defaultCompanyBranding.subtitle
   };
 
   const BrandingSection = ({ isMobile = false }: { isMobile?: boolean }) => (

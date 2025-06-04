@@ -59,3 +59,12 @@ export interface CampaignPerformance {
   revenue: number;
   conversionRate: number;
 }
+
+export interface CompanySettings {
+  id: string;
+  company_name: string;
+  company_subtitle: string;
+  logo_url?: string;
+  created_at: string;
+  updated_at: string;
+}
