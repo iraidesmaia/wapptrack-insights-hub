@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getLeads, addLead, updateLead, deleteLead, getCampaigns } from '@/services/dataService';
+import { getLeads, addLead, updateLead, deleteLead, getCampaigns, addSale } from '@/services/dataService';
 import { Lead, Campaign } from '@/types';
 import { formatDate, formatPhoneNumber } from '@/lib/utils';
 import { Plus, Trash2, Edit, MessageSquare } from 'lucide-react';
@@ -91,6 +91,26 @@ const Leads = () => {
     setIsDialogOpen(true);
   };
 
+  const createSaleFromLead = async (lead: Lead) => {
+    try {
+      const newSale = await addSale({
+        value: 0, // Valor padrão, pode ser editado depois
+        date: new Date().toISOString(),
+        leadId: lead.id,
+        leadName: lead.name,
+        campaign: lead.campaign,
+        product: '', // Produto vazio, pode ser preenchido depois
+        notes: `Venda criada automaticamente quando lead foi convertido`
+      });
+      
+      console.log('Venda criada automaticamente:', newSale);
+      toast.success('Lead convertido! Uma nova venda foi criada automaticamente.');
+    } catch (error) {
+      console.error('Erro ao criar venda automática:', error);
+      toast.error('Lead atualizado, mas houve erro ao criar a venda automática');
+    }
+  };
+
   const handleSaveLead = async () => {
     try {
       // Validate required fields
@@ -99,15 +119,34 @@ const Leads = () => {
         return;
       }
 
+      let updatedLead: Lead;
+      const wasConverted = currentLead.status === 'converted';
+
       if (dialogMode === 'add') {
         const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'createdAt'>);
         setLeads([newLead, ...leads]);
+        updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');
       } else {
         if (!currentLead.id) return;
-        const updatedLead = await updateLead(currentLead.id, currentLead);
+        
+        // Verificar se o status mudou para 'converted'
+        const originalLead = leads.find(lead => lead.id === currentLead.id);
+        const statusChangedToConverted = originalLead?.status !== 'converted' && currentLead.status === 'converted';
+        
+        updatedLead = await updateLead(currentLead.id, currentLead);
         setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
         toast.success('Lead atualizado com sucesso');
+        
+        // Se o status mudou para convertido, criar uma venda automaticamente
+        if (statusChangedToConverted) {
+          await createSaleFromLead(updatedLead);
+        }
+      }
+
+      // Se for um novo lead e já está marcado como convertido, criar venda também
+      if (dialogMode === 'add' && wasConverted) {
+        await createSaleFromLead(updatedLead);
       }
       
       setIsDialogOpen(false);
