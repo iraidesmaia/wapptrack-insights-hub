@@ -29,6 +29,8 @@ export interface Campaign {
   companyTitle?: string;
   companySubtitle?: string;
   logoUrl?: string;
+  redirectType?: 'whatsapp' | 'form' | 'custom';
+  pixelIntegrationType?: 'direct' | 'form';
 }
 
 export interface Sale {

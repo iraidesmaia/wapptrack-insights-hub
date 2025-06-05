@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,9 @@ const Campaigns = () => {
     active: true,
     customMessage: '',
     companyTitle: '',
-    companySubtitle: ''
+    companySubtitle: '',
+    redirectType: 'whatsapp',
+    pixelIntegrationType: 'direct'
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
 
@@ -79,6 +82,14 @@ const Campaigns = () => {
 
   const handleEventTypeChange = (value: string) => {
     setCurrentCampaign({ ...currentCampaign, eventType: value as Campaign['eventType'] });
+  };
+
+  const handleRedirectTypeChange = (value: string) => {
+    setCurrentCampaign({ ...currentCampaign, redirectType: value as Campaign['redirectType'] });
+  };
+
+  const handlePixelIntegrationTypeChange = (value: string) => {
+    setCurrentCampaign({ ...currentCampaign, pixelIntegrationType: value as Campaign['pixelIntegrationType'] });
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +145,9 @@ const Campaigns = () => {
       active: true,
       customMessage: '',
       companyTitle: '',
-      companySubtitle: ''
+      companySubtitle: '',
+      redirectType: 'whatsapp',
+      pixelIntegrationType: 'direct'
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -484,6 +497,26 @@ const Campaigns = () => {
                 </div>
 
                 <div className="grid gap-2">
+                  <Label htmlFor="redirectType">Tipo de redirecionamento</Label>
+                  <Select
+                    value={currentCampaign.redirectType || 'whatsapp'}
+                    onValueChange={handleRedirectTypeChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de redirecionamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp">Direto para WhatsApp</SelectItem>
+                      <SelectItem value="form">Formulário de Lead</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define como o usuário será redirecionado ao clicar no link
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
                   <Label htmlFor="pixelId">ID do Facebook Pixel</Label>
                   <Input
                     id="pixelId"
@@ -492,8 +525,24 @@ const Campaigns = () => {
                     onChange={handleInputChange}
                     placeholder="Ex: 123456789012345"
                   />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="pixelIntegrationType">Integração do Pixel</Label>
+                  <Select
+                    value={currentCampaign.pixelIntegrationType || 'direct'}
+                    onValueChange={handlePixelIntegrationTypeChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de integração" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direto</SelectItem>
+                      <SelectItem value="form">Formulário</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    Informe o ID do seu Facebook Pixel para rastreamento automático de eventos
+                    Direto: Dispara o evento imediatamente. Formulário: Dispara após preenchimento do formulário
                   </p>
                 </div>
 

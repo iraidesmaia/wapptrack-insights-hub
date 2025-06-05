@@ -21,6 +21,8 @@ export type Database = {
           logo_url: string | null
           name: string
           pixel_id: string | null
+          pixel_integration_type: string | null
+          redirect_type: string | null
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -39,6 +41,8 @@ export type Database = {
           logo_url?: string | null
           name: string
           pixel_id?: string | null
+          pixel_integration_type?: string | null
+          redirect_type?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -57,6 +61,8 @@ export type Database = {
           logo_url?: string | null
           name?: string
           pixel_id?: string | null
+          pixel_integration_type?: string | null
+          redirect_type?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null

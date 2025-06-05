@@ -156,7 +156,9 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       customMessage: campaign.custom_message,
       companyTitle: campaign.company_title,
       companySubtitle: campaign.company_subtitle,
-      logoUrl: campaign.logo_url
+      logoUrl: campaign.logo_url,
+      redirectType: campaign.redirect_type as 'whatsapp' | 'form' | 'custom',
+      pixelIntegrationType: campaign.pixel_integration_type as 'direct' | 'form'
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -183,7 +185,9 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
         custom_message: campaign.customMessage,
         company_title: campaign.companyTitle,
         company_subtitle: campaign.companySubtitle,
-        logo_url: campaign.logoUrl
+        logo_url: campaign.logoUrl,
+        redirect_type: campaign.redirectType,
+        pixel_integration_type: campaign.pixelIntegrationType
       })
       .select()
       .single();
@@ -207,7 +211,9 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
       customMessage: data.custom_message,
       companyTitle: data.company_title,
       companySubtitle: data.company_subtitle,
-      logoUrl: data.logo_url
+      logoUrl: data.logo_url,
+      redirectType: data.redirect_type as 'whatsapp' | 'form' | 'custom',
+      pixelIntegrationType: data.pixel_integration_type as 'direct' | 'form'
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -233,6 +239,8 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.companyTitle !== undefined) updateData.company_title = campaign.companyTitle;
     if (campaign.companySubtitle !== undefined) updateData.company_subtitle = campaign.companySubtitle;
     if (campaign.logoUrl !== undefined) updateData.logo_url = campaign.logoUrl;
+    if (campaign.redirectType !== undefined) updateData.redirect_type = campaign.redirectType;
+    if (campaign.pixelIntegrationType !== undefined) updateData.pixel_integration_type = campaign.pixelIntegrationType;
 
     // Update campaign in Supabase
     const { data, error } = await supabase
@@ -261,7 +269,9 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       customMessage: data.custom_message,
       companyTitle: data.company_title,
       companySubtitle: data.company_subtitle,
-      logoUrl: data.logo_url
+      logoUrl: data.logo_url,
+      redirectType: data.redirect_type as 'whatsapp' | 'form' | 'custom',
+      pixelIntegrationType: data.pixel_integration_type as 'direct' | 'form'
     };
   } catch (error) {
     console.error("Error updating campaign:", error);
