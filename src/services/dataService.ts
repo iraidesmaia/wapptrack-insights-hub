@@ -1,4 +1,3 @@
-
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
 import { generateId } from "../lib/utils";
 import { supabase } from "../integrations/supabase/client";
@@ -154,7 +153,10 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       eventType: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: campaign.active,
       createdAt: campaign.created_at,
-      customMessage: campaign.custom_message
+      customMessage: campaign.custom_message,
+      companyTitle: campaign.company_title,
+      companySubtitle: campaign.company_subtitle,
+      logoUrl: campaign.logo_url
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -178,7 +180,10 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
         whatsapp_number: campaign.whatsappNumber,
         event_type: campaign.eventType,
         active: campaign.active,
-        custom_message: campaign.customMessage
+        custom_message: campaign.customMessage,
+        company_title: campaign.companyTitle,
+        company_subtitle: campaign.companySubtitle,
+        logo_url: campaign.logoUrl
       })
       .select()
       .single();
@@ -199,7 +204,10 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
       eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
       createdAt: data.created_at,
-      customMessage: data.custom_message
+      customMessage: data.custom_message,
+      companyTitle: data.company_title,
+      companySubtitle: data.company_subtitle,
+      logoUrl: data.logo_url
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -222,6 +230,9 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.eventType !== undefined) updateData.event_type = campaign.eventType;
     if (campaign.active !== undefined) updateData.active = campaign.active;
     if (campaign.customMessage !== undefined) updateData.custom_message = campaign.customMessage;
+    if (campaign.companyTitle !== undefined) updateData.company_title = campaign.companyTitle;
+    if (campaign.companySubtitle !== undefined) updateData.company_subtitle = campaign.companySubtitle;
+    if (campaign.logoUrl !== undefined) updateData.logo_url = campaign.logoUrl;
 
     // Update campaign in Supabase
     const { data, error } = await supabase
@@ -247,7 +258,10 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
       createdAt: data.created_at,
-      customMessage: data.custom_message
+      customMessage: data.custom_message,
+      companyTitle: data.company_title,
+      companySubtitle: data.company_subtitle,
+      logoUrl: data.logo_url
     };
   } catch (error) {
     console.error("Error updating campaign:", error);

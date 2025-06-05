@@ -12,10 +12,13 @@ export type Database = {
       campaigns: {
         Row: {
           active: boolean | null
+          company_subtitle: string | null
+          company_title: string | null
           created_at: string | null
           custom_message: string | null
           event_type: string | null
           id: string
+          logo_url: string | null
           name: string
           pixel_id: string | null
           utm_campaign: string | null
@@ -27,10 +30,13 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          company_subtitle?: string | null
+          company_title?: string | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           pixel_id?: string | null
           utm_campaign?: string | null
@@ -42,10 +48,13 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          company_subtitle?: string | null
+          company_title?: string | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           pixel_id?: string | null
           utm_campaign?: string | null

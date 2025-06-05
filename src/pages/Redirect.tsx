@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
@@ -25,6 +24,7 @@ const Redirect = () => {
     customMessage?: string;
     companyTitle?: string;
     companySubtitle?: string;
+    logoUrl?: string;
   } | null>(null);
 
   // Enable debug mode if "debug=true" is in the URL
@@ -39,7 +39,7 @@ const Redirect = () => {
 
   // Use campaign-specific branding if available, otherwise use default
   const companyBranding = {
-    logo: defaultCompanyBranding.logo, // Logo sempre usa o padrão por enquanto
+    logo: campaign?.logoUrl || defaultCompanyBranding.logo,
     title: campaign?.companyTitle || defaultCompanyBranding.title,
     subtitle: campaign?.companySubtitle || defaultCompanyBranding.subtitle
   };
