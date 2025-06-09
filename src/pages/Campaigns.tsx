@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -508,7 +507,6 @@ const Campaigns = () => {
                     <SelectContent>
                       <SelectItem value="whatsapp">Direto para WhatsApp</SelectItem>
                       <SelectItem value="form">Formulário de Lead</SelectItem>
-                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">

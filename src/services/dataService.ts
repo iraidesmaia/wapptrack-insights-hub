@@ -157,8 +157,8 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       companyTitle: campaign.company_title,
       companySubtitle: campaign.company_subtitle,
       logoUrl: campaign.logo_url,
-      redirectType: campaign.redirect_type as 'whatsapp' | 'form' | 'custom',
-      pixelIntegrationType: campaign.pixel_integration_type as 'direct' | 'form'
+      redirectType: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixelIntegrationType: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct'
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -186,8 +186,8 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
         company_title: campaign.companyTitle,
         company_subtitle: campaign.companySubtitle,
         logo_url: campaign.logoUrl,
-        redirect_type: campaign.redirectType,
-        pixel_integration_type: campaign.pixelIntegrationType
+        redirect_type: campaign.redirectType || 'whatsapp',
+        pixel_integration_type: campaign.pixelIntegrationType || 'direct'
       })
       .select()
       .single();
@@ -212,8 +212,8 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
       companyTitle: data.company_title,
       companySubtitle: data.company_subtitle,
       logoUrl: data.logo_url,
-      redirectType: data.redirect_type as 'whatsapp' | 'form' | 'custom',
-      pixelIntegrationType: data.pixel_integration_type as 'direct' | 'form'
+      redirectType: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixelIntegrationType: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -270,8 +270,8 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       companyTitle: data.company_title,
       companySubtitle: data.company_subtitle,
       logoUrl: data.logo_url,
-      redirectType: data.redirect_type as 'whatsapp' | 'form' | 'custom',
-      pixelIntegrationType: data.pixel_integration_type as 'direct' | 'form'
+      redirectType: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixelIntegrationType: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
     };
   } catch (error) {
     console.error("Error updating campaign:", error);

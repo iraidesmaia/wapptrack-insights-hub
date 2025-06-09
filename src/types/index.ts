@@ -29,7 +29,7 @@ export interface Campaign {
   companyTitle?: string;
   companySubtitle?: string;
   logoUrl?: string;
-  redirectType?: 'whatsapp' | 'form' | 'custom';
+  redirectType?: 'whatsapp' | 'form';
   pixelIntegrationType?: 'direct' | 'form';
 }
 
