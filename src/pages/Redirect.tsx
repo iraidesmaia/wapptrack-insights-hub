@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
@@ -252,22 +251,6 @@ const Redirect = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="flex-shrink-0">
-                <img
-                  src={companyBranding.logo}
-                  alt="Logo da empresa"
-                  className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-2xl text-primary">{companyBranding.title}</span>
-                <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
-              </div>
-            </div>
-          </div>
-          
           <Card>
             <CardHeader className="text-center">
               <CardTitle>Redirecionando...</CardTitle>
