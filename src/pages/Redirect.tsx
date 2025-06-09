@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { initFacebookPixel, trackPageView, trackEventByType, togglePixelDebug } from '@/lib/fbPixel';
+import { Progress } from '@/components/ui/progress';
 
 const Redirect = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +18,8 @@ const Redirect = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pixelInitialized, setPixelInitialized] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [campaign, setCampaign] = useState<{ 
     name: string; 
     pixelId?: string; 
@@ -25,6 +29,7 @@ const Redirect = () => {
     companyTitle?: string;
     companySubtitle?: string;
     logoUrl?: string;
+    redirectType?: string;
   } | null>(null);
 
   // Enable debug mode if "debug=true" is in the URL
@@ -81,6 +86,11 @@ const Redirect = () => {
           } else {
             console.log('No Pixel ID found for campaign:', targetCampaign.name);
           }
+
+          // If redirect type is direct to WhatsApp, start loading screen immediately
+          if (targetCampaign.redirectType === 'whatsapp') {
+            handleDirectWhatsAppRedirect(targetCampaign);
+          }
         } else {
           // Display warning but don't prevent form submission
           toast.warning('Campanha não encontrada. O contato será registrado em uma campanha padrão.');
@@ -94,6 +104,64 @@ const Redirect = () => {
 
     loadCampaignDetails();
   }, [campaignId, debug]);
+
+  const handleDirectWhatsAppRedirect = async (campaignData: any) => {
+    setShowLoadingScreen(true);
+    
+    // Start loading animation
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 100 / 30; // 30 frames over 3 seconds (100ms intervals)
+      setLoadingProgress(Math.min(progress, 100));
+    }, 100);
+
+    // Track the event and redirect after 3 seconds
+    setTimeout(async () => {
+      clearInterval(interval);
+      
+      try {
+        // Track the event based on the campaign's event type
+        if (campaignData.eventType && pixelInitialized) {
+          console.log('Tracking event before redirect:', campaignData.eventType);
+          const success = trackEventByType(campaignData.eventType);
+          if (success) {
+            console.log('Event tracked successfully');
+          } else {
+            console.warn('Failed to track event:', campaignData.eventType);
+          }
+        }
+        
+        // Track the redirect in our system
+        const result = await trackRedirect(campaignId!, '', '', campaignData.eventType);
+        
+        // Get target WhatsApp number
+        const targetPhone = result.targetPhone || campaignData.whatsappNumber;
+        
+        if (!targetPhone) {
+          toast.error('Número de WhatsApp não configurado para esta campanha');
+          setShowLoadingScreen(false);
+          return;
+        }
+        
+        // Build WhatsApp URL
+        let whatsappUrl = `https://wa.me/${targetPhone}`;
+        
+        if (campaignData.customMessage) {
+          const encodedMessage = encodeURIComponent(campaignData.customMessage);
+          whatsappUrl += `?text=${encodedMessage}`;
+        }
+        
+        console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
+        
+        // Redirect to WhatsApp
+        window.location.href = whatsappUrl;
+      } catch (err) {
+        console.error('Error tracking redirect:', err);
+        setShowLoadingScreen(false);
+        setError('Erro ao processar redirecionamento');
+      }
+    }, 3000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,6 +247,49 @@ const Redirect = () => {
     window.location.reload();
   };
 
+  // Show loading screen for direct WhatsApp redirect
+  if (showLoadingScreen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="flex-shrink-0">
+                <img
+                  src={companyBranding.logo}
+                  alt="Logo da empresa"
+                  className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-2xl text-primary">{companyBranding.title}</span>
+                <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+              </div>
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Redirecionando...</CardTitle>
+              <CardDescription>
+                Você será redirecionado para o WhatsApp em alguns segundos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+              <Progress value={loadingProgress} className="w-full" />
+              <p className="text-center text-sm text-muted-foreground">
+                Preparando seu atendimento...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -196,6 +307,11 @@ const Redirect = () => {
         </Card>
       </div>
     );
+  }
+
+  // Only show form if campaign is not direct WhatsApp redirect
+  if (campaign?.redirectType === 'whatsapp') {
+    return null; // Loading screen will be shown instead
   }
 
   return (
