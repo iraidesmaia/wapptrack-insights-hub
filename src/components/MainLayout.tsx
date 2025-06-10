@@ -26,6 +26,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   
   const navigation = [
     { 
@@ -73,12 +74,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       if (error) {
         console.error('Error loading company settings:', error);
-        return;
+      } else {
+        setCompanySettings(data);
       }
-
-      setCompanySettings(data);
     } catch (error) {
       console.error('Error loading company settings:', error);
+    } finally {
+      setIsLoadingSettings(false);
     }
   };
 
@@ -106,15 +108,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       isMobile ? "justify-center" : ""
     )}>
       <div className="flex-shrink-0">
-        <img
-          src={companyBranding.logo}
-          alt="Logo da empresa"
-          className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
-        />
+        {isLoadingSettings ? (
+          <div className="h-12 w-12 rounded-full bg-gray-200 animate-pulse border-2 border-primary/20" />
+        ) : (
+          <img
+            src={companyBranding.logo}
+            alt="Logo da empresa"
+            className="h-12 w-12 rounded-full object-cover border-2 border-primary/20"
+          />
+        )}
       </div>
       <div className="flex flex-col">
-        <span className="font-bold text-lg text-primary">{companyBranding.title}</span>
-        <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+        {isLoadingSettings ? (
+          <>
+            <div className="h-6 w-24 bg-gray-200 animate-pulse rounded mb-1" />
+            <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+          </>
+        ) : (
+          <>
+            <span className="font-bold text-lg text-primary">{companyBranding.title}</span>
+            <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+          </>
+        )}
       </div>
     </div>
   );
