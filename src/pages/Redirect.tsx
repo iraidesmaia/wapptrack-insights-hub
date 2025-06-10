@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { initFacebookPixel, trackPageView, trackEventByType, togglePixelDebug } from '@/lib/fbPixel';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +20,7 @@ const Redirect = () => {
   const [pixelInitialized, setPixelInitialized] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoadingCampaign, setIsLoadingCampaign] = useState(true);
   const [campaign, setCampaign] = useState<{ 
     name: string; 
     pixelId?: string; 
@@ -52,6 +54,7 @@ const Redirect = () => {
     const loadCampaignDetails = async () => {
       if (!campaignId) {
         setError('ID da campanha não encontrado');
+        setIsLoadingCampaign(false);
         return;
       }
 
@@ -98,6 +101,8 @@ const Redirect = () => {
         console.error('Error loading campaign:', err);
         // Display warning but don't block the form
         toast.warning('Erro ao carregar detalhes da campanha, mas você ainda pode continuar.');
+      } finally {
+        setIsLoadingCampaign(false);
       }
     };
 
@@ -246,6 +251,35 @@ const Redirect = () => {
     window.location.reload();
   };
 
+  const BrandingSection = () => (
+    <div className="flex items-center justify-center space-x-3 mb-4">
+      <div className="flex-shrink-0">
+        {isLoadingCampaign ? (
+          <Skeleton className="h-16 w-16 rounded-full" />
+        ) : (
+          <img
+            src={companyBranding.logo}
+            alt="Logo da empresa"
+            className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
+          />
+        )}
+      </div>
+      <div className="flex flex-col">
+        {isLoadingCampaign ? (
+          <>
+            <Skeleton className="h-8 w-32 mb-1" />
+            <Skeleton className="h-5 w-40" />
+          </>
+        ) : (
+          <>
+            <span className="font-bold text-2xl text-primary">{companyBranding.title}</span>
+            <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   // Show loading screen for direct WhatsApp redirect
   if (showLoadingScreen) {
     return (
@@ -301,20 +335,13 @@ const Redirect = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="flex-shrink-0">
-              <img
-                src={companyBranding.logo}
-                alt="Logo da empresa"
-                className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-2xl text-primary">{companyBranding.title}</span>
-              <span className="text-sm text-muted-foreground">{companyBranding.subtitle}</span>
-            </div>
-          </div>
-          {campaign && <p className="mt-2 text-gray-600">Campanha: {campaign.name}</p>}
+          <BrandingSection />
+          {!isLoadingCampaign && campaign && (
+            <p className="mt-2 text-gray-600">Campanha: {campaign.name}</p>
+          )}
+          {isLoadingCampaign && (
+            <Skeleton className="h-5 w-48 mx-auto mt-2" />
+          )}
           {/* Hidden debug information - only visible in console */}
           <div style={{ display: 'none' }}>
             {campaign?.pixelId && pixelInitialized && (

@@ -1,6 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format, formatDistanceToNow } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -16,7 +18,25 @@ export function formatCurrency(value: number): string {
 
 // Format date to Brazilian standard
 export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(date))
+  return format(new Date(date), 'dd/MM/yyyy', { locale: ptBR })
+}
+
+// Format date and time to Brazilian standard
+export function formatDateTime(date: string | Date): string {
+  return format(new Date(date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+}
+
+// Format date relative to now (ex: "há 2 horas")
+export function formatRelativeDate(date: string | Date): string {
+  return formatDistanceToNow(new Date(date), { 
+    addSuffix: true, 
+    locale: ptBR 
+  })
+}
+
+// Format date for display (ex: "15 de junho de 2024")
+export function formatDateLong(date: string | Date): string {
+  return format(new Date(date), 'dd \'de\' MMMM \'de\' yyyy', { locale: ptBR })
 }
 
 // Format percentage
