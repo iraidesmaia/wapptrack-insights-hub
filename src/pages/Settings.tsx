@@ -31,19 +31,28 @@ const Settings = () => {
         .select('*')
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading settings:', error);
+        // Don't show error toast for first load, just use defaults
+      }
 
       if (data) {
         setSettings(data);
         setFormData({
-          company_name: data.company_name,
-          company_subtitle: data.company_subtitle,
+          company_name: data.company_name || '',
+          company_subtitle: data.company_subtitle || '',
           logo_url: data.logo_url || ''
+        });
+      } else {
+        // No settings found, use defaults
+        setFormData({
+          company_name: 'Sua Empresa',
+          company_subtitle: 'Sistema de Marketing',
+          logo_url: ''
         });
       }
     } catch (error) {
       console.error('Error loading settings:', error);
-      toast.error('Erro ao carregar configurações');
     }
   };
 
@@ -64,8 +73,19 @@ const Settings = () => {
       }
 
       const file = event.target.files[0];
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('O arquivo deve ter no máximo 5MB.');
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Por favor, selecione apenas arquivos de imagem.');
+      }
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${Math.random()}.${fileExt}`;
+      const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
@@ -86,9 +106,9 @@ const Settings = () => {
       }));
 
       toast.success('Logo enviada com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
-      toast.error('Erro ao enviar logo');
+      toast.error(error.message || 'Erro ao enviar logo');
     } finally {
       setUploading(false);
     }
@@ -104,37 +124,48 @@ const Settings = () => {
       }
 
       const updateData = {
-        company_name: formData.company_name,
-        company_subtitle: formData.company_subtitle,
+        company_name: formData.company_name.trim(),
+        company_subtitle: formData.company_subtitle.trim(),
         logo_url: formData.logo_url,
         updated_at: new Date().toISOString()
       };
 
       let result;
       
-      if (settings) {
+      if (settings && settings.id) {
         // Update existing settings
         result = await supabase
           .from('company_settings')
           .update(updateData)
-          .eq('id', settings.id);
+          .eq('id', settings.id)
+          .select();
       } else {
         // Create new settings
         result = await supabase
           .from('company_settings')
-          .insert([updateData]);
+          .insert([updateData])
+          .select();
       }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        console.error('Supabase error:', result.error);
+        throw result.error;
+      }
 
+      console.log('Settings saved successfully:', result.data);
       toast.success('Configurações salvas com sucesso!');
-      loadSettings(); // Reload to get updated data
+      
+      // Reload settings to get the latest data
+      await loadSettings();
       
       // Reload the page to update the sidebar with new settings
-      window.location.reload();
-    } catch (error) {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      toast.error('Erro ao salvar configurações');
+      toast.error(error.message || 'Erro ao salvar configurações');
     } finally {
       setLoading(false);
     }
