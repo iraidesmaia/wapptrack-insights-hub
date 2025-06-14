@@ -109,7 +109,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     )}>
       <div className="flex-shrink-0">
         {isLoadingSettings ? (
-          <div className="h-12 w-12 rounded-full bg-gray-200 animate-pulse border-2 border-primary/20" />
+          <div className="h-12 w-12 rounded-full bg-muted animate-pulse border-2 border-primary/20" />
         ) : (
           <img
             src={companyBranding.logo}
@@ -121,8 +121,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <div className="flex flex-col">
         {isLoadingSettings ? (
           <>
-            <div className="h-6 w-24 bg-gray-200 animate-pulse rounded mb-1" />
-            <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+            <div className="h-6 w-24 bg-muted animate-pulse rounded mb-1" />
+            <div className="h-4 w-32 bg-muted animate-pulse rounded" />
           </>
         ) : (
           <>
@@ -135,9 +135,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Mobile menu button */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b">
+      <div className="lg:hidden flex items-center justify-between p-4 bg-card border-b border-border">
         <BrandingSection isMobile />
         <Button
           variant="ghost"
@@ -151,9 +151,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       <div className="flex flex-1">
         {/* Sidebar for desktop */}
-        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r">
+        <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-card border-r border-border">
           <div className="flex flex-col flex-1 h-full">
-            <div className="flex items-center h-20 flex-shrink-0 border-b">
+            <div className="flex items-center h-20 flex-shrink-0 border-b border-border">
               <Link to="/dashboard" className="w-full">
                 <BrandingSection />
               </Link>
@@ -165,10 +165,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   to={item.href}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center px-4 py-2 text-sm rounded-md",
+                      "flex items-center px-4 py-2 text-sm rounded-md transition-colors",
                       isActive
                         ? "bg-primary text-primary-foreground"
-                        : "text-gray-700 hover:bg-gray-100"
+                        : "text-foreground hover:bg-muted"
                     )
                   }
                 >
@@ -177,13 +177,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </NavLink>
               ))}
             </nav>
-            <div className="px-4 py-4 border-t flex flex-col space-y-2">
+            <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
-                <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white">
+                <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
                   {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-foreground">
                     {user?.name || user?.email}
                   </p>
                 </div>
@@ -202,8 +202,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b">
+          <div className="lg:hidden fixed inset-0 z-50 bg-background flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-border">
               <BrandingSection isMobile />
               <Button
                 variant="ghost"
@@ -222,10 +222,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     onClick={toggleMobileMenu}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center px-4 py-3 text-base rounded-md",
+                        "flex items-center px-4 py-3 text-base rounded-md transition-colors",
                         isActive
                           ? "bg-primary text-primary-foreground"
-                          : "text-gray-700 hover:bg-gray-100"
+                          : "text-foreground hover:bg-muted"
                       )
                     }
                   >
@@ -235,13 +235,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ))}
               </nav>
             </div>
-            <div className="p-4 border-t">
+            <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
-                <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white">
+                <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
                   {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-foreground">
                     {user?.name || user?.email}
                   </p>
                 </div>
