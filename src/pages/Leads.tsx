@@ -59,8 +59,7 @@ const Leads = () => {
       lead.name.toLowerCase().includes(searchLower) ||
       lead.phone.toLowerCase().includes(searchLower) ||
       lead.campaign.toLowerCase().includes(searchLower) ||
-      lead.status.toLowerCase().includes(searchLower) ||
-      (lead.last_message && lead.last_message.toLowerCase().includes(searchLower))
+      lead.status.toLowerCase().includes(searchLower)
     );
   });
 
@@ -254,7 +253,6 @@ const Leads = () => {
                     <th className="p-4 text-left font-medium">Telefone</th>
                     <th className="p-4 text-left font-medium">Campanha</th>
                     <th className="p-4 text-left font-medium">Status</th>
-                    <th className="p-4 text-left font-medium">Última Mensagem</th>
                     <th className="p-4 text-left font-medium">Data Criação</th>
                     <th className="p-4 text-left font-medium">Primeiro Contato</th>
                     <th className="p-4 text-left font-medium">Último Contato</th>
@@ -264,13 +262,13 @@ const Leads = () => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={9} className="p-4 text-center">
+                      <td colSpan={8} className="p-4 text-center">
                         Carregando leads...
                       </td>
                     </tr>
                   ) : filteredLeads.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-4 text-center">
+                      <td colSpan={8} className="p-4 text-center">
                         Nenhum lead encontrado
                       </td>
                     </tr>
@@ -281,11 +279,6 @@ const Leads = () => {
                         <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
                         <td className="p-4">{lead.campaign}</td>
                         <td className="p-4">{getStatusBadge(lead.status)}</td>
-                        <td className="p-4 max-w-xs">
-                          <div className="truncate" title={lead.last_message || ''}>
-                            {lead.last_message || '-'}
-                          </div>
-                        </td>
                         <td className="p-4">{formatDate(lead.created_at)}</td>
                         <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>
                         <td className="p-4">{lead.last_contact_date ? formatDate(lead.last_contact_date) : '-'}</td>

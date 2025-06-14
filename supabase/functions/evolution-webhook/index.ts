@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -69,35 +68,11 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
     if (fromPhone && messageData.messageType !== 'senderKeyDistributionMessage') {
       console.log('Processing message from:', fromPhone);
       
-      // Extrair o conteúdo da mensagem
-      let messageContent = '';
-      
-      if (messageData.message) {
-        if (messageData.message.conversation) {
-          messageContent = messageData.message.conversation;
-        } else if (messageData.message.extendedTextMessage?.text) {
-          messageContent = messageData.message.extendedTextMessage.text;
-        } else if (messageData.messageType === 'imageMessage') {
-          messageContent = '[Imagem enviada]';
-        } else if (messageData.messageType === 'audioMessage') {
-          messageContent = '[Áudio enviado]';
-        } else if (messageData.messageType === 'videoMessage') {
-          messageContent = '[Vídeo enviado]';
-        } else if (messageData.messageType === 'documentMessage') {
-          messageContent = '[Documento enviado]';
-        } else {
-          messageContent = `[${messageData.messageType || 'Mensagem'}]`;
-        }
-      }
-      
-      console.log('Message content extracted:', messageContent);
-      
-      // Atualizar lead para status "lead" se respondeu e salvar a última mensagem
+      // Atualizar lead para status "lead" se respondeu
       await updateLeadStatusWithPhoneVariations(supabase, fromPhone, 'lead', {
         evolution_message_id: messageData.key?.id,
         evolution_status: 'replied',
-        last_contact_date: new Date().toISOString(),
-        last_message: messageContent
+        last_contact_date: new Date().toISOString()
       });
     }
   } catch (error) {
