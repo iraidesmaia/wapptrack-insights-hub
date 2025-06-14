@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, Image, Moon, Sun, Monitor } from 'lucide-react';
+import { Upload, Image, Moon, Sun, Monitor, Send, Globe } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import MainLayout from '@/components/MainLayout';
 import type { CompanySettings, Theme } from '@/types';
@@ -15,6 +15,7 @@ const Settings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [testingEvolution, setTestingEvolution] = useState(false);
   const { theme, setTheme } = useTheme();
   const [formData, setFormData] = useState({
     company_name: '',
@@ -22,9 +23,15 @@ const Settings = () => {
     logo_url: '',
     theme: theme as Theme
   });
+  const [evolutionConfig, setEvolutionConfig] = useState({
+    endpoint_url: '',
+    api_key: '',
+    instance_name: ''
+  });
 
   useEffect(() => {
     loadSettings();
+    loadEvolutionConfig();
   }, []);
 
   const loadSettings = async () => {
@@ -68,12 +75,89 @@ const Settings = () => {
     }
   };
 
+  const loadEvolutionConfig = async () => {
+    try {
+      const saved = localStorage.getItem('evolution_config');
+      if (saved) {
+        setEvolutionConfig(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading Evolution config:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleEvolutionConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEvolutionConfig(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const saveEvolutionConfig = () => {
+    try {
+      localStorage.setItem('evolution_config', JSON.stringify(evolutionConfig));
+      toast.success('Configurações da Evolution salvas!');
+    } catch (error) {
+      console.error('Error saving Evolution config:', error);
+      toast.error('Erro ao salvar configurações da Evolution');
+    }
+  };
+
+  const testEvolutionConnection = async () => {
+    if (!evolutionConfig.endpoint_url) {
+      toast.error('Por favor, configure a URL do endpoint');
+      return;
+    }
+
+    setTestingEvolution(true);
+    
+    try {
+      console.log('Testing Evolution API connection...');
+      
+      const testPayload = {
+        webhook: {
+          enabled: true,
+          url: `${window.location.origin}/api/webhook`,
+          events: ['message']
+        },
+        instance: evolutionConfig.instance_name || 'default'
+      };
+
+      const response = await fetch(evolutionConfig.endpoint_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(evolutionConfig.api_key && { 'Authorization': `Bearer ${evolutionConfig.api_key}` })
+        },
+        body: JSON.stringify(testPayload)
+      });
+
+      console.log('Evolution API response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Evolution API response:', data);
+        toast.success('Conexão com Evolution API estabelecida com sucesso!');
+      } else {
+        const errorText = await response.text();
+        console.error('Evolution API error:', errorText);
+        toast.error(`Erro na conexão: ${response.status} - ${response.statusText}`);
+      }
+    } catch (error: any) {
+      console.error('Error testing Evolution connection:', error);
+      toast.error(`Erro ao testar conexão: ${error.message}`);
+    } finally {
+      setTestingEvolution(false);
+    }
   };
 
   const handleThemeChange = (newTheme: Theme) => {
@@ -201,7 +285,7 @@ const Settings = () => {
         <div>
           <h1 className="text-3xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
-            Gerencie as configurações da sua empresa
+            Gerencie as configurações da sua empresa e integrações
           </p>
         </div>
 
@@ -327,6 +411,77 @@ const Settings = () => {
                 <p className="text-xs text-muted-foreground">
                   O tema do sistema seguirá as configurações do seu dispositivo
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Globe className="w-5 h-5" />
+                <span>Evolution API</span>
+              </CardTitle>
+              <CardDescription>
+                Configure a integração com a Evolution API para WhatsApp
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="endpoint_url">URL do Endpoint *</Label>
+                <Input
+                  id="endpoint_url"
+                  name="endpoint_url"
+                  value={evolutionConfig.endpoint_url}
+                  onChange={handleEvolutionConfigChange}
+                  placeholder="https://sua-instancia.com/api/v1/config/webhook"
+                  type="url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Exemplo: https://sua-instancia.lovableproject.com/api/v1/config/webhook
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api_key">Chave da API (opcional)</Label>
+                <Input
+                  id="api_key"
+                  name="api_key"
+                  value={evolutionConfig.api_key}
+                  onChange={handleEvolutionConfigChange}
+                  placeholder="Sua chave da API"
+                  type="password"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se necessário, insira a chave de autenticação da API
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="instance_name">Nome da Instância</Label>
+                <Input
+                  id="instance_name"
+                  name="instance_name"
+                  value={evolutionConfig.instance_name}
+                  onChange={handleEvolutionConfigChange}
+                  placeholder="default"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Nome da instância do WhatsApp (padrão: default)
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button onClick={saveEvolutionConfig} variant="outline">
+                  Salvar Configuração
+                </Button>
+                <Button 
+                  onClick={testEvolutionConnection} 
+                  disabled={testingEvolution || !evolutionConfig.endpoint_url}
+                  className="flex items-center space-x-2"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{testingEvolution ? 'Testando...' : 'Testar Conexão'}</span>
+                </Button>
               </div>
             </CardContent>
           </Card>
