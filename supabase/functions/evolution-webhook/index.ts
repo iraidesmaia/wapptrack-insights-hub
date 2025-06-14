@@ -59,6 +59,65 @@ serve(async (req) => {
   }
 });
 
+function extractMessageContent(messageData: any): string {
+  try {
+    // Diferentes tipos de mensagem que podem vir da Evolution API
+    if (messageData.message?.conversation) {
+      return messageData.message.conversation;
+    }
+    
+    if (messageData.message?.extendedTextMessage?.text) {
+      return messageData.message.extendedTextMessage.text;
+    }
+    
+    if (messageData.message?.imageMessage?.caption) {
+      return `[Imagem] ${messageData.message.imageMessage.caption}`;
+    }
+    
+    if (messageData.message?.imageMessage) {
+      return '[Imagem enviada]';
+    }
+    
+    if (messageData.message?.videoMessage?.caption) {
+      return `[Vídeo] ${messageData.message.videoMessage.caption}`;
+    }
+    
+    if (messageData.message?.videoMessage) {
+      return '[Vídeo enviado]';
+    }
+    
+    if (messageData.message?.audioMessage) {
+      return '[Áudio enviado]';
+    }
+    
+    if (messageData.message?.documentMessage?.title) {
+      return `[Documento] ${messageData.message.documentMessage.title}`;
+    }
+    
+    if (messageData.message?.documentMessage) {
+      return '[Documento enviado]';
+    }
+    
+    if (messageData.message?.stickerMessage) {
+      return '[Sticker enviado]';
+    }
+    
+    if (messageData.message?.locationMessage) {
+      return '[Localização enviada]';
+    }
+    
+    // Fallback para outros tipos de mensagem
+    if (messageData.message && Object.keys(messageData.message).length > 0) {
+      return '[Mensagem não suportada]';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Error extracting message content:', error);
+    return '[Erro ao processar mensagem]';
+  }
+}
+
 async function handleMessageEvent(supabase: any, data: any, instance: string) {
   try {
     // Processar mensagem recebida - confirma que o lead está ativo
@@ -68,11 +127,16 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
     if (fromPhone && messageData.messageType !== 'senderKeyDistributionMessage') {
       console.log('Processing message from:', fromPhone);
       
+      // Extrair conteúdo da mensagem
+      const messageContent = extractMessageContent(messageData);
+      console.log('Extracted message content:', messageContent);
+      
       // Atualizar lead para status "lead" se respondeu
       await updateLeadStatusWithPhoneVariations(supabase, fromPhone, 'lead', {
         evolution_message_id: messageData.key?.id,
         evolution_status: 'replied',
-        last_contact_date: new Date().toISOString()
+        last_contact_date: new Date().toISOString(),
+        last_message: messageContent
       });
     }
   } catch (error) {

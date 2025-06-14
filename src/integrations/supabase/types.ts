@@ -170,6 +170,7 @@ export type Database = {
           first_contact_date: string | null
           id: string
           last_contact_date: string | null
+          last_message: string | null
           last_whatsapp_attempt: string | null
           name: string
           notes: string | null
@@ -187,6 +188,7 @@ export type Database = {
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
+          last_message?: string | null
           last_whatsapp_attempt?: string | null
           name: string
           notes?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
+          last_message?: string | null
           last_whatsapp_attempt?: string | null
           name?: string
           notes?: string | null
