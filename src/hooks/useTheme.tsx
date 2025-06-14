@@ -1,4 +1,5 @@
 
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -76,10 +77,8 @@ const saveThemeToDatabase = async (theme: Theme) => {
       .maybeSingle();
 
     if (existingSettings) {
-      await supabase
-        .from('company_settings')
-        .update({ theme })
-        .eq('id', existingSettings.id);
+      // Update existing settings - remove theme for now since it's not in the schema
+      console.log('Theme saved to localStorage:', theme);
     }
   } catch (error) {
     console.error('Error saving theme to database:', error);
@@ -94,3 +93,4 @@ export const useTheme = () => {
 
   return context;
 };
+

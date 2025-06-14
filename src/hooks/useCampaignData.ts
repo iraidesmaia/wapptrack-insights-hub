@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
 import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
@@ -7,14 +8,14 @@ import { toast } from 'sonner';
 interface Campaign {
   id: string;
   name: string;
-  pixelId?: string;
-  whatsappNumber?: string;
-  eventType?: string;
-  customMessage?: string;
-  companyTitle?: string;
-  companySubtitle?: string;
-  logoUrl?: string;
-  redirectType?: string;
+  pixel_id?: string;
+  whatsapp_number?: string;
+  event_type?: string;
+  custom_message?: string;
+  company_title?: string;
+  company_subtitle?: string;
+  logo_url?: string;
+  redirect_type?: string;
 }
 
 export const useCampaignData = (campaignId: string | null, debug: boolean) => {
@@ -31,9 +32,9 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
   };
 
   const companyBranding = {
-    logo: campaign?.logoUrl || defaultCompanyBranding.logo,
-    title: campaign?.companyTitle || defaultCompanyBranding.title,
-    subtitle: campaign?.companySubtitle || defaultCompanyBranding.subtitle
+    logo: campaign?.logo_url || defaultCompanyBranding.logo,
+    title: campaign?.company_title || defaultCompanyBranding.title,
+    subtitle: campaign?.company_subtitle || defaultCompanyBranding.subtitle
   };
 
   useEffect(() => {
@@ -52,8 +53,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
           setCampaign(targetCampaign);
           
           // Initialize Facebook Pixel if there's a pixel ID
-          if (targetCampaign.pixelId) {
-            const cleanPixelId = targetCampaign.pixelId.trim();
+          if (targetCampaign.pixel_id) {
+            const cleanPixelId = targetCampaign.pixel_id.trim();
             if (cleanPixelId) {
               const initialized = initFacebookPixel(cleanPixelId, debug);
               setPixelInitialized(initialized);
@@ -61,7 +62,7 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
               if (initialized) {
                 trackPageView();
                 console.log('Pixel initialized with ID:', cleanPixelId);
-                console.log('Campaign event type:', targetCampaign.eventType);
+                console.log('Campaign event type:', targetCampaign.event_type);
               } else {
                 console.warn('Failed to initialize Facebook Pixel with ID:', cleanPixelId);
               }
@@ -91,21 +92,21 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     }
 
     // Track the event before redirecting
-    if (campaign && campaign.eventType && pixelInitialized) {
-      console.log('Tracking event before redirect:', campaign.eventType);
-      const success = trackEventByType(campaign.eventType);
+    if (campaign && campaign.event_type && pixelInitialized) {
+      console.log('Tracking event before redirect:', campaign.event_type);
+      const success = trackEventByType(campaign.event_type);
       if (success) {
         console.log('Event tracked successfully');
       } else {
-        console.warn('Failed to track event:', campaign.eventType);
+        console.warn('Failed to track event:', campaign.event_type);
       }
     }
     
     // Track the redirect in our system
-    const result = await trackRedirect(campaignId, phone, name, campaign?.eventType);
+    const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
     
     // Get target WhatsApp number
-    const targetPhone = result.targetPhone || campaign?.whatsappNumber;
+    const targetPhone = result.targetPhone || campaign?.whatsapp_number;
     
     if (!targetPhone) {
       toast.error('Número de WhatsApp não configurado para esta campanha');
@@ -115,8 +116,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     // Build WhatsApp URL with custom message
     let whatsappUrl = `https://wa.me/${targetPhone}`;
     
-    if (campaign?.customMessage) {
-      let message = campaign.customMessage;
+    if (campaign?.custom_message) {
+      let message = campaign.custom_message;
       if (name) {
         message = message.replace(/\{nome\}/gi, name);
       }
@@ -133,21 +134,21 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
   const handleDirectWhatsAppRedirect = async (campaignData: Campaign) => {
     try {
       // Track the event
-      if (campaignData.eventType && pixelInitialized) {
-        console.log('Tracking event before redirect:', campaignData.eventType);
-        const success = trackEventByType(campaignData.eventType);
+      if (campaignData.event_type && pixelInitialized) {
+        console.log('Tracking event before redirect:', campaignData.event_type);
+        const success = trackEventByType(campaignData.event_type);
         if (success) {
           console.log('Event tracked successfully');
         } else {
-          console.warn('Failed to track event:', campaignData.eventType);
+          console.warn('Failed to track event:', campaignData.event_type);
         }
       }
       
       // Track the redirect in our system
-      const result = await trackRedirect(campaignId!, '', '', campaignData.eventType);
+      const result = await trackRedirect(campaignId!, '', '', campaignData.event_type);
       
       // Get target WhatsApp number
-      const targetPhone = result.targetPhone || campaignData.whatsappNumber;
+      const targetPhone = result.targetPhone || campaignData.whatsapp_number;
       
       if (!targetPhone) {
         toast.error('Número de WhatsApp não configurado para esta campanha');
@@ -157,8 +158,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       // Build WhatsApp URL
       let whatsappUrl = `https://wa.me/${targetPhone}`;
       
-      if (campaignData.customMessage) {
-        const encodedMessage = encodeURIComponent(campaignData.customMessage);
+      if (campaignData.custom_message) {
+        const encodedMessage = encodeURIComponent(campaignData.custom_message);
         whatsappUrl += `?text=${encodedMessage}`;
       }
       
@@ -180,3 +181,4 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     handleDirectWhatsAppRedirect
   };
 };
+

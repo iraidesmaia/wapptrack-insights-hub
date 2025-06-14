@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,8 @@ const Leads = () => {
     campaign: '',
     status: 'new',
     notes: '',
-    firstContactDate: '',
-    lastContactDate: ''
+    first_contact_date: '',
+    last_contact_date: ''
   });
 
   useEffect(() => {
@@ -78,8 +79,8 @@ const Leads = () => {
       campaign: '',
       status: 'new',
       notes: '',
-      firstContactDate: '',
-      lastContactDate: ''
+      first_contact_date: '',
+      last_contact_date: ''
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -96,8 +97,8 @@ const Leads = () => {
       const newSale = await addSale({
         value: 0, // Valor padrão, pode ser editado depois
         date: new Date().toISOString(),
-        leadId: lead.id,
-        leadName: lead.name,
+        lead_id: lead.id,
+        lead_name: lead.name,
         campaign: lead.campaign,
         product: '', // Produto vazio, pode ser preenchido depois
         notes: `Venda criada automaticamente quando lead foi convertido`
@@ -123,7 +124,7 @@ const Leads = () => {
       const wasConverted = currentLead.status === 'converted';
 
       if (dialogMode === 'add') {
-        const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'createdAt'>);
+        const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'created_at'>);
         setLeads([newLead, ...leads]);
         updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');
@@ -251,9 +252,9 @@ const Leads = () => {
                         <td className="p-4">{lead.phone}</td>
                         <td className="p-4">{lead.campaign}</td>
                         <td className="p-4">{getStatusBadge(lead.status)}</td>
-                        <td className="p-4">{formatDate(lead.createdAt)}</td>
-                        <td className="p-4">{lead.firstContactDate ? formatDate(lead.firstContactDate) : '-'}</td>
-                        <td className="p-4">{lead.lastContactDate ? formatDate(lead.lastContactDate) : '-'}</td>
+                        <td className="p-4">{formatDate(lead.created_at)}</td>
+                        <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>
+                        <td className="p-4">{lead.last_contact_date ? formatDate(lead.last_contact_date) : '-'}</td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <Button
                             variant="ghost"
@@ -362,22 +363,22 @@ const Leads = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="firstContactDate">Data do Primeiro Contato</Label>
+                <Label htmlFor="first_contact_date">Data do Primeiro Contato</Label>
                 <Input
-                  id="firstContactDate"
-                  name="firstContactDate"
+                  id="first_contact_date"
+                  name="first_contact_date"
                   type="datetime-local"
-                  value={currentLead.firstContactDate ? new Date(currentLead.firstContactDate).toISOString().slice(0, 16) : ''}
+                  value={currentLead.first_contact_date ? new Date(currentLead.first_contact_date).toISOString().slice(0, 16) : ''}
                   onChange={handleInputChange}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="lastContactDate">Data do Último Contato</Label>
+                <Label htmlFor="last_contact_date">Data do Último Contato</Label>
                 <Input
-                  id="lastContactDate"
-                  name="lastContactDate"
+                  id="last_contact_date"
+                  name="last_contact_date"
                   type="datetime-local"
-                  value={currentLead.lastContactDate ? new Date(currentLead.lastContactDate).toISOString().slice(0, 16) : ''}
+                  value={currentLead.last_contact_date ? new Date(currentLead.last_contact_date).toISOString().slice(0, 16) : ''}
                   onChange={handleInputChange}
                 />
               </div>
@@ -408,3 +409,4 @@ const Leads = () => {
 };
 
 export default Leads;
+

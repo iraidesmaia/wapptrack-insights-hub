@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,8 @@ const Sales = () => {
   const [currentSale, setCurrentSale] = useState<Partial<Sale>>({
     value: 0,
     date: new Date().toISOString().split('T')[0],
-    leadId: '',
-    leadName: '',
+    lead_id: '',
+    lead_name: '',
     campaign: '',
     product: '',
     notes: ''
@@ -58,7 +59,7 @@ const Sales = () => {
   const filteredSales = sales.filter((sale) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      sale.leadName.toLowerCase().includes(searchLower) ||
+      sale.lead_name.toLowerCase().includes(searchLower) ||
       sale.campaign.toLowerCase().includes(searchLower) ||
       (sale.product && sale.product.toLowerCase().includes(searchLower)) ||
       formatCurrency(sale.value).includes(searchLower)
@@ -78,12 +79,12 @@ const Sales = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    if (name === 'leadId') {
+    if (name === 'lead_id') {
       const selectedLead = leads.find(lead => lead.id === value);
       setCurrentSale({ 
         ...currentSale, 
         [name]: value,
-        leadName: selectedLead?.name || '',
+        lead_name: selectedLead?.name || '',
         campaign: selectedLead?.campaign || currentSale.campaign || ''
       });
     } else {
@@ -95,8 +96,8 @@ const Sales = () => {
     setCurrentSale({
       value: 0,
       date: new Date().toISOString().split('T')[0],
-      leadId: '',
-      leadName: '',
+      lead_id: '',
+      lead_name: '',
       campaign: '',
       product: '',
       notes: ''
@@ -107,7 +108,7 @@ const Sales = () => {
 
   const handleOpenEditDialog = (sale: Sale) => {
     // Format the date to YYYY-MM-DD for the input field
-    const formattedDate = new Date(sale.date).toISOString().split('T')[0];
+    const formattedDate = sale.date ? new Date(sale.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     
     setCurrentSale({ 
       ...sale,
@@ -120,7 +121,7 @@ const Sales = () => {
   const handleSaveSale = async () => {
     try {
       // Validate required fields
-      if (!currentSale.value || !currentSale.date || !currentSale.leadId || !currentSale.campaign) {
+      if (!currentSale.value || !currentSale.date || !currentSale.lead_id || !currentSale.campaign) {
         toast.error('Preencha todos os campos obrigatórios');
         return;
       }
@@ -226,11 +227,11 @@ const Sales = () => {
                   ) : (
                     filteredSales.map((sale) => (
                       <tr key={sale.id} className="border-b">
-                        <td className="p-4">{sale.leadName}</td>
+                        <td className="p-4">{sale.lead_name}</td>
                         <td className="p-4 text-right font-medium">{formatCurrency(sale.value)}</td>
                         <td className="p-4">{sale.campaign}</td>
                         <td className="p-4">{sale.product || '-'}</td>
-                        <td className="p-4">{formatDate(sale.date)}</td>
+                        <td className="p-4">{sale.date ? formatDate(sale.date) : '-'}</td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <Button
                             variant="ghost"
@@ -295,10 +296,10 @@ const Sales = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="leadId">Lead*</Label>
+                <Label htmlFor="lead_id">Lead*</Label>
                 <Select 
-                  value={currentSale.leadId} 
-                  onValueChange={(value) => handleSelectChange('leadId', value)}
+                  value={currentSale.lead_id} 
+                  onValueChange={(value) => handleSelectChange('lead_id', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um lead" />
@@ -367,3 +368,4 @@ const Sales = () => {
 };
 
 export default Sales;
+
