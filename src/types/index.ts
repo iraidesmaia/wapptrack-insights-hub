@@ -21,6 +21,7 @@ export interface Lead {
   custom_fields?: any;
   whatsapp_delivery_attempts?: number;
   last_whatsapp_attempt?: string;
+  last_message?: string;
 }
 
 export interface Campaign {
