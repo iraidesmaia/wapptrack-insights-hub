@@ -1,4 +1,4 @@
-import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance } from "../types";
+import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance, MonthlyStats, TimelineDataPoint, TrendData } from "../types";
 import { generateId } from "../lib/utils";
 import { supabase } from "../integrations/supabase/client";
 
@@ -709,6 +709,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     if (pendingError) throw pendingError;
 
+    // Get monthly stats for trends
+    const monthlyStats = await getMonthlyStats();
+
     return {
       totalLeads: totalLeads || 0,
       totalSales,
@@ -716,7 +719,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalRevenue,
       todaysLeads: todaysLeads || 0,
       confirmedSales: confirmedSales || 0,
-      pendingConversations: pendingConversations || 0
+      pendingConversations: pendingConversations || 0,
+      monthlyLeads: monthlyStats.currentMonth.leads,
+      monthlyRevenue: monthlyStats.currentMonth.revenue,
+      monthlyLeadsTrend: monthlyStats.trends.leads,
+      monthlyRevenueTrend: monthlyStats.trends.revenue
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -727,7 +734,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalRevenue: 0,
       todaysLeads: 0,
       confirmedSales: 0,
-      pendingConversations: 0
+      pendingConversations: 0,
+      monthlyLeads: 0,
+      monthlyRevenue: 0,
+      monthlyLeadsTrend: { value: 0, trend: 'flat', percentage: 0 },
+      monthlyRevenueTrend: { value: 0, trend: 'flat', percentage: 0 }
     };
   }
 };
