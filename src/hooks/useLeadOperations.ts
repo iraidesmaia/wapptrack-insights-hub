@@ -101,6 +101,7 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       if (shouldCorrectPhone(processedPhone)) {
         const originalPhone = processedPhone;
         processedPhone = correctPhoneNumber(processedPhone);
+        console.log(`Número corrigido automaticamente: ${originalPhone} → ${processedPhone}`);
         toast.info(`Número corrigido automaticamente: ${originalPhone} → ${processedPhone}`);
       }
 
