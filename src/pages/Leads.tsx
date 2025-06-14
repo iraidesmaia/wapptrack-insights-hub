@@ -10,10 +10,11 @@ import { getLeads, addLead, updateLead, deleteLead, getCampaigns, addSale } from
 import { Lead, Campaign } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone, formatPhoneWithCountryCode } from '@/lib/phoneUtils';
-import { Plus, Trash2, Edit, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, Edit, MessageSquare, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -52,6 +53,44 @@ const Leads = () => {
 
     fetchData();
   }, []);
+
+  const fixPhoneNumbers = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Buscar lead com número similar que está causando o problema
+      const { data: problematicLead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('phone', '5585998732658')
+        .single();
+
+      if (problematicLead && !error) {
+        // Atualizar para o número correto que vem do webhook
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ phone: '558598372658' })
+          .eq('id', problematicLead.id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar número:', updateError);
+          toast.error('Erro ao corrigir número do telefone');
+        } else {
+          toast.success('Número de telefone corrigido com sucesso!');
+          // Recarregar os dados
+          const leadsData = await getLeads();
+          setLeads(leadsData);
+        }
+      } else {
+        toast.info('Nenhum número problemático encontrado');
+      }
+    } catch (error) {
+      console.error('Error fixing phone numbers:', error);
+      toast.error('Erro ao corrigir números');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchTerm.toLowerCase();
@@ -236,9 +275,18 @@ const Leads = () => {
             <h1 className="text-2xl font-bold">Leads</h1>
             <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
-          <Button onClick={handleOpenAddDialog}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Lead
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={fixPhoneNumbers}
+              disabled={isLoading}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> Corrigir Números
+            </Button>
+            <Button onClick={handleOpenAddDialog}>
+              <Plus className="mr-2 h-4 w-4" /> Novo Lead
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center">
