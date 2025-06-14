@@ -58,32 +58,70 @@ const Leads = () => {
     try {
       setIsLoading(true);
       
-      // Buscar lead com número similar que está causando o problema
-      const { data: problematicLead, error } = await supabase
+      console.log('Iniciando correção de números de telefone...');
+      
+      // Buscar todos os leads para analisar números problemáticos
+      const { data: allLeads, error: fetchError } = await supabase
         .from('leads')
-        .select('*')
-        .eq('phone', '5585998732658')
-        .single();
+        .select('*');
 
-      if (problematicLead && !error) {
-        // Atualizar para o número correto que vem do webhook
-        const { error: updateError } = await supabase
-          .from('leads')
-          .update({ phone: '558598372658' })
-          .eq('id', problematicLead.id);
-
-        if (updateError) {
-          console.error('Erro ao atualizar número:', updateError);
-          toast.error('Erro ao corrigir número do telefone');
-        } else {
-          toast.success('Número de telefone corrigido com sucesso!');
-          // Recarregar os dados
-          const leadsData = await getLeads();
-          setLeads(leadsData);
-        }
-      } else {
-        toast.info('Nenhum número problemático encontrado');
+      if (fetchError) {
+        console.error('Erro ao buscar leads:', fetchError);
+        toast.error('Erro ao buscar leads');
+        return;
       }
+
+      console.log('Total de leads encontrados:', allLeads?.length);
+
+      let correctedCount = 0;
+
+      // Analisar e corrigir números problemáticos
+      for (const lead of allLeads || []) {
+        const originalPhone = lead.phone;
+        let correctedPhone = originalPhone;
+
+        // Correção específica para o número problemático identificado
+        if (originalPhone === '5585998732658') {
+          correctedPhone = '558598372658';
+          console.log(`Corrigindo número específico: ${originalPhone} -> ${correctedPhone}`);
+        }
+        // Outras possíveis correções automáticas podem ser adicionadas aqui
+        else if (originalPhone.startsWith('55') && originalPhone.length === 13) {
+          // Verificar se tem 9 duplicado (ex: 5585999837265)
+          const withoutCountryCode = originalPhone.slice(2);
+          if (withoutCountryCode.length === 11 && withoutCountryCode[2] === '9' && withoutCountryCode[3] === '9') {
+            correctedPhone = '55' + withoutCountryCode.slice(0, 2) + withoutCountryCode.slice(3);
+            console.log(`Removendo 9 duplicado: ${originalPhone} -> ${correctedPhone}`);
+          }
+        }
+
+        // Se houve correção, atualizar no banco
+        if (correctedPhone !== originalPhone) {
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update({ phone: correctedPhone })
+            .eq('id', lead.id);
+
+          if (updateError) {
+            console.error(`Erro ao atualizar lead ${lead.id}:`, updateError);
+          } else {
+            console.log(`Lead ${lead.name} (${lead.id}) atualizado: ${originalPhone} -> ${correctedPhone}`);
+            correctedCount++;
+          }
+        }
+      }
+
+      if (correctedCount > 0) {
+        toast.success(`${correctedCount} número(s) corrigido(s) com sucesso!`);
+        // Recarregar os dados
+        const leadsData = await getLeads();
+        setLeads(leadsData);
+      } else {
+        toast.info('Nenhum número problemático encontrado para correção');
+      }
+
+      console.log(`Processo de correção finalizado. ${correctedCount} números corrigidos.`);
+
     } catch (error) {
       console.error('Error fixing phone numbers:', error);
       toast.error('Erro ao corrigir números');
