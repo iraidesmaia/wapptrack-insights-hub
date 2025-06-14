@@ -153,10 +153,12 @@ export type Database = {
           first_contact_date: string | null
           id: string
           last_contact_date: string | null
+          last_whatsapp_attempt: string | null
           name: string
           notes: string | null
           phone: string
           status: string | null
+          whatsapp_delivery_attempts: number | null
         }
         Insert: {
           campaign: string
@@ -166,10 +168,12 @@ export type Database = {
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
+          last_whatsapp_attempt?: string | null
           name: string
           notes?: string | null
           phone: string
           status?: string | null
+          whatsapp_delivery_attempts?: number | null
         }
         Update: {
           campaign?: string
@@ -179,10 +183,12 @@ export type Database = {
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
+          last_whatsapp_attempt?: string | null
           name?: string
           notes?: string | null
           phone?: string
           status?: string | null
+          whatsapp_delivery_attempts?: number | null
         }
         Relationships: [
           {

@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -15,11 +14,13 @@ export interface Lead {
   source?: string;
   campaign: string;
   campaign_id?: string;
-  status: string;
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover';
   notes?: string;
   first_contact_date?: string;
   last_contact_date?: string;
   custom_fields?: any;
+  whatsapp_delivery_attempts?: number;
+  last_whatsapp_attempt?: string;
 }
 
 export interface Campaign {

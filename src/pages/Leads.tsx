@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -184,6 +183,10 @@ const Leads = () => {
         return <Badge variant="default" className="bg-primary">Convertido</Badge>;
       case 'lost':
         return <Badge variant="destructive">Perdido</Badge>;
+      case 'lead':
+        return <Badge variant="default" className="bg-green-500">Lead</Badge>;
+      case 'to_recover':
+        return <Badge variant="default" className="bg-orange-500">A recuperar</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -355,6 +358,8 @@ const Leads = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">Novo</SelectItem>
+                    <SelectItem value="lead">Lead</SelectItem>
+                    <SelectItem value="to_recover">A recuperar</SelectItem>
                     <SelectItem value="contacted">Contactado</SelectItem>
                     <SelectItem value="qualified">Qualificado</SelectItem>
                     <SelectItem value="converted">Convertido</SelectItem>
@@ -409,4 +414,3 @@ const Leads = () => {
 };
 
 export default Leads;
-

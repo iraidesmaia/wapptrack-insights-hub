@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCampaigns, trackRedirect } from '@/services/dataService';
+import { getCampaigns, trackRedirect, updateLead } from '@/services/dataService';
 import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -85,6 +85,22 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     loadCampaignDetails();
   }, [campaignId, debug]);
 
+  const updateLeadWhatsAppStatus = async (leadId: string, delivered: boolean) => {
+    try {
+      const status = delivered ? 'lead' : 'to_recover';
+      const updateData = {
+        status,
+        whatsapp_delivery_attempts: delivered ? 1 : 1,
+        last_whatsapp_attempt: new Date().toISOString()
+      };
+      
+      await updateLead(leadId, updateData);
+      console.log(`Lead status updated to: ${status}`);
+    } catch (error) {
+      console.error('Error updating lead WhatsApp status:', error);
+    }
+  };
+
   const handleFormSubmit = async (phone: string, name: string) => {
     if (!campaignId) {
       throw new Error('ID da campanha não encontrado');
@@ -132,6 +148,10 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     const targetPhone = result.targetPhone || campaign?.whatsapp_number;
     
     if (!targetPhone) {
+      // Se não há número do WhatsApp, marcar como "A recuperar"
+      if (result.leadId) {
+        await updateLeadWhatsAppStatus(result.leadId, false);
+      }
       toast.error('Número de WhatsApp não configurado para esta campanha');
       throw new Error('Número de WhatsApp não configurado');
     }
@@ -150,8 +170,26 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       whatsappUrl += `?text=${encodedMessage}`;
     }
     
-    console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-    window.location.href = whatsappUrl;
+    // Tentar redirecionar para o WhatsApp
+    try {
+      console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
+      
+      // Marcar como entregue (lead) se conseguiu gerar a URL
+      if (result.leadId) {
+        await updateLeadWhatsAppStatus(result.leadId, true);
+      }
+      
+      window.location.href = whatsappUrl;
+    } catch (error) {
+      console.error('Error redirecting to WhatsApp:', error);
+      
+      // Se falhou, marcar como "A recuperar"
+      if (result.leadId) {
+        await updateLeadWhatsAppStatus(result.leadId, false);
+      }
+      
+      throw new Error('Erro ao redirecionar para WhatsApp');
+    }
   };
 
   const handleDirectWhatsAppRedirect = async (campaignData: Campaign) => {
@@ -174,6 +212,10 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       const targetPhone = result.targetPhone || campaignData.whatsapp_number;
       
       if (!targetPhone) {
+        // Se não há número do WhatsApp, marcar como "A recuperar"
+        if (result.leadId) {
+          await updateLeadWhatsAppStatus(result.leadId, false);
+        }
         toast.error('Número de WhatsApp não configurado para esta campanha');
         throw new Error('Número de WhatsApp não configurado');
       }
@@ -186,8 +228,26 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         whatsappUrl += `?text=${encodedMessage}`;
       }
       
-      console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-      window.location.href = whatsappUrl;
+      // Tentar redirecionar para o WhatsApp
+      try {
+        console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
+        
+        // Marcar como entregue (lead) se conseguiu gerar a URL
+        if (result.leadId) {
+          await updateLeadWhatsAppStatus(result.leadId, true);
+        }
+        
+        window.location.href = whatsappUrl;
+      } catch (error) {
+        console.error('Error redirecting to WhatsApp:', error);
+        
+        // Se falhou, marcar como "A recuperar"
+        if (result.leadId) {
+          await updateLeadWhatsAppStatus(result.leadId, false);
+        }
+        
+        throw new Error('Erro ao redirecionar para WhatsApp');
+      }
     } catch (err) {
       console.error('Error tracking redirect:', err);
       throw new Error('Erro ao processar redirecionamento');
