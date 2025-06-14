@@ -42,9 +42,17 @@ const Leads = () => {
         getLeads(),
         getCampaigns()
       ]);
-      setLeads(leadsData);
+      
+      // Garantir que os dados estão sendo processados corretamente
+      const processedLeads = leadsData.map(lead => ({
+        ...lead,
+        last_message: lead.last_message || null // Garantir que null seja preservado
+      }));
+      
+      setLeads(processedLeads);
       setCampaigns(campaignsData);
-      console.log('📊 Leads carregados:', leadsData.map(lead => ({
+      
+      console.log('📊 Leads carregados:', processedLeads.map(lead => ({
         name: lead.name,
         phone: lead.phone,
         last_message: lead.last_message,
@@ -77,26 +85,41 @@ const Leads = () => {
           
           if (payload.eventType === 'INSERT') {
             console.log('➕ Novo lead adicionado:', payload.new);
-            setLeads(prev => [payload.new as Lead, ...prev]);
-            toast.success(`Novo lead adicionado: ${(payload.new as Lead).name}`);
+            const newLead = payload.new as Lead;
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...newLead,
+              last_message: newLead.last_message || null
+            };
+            setLeads(prev => [processedLead, ...prev]);
+            toast.success(`Novo lead adicionado: ${processedLead.name}`);
           } 
           else if (payload.eventType === 'UPDATE') {
             console.log('📝 Lead atualizado:', payload.new);
+            const updatedLead = payload.new as Lead;
+            const oldLead = payload.old as Lead;
+            
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...updatedLead,
+              last_message: updatedLead.last_message || null
+            };
+            
             setLeads(prev => prev.map(lead => 
-              lead.id === (payload.new as Lead).id ? payload.new as Lead : lead
+              lead.id === processedLead.id ? processedLead : lead
             ));
             
             // Se uma mensagem foi adicionada, mostrar notificação
-            const updatedLead = payload.new as Lead;
-            const oldLead = payload.old as Lead;
-            if (updatedLead.last_message && updatedLead.last_message !== oldLead.last_message) {
-              toast.info(`Nova mensagem de ${updatedLead.name}: ${updatedLead.last_message.substring(0, 50)}${updatedLead.last_message.length > 50 ? '...' : ''}`);
+            if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
+              console.log('💬 Nova mensagem detectada:', processedLead.last_message);
+              toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
             }
           }
           else if (payload.eventType === 'DELETE') {
             console.log('🗑️ Lead removido:', payload.old);
-            setLeads(prev => prev.filter(lead => lead.id !== (payload.old as Lead).id));
-            toast.info(`Lead removido: ${(payload.old as Lead).name}`);
+            const deletedLead = payload.old as Lead;
+            setLeads(prev => prev.filter(lead => lead.id !== deletedLead.id));
+            toast.info(`Lead removido: ${deletedLead.name}`);
           }
         }
       )

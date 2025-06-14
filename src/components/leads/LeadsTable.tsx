@@ -45,7 +45,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   };
 
   const renderMessage = (message: string | undefined | null) => {
-    if (!message || message.trim() === '') {
+    console.log('🔍 Renderizando mensagem:', { message, type: typeof message });
+    
+    if (!message || message.trim() === '' || message === 'null' || message === 'undefined') {
       return <span className="text-muted-foreground italic">Sem mensagem</span>;
     }
     
