@@ -66,12 +66,14 @@ export interface Sale {
   campaign: string;
 }
 
+export type Theme = 'light' | 'dark' | 'system';
+
 export interface CompanySettings {
   id?: string;
   company_name: string;
   company_subtitle: string;
   logo_url?: string;
-  theme?: 'light' | 'dark' | 'system';
+  theme?: Theme;
   created_at?: string;
   updated_at?: string;
 }

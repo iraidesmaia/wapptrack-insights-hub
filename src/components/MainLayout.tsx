@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -15,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import type { CompanySettings } from '@/types';
+import type { CompanySettings, Theme } from '@/types';
 
 type MainLayoutProps = {
   children: React.ReactNode;
@@ -74,8 +73,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       if (error) {
         console.error('Error loading company settings:', error);
-      } else {
-        setCompanySettings(data);
+      } else if (data) {
+        // Ensure theme is properly typed
+        const typedData: CompanySettings = {
+          ...data,
+          theme: (data.theme as Theme) || 'system'
+        };
+        setCompanySettings(typedData);
       }
     } catch (error) {
       console.error('Error loading company settings:', error);

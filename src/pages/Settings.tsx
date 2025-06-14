@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Upload, Image, Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import MainLayout from '@/components/MainLayout';
-import type { CompanySettings } from '@/types';
+import type { CompanySettings, Theme } from '@/types';
 
 const Settings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -20,7 +20,7 @@ const Settings = () => {
     company_name: '',
     company_subtitle: '',
     logo_url: '',
-    theme: theme
+    theme: theme as Theme
   });
 
   useEffect(() => {
@@ -39,24 +39,28 @@ const Settings = () => {
       }
 
       if (data) {
-        setSettings(data);
+        const typedData: CompanySettings = {
+          ...data,
+          theme: (data.theme as Theme) || 'system'
+        };
+        setSettings(typedData);
         setFormData({
           company_name: data.company_name || '',
           company_subtitle: data.company_subtitle || '',
           logo_url: data.logo_url || '',
-          theme: data.theme || 'system'
+          theme: (data.theme as Theme) || 'system'
         });
         
         // Apply saved theme
         if (data.theme) {
-          setTheme(data.theme);
+          setTheme(data.theme as Theme);
         }
       } else {
         setFormData({
           company_name: 'Sua Empresa',
           company_subtitle: 'Sistema de Marketing',
           logo_url: '',
-          theme: 'system'
+          theme: 'system' as Theme
         });
       }
     } catch (error) {
@@ -72,7 +76,7 @@ const Settings = () => {
     }));
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
     setFormData(prev => ({
       ...prev,
