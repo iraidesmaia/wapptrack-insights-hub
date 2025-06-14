@@ -11,6 +11,9 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import MainLayout from '@/components/MainLayout';
 import CampaignKeywordsSettings from '@/components/campaigns/CampaignKeywordsSettings';
+import CampaignLinkManager from '@/components/campaigns/CampaignLinkManager';
+import CampaignLogoUpload from '@/components/campaigns/CampaignLogoUpload';
+import CampaignCaptureSettings from '@/components/campaigns/CampaignCaptureSettings';
 import { useCampaignKeywords } from '@/hooks/useCampaignKeywords';
 import { supabase } from '@/integrations/supabase/client';
 import { Campaign } from '@/types';
@@ -56,6 +59,12 @@ const CampaignEdit = () => {
     }
   };
 
+  const handleCampaignChange = (updates: Partial<Campaign>) => {
+    if (campaign) {
+      setCampaign({ ...campaign, ...updates });
+    }
+  };
+
   const handleSave = async () => {
     if (!campaign || !id) return;
 
@@ -78,7 +87,9 @@ const CampaignEdit = () => {
           company_title: campaign.company_title,
           company_subtitle: campaign.company_subtitle,
           logo_url: campaign.logo_url,
-          active: campaign.active
+          active: campaign.active,
+          auto_create_leads: campaign.auto_create_leads,
+          redirect_type: campaign.redirect_type
         })
         .eq('id', id);
 
@@ -149,6 +160,8 @@ const CampaignEdit = () => {
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList>
             <TabsTrigger value="general">Geral</TabsTrigger>
+            <TabsTrigger value="capture">Captura</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="keywords">Palavras-chave</TabsTrigger>
             <TabsTrigger value="utm">UTM Parameters</TabsTrigger>
             <TabsTrigger value="integrations">Integrações</TabsTrigger>
@@ -165,7 +178,7 @@ const CampaignEdit = () => {
                   <Input
                     id="name"
                     value={campaign.name || ''}
-                    onChange={(e) => setCampaign({ ...campaign, name: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ name: e.target.value })}
                     placeholder="Nome da campanha"
                   />
                 </div>
@@ -175,7 +188,7 @@ const CampaignEdit = () => {
                   <Input
                     id="company_title"
                     value={campaign.company_title || ''}
-                    onChange={(e) => setCampaign({ ...campaign, company_title: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ company_title: e.target.value })}
                     placeholder="Título da empresa"
                   />
                 </div>
@@ -185,7 +198,7 @@ const CampaignEdit = () => {
                   <Input
                     id="company_subtitle"
                     value={campaign.company_subtitle || ''}
-                    onChange={(e) => setCampaign({ ...campaign, company_subtitle: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ company_subtitle: e.target.value })}
                     placeholder="Subtítulo da empresa"
                   />
                 </div>
@@ -195,13 +208,35 @@ const CampaignEdit = () => {
                   <Textarea
                     id="custom_message"
                     value={campaign.custom_message || ''}
-                    onChange={(e) => setCampaign({ ...campaign, custom_message: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ custom_message: e.target.value })}
                     placeholder="Mensagem personalizada para esta campanha"
                     rows={3}
                   />
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="capture" className="space-y-6">
+            <CampaignCaptureSettings
+              campaign={campaign}
+              onCampaignChange={handleCampaignChange}
+            />
+            
+            <CampaignLinkManager
+              campaignId={campaign.id}
+              campaignName={campaign.name}
+              redirectType={campaign.redirect_type}
+              whatsappNumber={campaign.whatsapp_number}
+            />
+          </TabsContent>
+
+          <TabsContent value="branding" className="space-y-6">
+            <CampaignLogoUpload
+              campaignId={campaign.id}
+              currentLogoUrl={campaign.logo_url}
+              onLogoChange={(logoUrl) => handleCampaignChange({ logo_url: logoUrl })}
+            />
           </TabsContent>
 
           <TabsContent value="keywords" className="space-y-6">
@@ -224,7 +259,7 @@ const CampaignEdit = () => {
                   <Input
                     id="utm_source"
                     value={campaign.utm_source || ''}
-                    onChange={(e) => setCampaign({ ...campaign, utm_source: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ utm_source: e.target.value })}
                     placeholder="Ex: facebook, google"
                   />
                 </div>
@@ -234,7 +269,7 @@ const CampaignEdit = () => {
                   <Input
                     id="utm_medium"
                     value={campaign.utm_medium || ''}
-                    onChange={(e) => setCampaign({ ...campaign, utm_medium: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ utm_medium: e.target.value })}
                     placeholder="Ex: cpc, social"
                   />
                 </div>
@@ -244,7 +279,7 @@ const CampaignEdit = () => {
                   <Input
                     id="utm_campaign"
                     value={campaign.utm_campaign || ''}
-                    onChange={(e) => setCampaign({ ...campaign, utm_campaign: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ utm_campaign: e.target.value })}
                     placeholder="Nome da campanha"
                   />
                 </div>
@@ -254,7 +289,7 @@ const CampaignEdit = () => {
                   <Input
                     id="utm_content"
                     value={campaign.utm_content || ''}
-                    onChange={(e) => setCampaign({ ...campaign, utm_content: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ utm_content: e.target.value })}
                     placeholder="Identificador do conteúdo"
                   />
                 </div>
@@ -264,7 +299,7 @@ const CampaignEdit = () => {
                   <Input
                     id="utm_term"
                     value={campaign.utm_term || ''}
-                    onChange={(e) => setCampaign({ ...campaign, utm_term: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ utm_term: e.target.value })}
                     placeholder="Palavras-chave"
                   />
                 </div>
@@ -283,7 +318,7 @@ const CampaignEdit = () => {
                   <Input
                     id="pixel_id"
                     value={campaign.pixel_id || ''}
-                    onChange={(e) => setCampaign({ ...campaign, pixel_id: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ pixel_id: e.target.value })}
                     placeholder="ID do pixel do Facebook"
                   />
                 </div>
@@ -293,7 +328,7 @@ const CampaignEdit = () => {
                   <Input
                     id="whatsapp_number"
                     value={campaign.whatsapp_number || ''}
-                    onChange={(e) => setCampaign({ ...campaign, whatsapp_number: e.target.value })}
+                    onChange={(e) => handleCampaignChange({ whatsapp_number: e.target.value })}
                     placeholder="Ex: 5511999999999"
                   />
                 </div>

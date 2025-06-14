@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, BarChart3, Users, TrendingUp } from 'lucide-react';
+import { Plus, Edit, BarChart3, Users, TrendingUp, Copy, ExternalLink, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import MainLayout from '@/components/MainLayout';
@@ -43,7 +43,9 @@ const Campaigns = () => {
         .from('campaigns')
         .insert({
           name: 'Nova Campanha',
-          active: true
+          active: true,
+          auto_create_leads: true,
+          redirect_type: 'form'
         })
         .select()
         .single();
@@ -56,6 +58,35 @@ const Campaigns = () => {
       console.error('Error creating campaign:', error);
       toast.error('Erro ao criar campanha');
     }
+  };
+
+  const handleCopyLink = async (campaignId: string) => {
+    const baseUrl = window.location.origin;
+    const campaignUrl = `${baseUrl}/redirect?campaign=${campaignId}`;
+    
+    try {
+      await navigator.clipboard.writeText(campaignUrl);
+      toast.success('Link copiado!');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Erro ao copiar link');
+    }
+  };
+
+  const handleOpenPreview = (campaignId: string) => {
+    const baseUrl = window.location.origin;
+    const campaignUrl = `${baseUrl}/redirect?campaign=${campaignId}`;
+    window.open(campaignUrl, '_blank');
+  };
+
+  const handleDirectWhatsApp = (whatsappNumber: string) => {
+    if (!whatsappNumber) {
+      toast.error('Número do WhatsApp não configurado');
+      return;
+    }
+    
+    const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   if (loading) {
@@ -108,9 +139,14 @@ const Campaigns = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                    <Badge variant={campaign.active ? 'default' : 'secondary'}>
-                      {campaign.active ? 'Ativa' : 'Inativa'}
-                    </Badge>
+                    <div className="flex gap-1">
+                      <Badge variant={campaign.active ? 'default' : 'secondary'}>
+                        {campaign.active ? 'Ativa' : 'Inativa'}
+                      </Badge>
+                      <Badge variant="outline">
+                        {campaign.redirect_type === 'direct' ? 'Direto' : 'Formulário'}
+                      </Badge>
+                    </div>
                   </div>
                   {campaign.utm_source && (
                     <CardDescription>
@@ -136,8 +172,41 @@ const Campaigns = () => {
                       {campaign.conversion_keywords.length} palavras-chave de conversão
                     </div>
                   )}
+
+                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                    <strong>Link:</strong> /redirect?campaign={campaign.id}
+                  </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleCopyLink(campaign.id)}
+                      title="Copiar link"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleOpenPreview(campaign.id)}
+                      title="Abrir preview"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+
+                    {campaign.redirect_type === 'direct' && campaign.whatsapp_number && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDirectWhatsApp(campaign.whatsapp_number)}
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                    )}
+                    
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -146,13 +215,6 @@ const Campaigns = () => {
                     >
                       <Edit className="w-4 h-4 mr-2" />
                       Editar
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => toast.info('Relatórios em breve!')}
-                    >
-                      <BarChart3 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
