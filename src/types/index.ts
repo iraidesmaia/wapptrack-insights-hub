@@ -14,7 +14,7 @@ export interface Lead {
   source?: string;
   campaign: string;
   campaign_id?: string;
-  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover';
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover' | 'engaged';
   notes?: string;
   first_contact_date?: string;
   last_contact_date?: string;

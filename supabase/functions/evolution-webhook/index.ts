@@ -83,18 +83,71 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
 
 async function handleSendMessageEvent(supabase: any, data: any, instance: string) {
   try {
-    // Mensagem enviada com sucesso - criar lead válido com status "lead"
+    // Mensagem enviada com sucesso - criar lead válido se for de um pending lead
+    // OU atualizar status para "contacted" se você está respondendo a um lead existente
     const toPhone = extractPhoneNumber(data.key?.remoteJid || data.to);
     const messageId = data.key?.id || data.messageId;
     
     if (toPhone) {
       console.log('Message sent successfully to:', toPhone);
       
-      // Procurar lead pendente e criar lead válido com status "lead"
-      await createLeadFromPendingWithPhoneVariations(supabase, toPhone, {
-        evolution_message_id: messageId,
-        evolution_status: 'sent'
-      });
+      // Primeiro, verificar se existe um lead com esse número
+      const phoneVariations = createPhoneVariations(toPhone);
+      let existingLead = null;
+      
+      for (const variation of phoneVariations) {
+        const { data: leadData, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('phone', variation)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (!error && leadData) {
+          existingLead = leadData;
+          console.log('Found existing lead with phone variation:', variation);
+          break;
+        }
+      }
+
+      if (existingLead) {
+        // Lead existe - atualizar status para "contacted" se necessário
+        const currentStatus = existingLead.status;
+        const shouldUpdateToContacted = ['new', 'lead', 'engaged'].includes(currentStatus);
+        
+        if (shouldUpdateToContacted) {
+          console.log(`Updating lead status from ${currentStatus} to contacted for phone:`, toPhone);
+          
+          const updates: any = {
+            status: 'contacted',
+            evolution_message_id: messageId,
+            evolution_status: 'sent',
+            last_contact_date: new Date().toISOString()
+          };
+          
+          // Se for o primeiro contato, definir first_contact_date
+          if (!existingLead.first_contact_date) {
+            updates.first_contact_date = new Date().toISOString();
+          }
+          
+          await updateLeadStatusWithPhoneVariations(supabase, toPhone, 'contacted', updates);
+        } else {
+          // Lead já está em status mais avançado, apenas atualizar dados da mensagem
+          console.log(`Lead already in advanced status (${currentStatus}), updating message data only`);
+          await updateLeadStatusWithPhoneVariations(supabase, toPhone, currentStatus, {
+            evolution_message_id: messageId,
+            evolution_status: 'sent',
+            last_contact_date: new Date().toISOString()
+          });
+        }
+      } else {
+        // Lead não existe - procurar lead pendente e criar lead válido
+        await createLeadFromPendingWithPhoneVariations(supabase, toPhone, {
+          evolution_message_id: messageId,
+          evolution_status: 'sent'
+        });
+      }
     }
   } catch (error) {
     console.error('Error handling send message event:', error);
@@ -110,36 +163,29 @@ async function handleMessageStatusEvent(supabase: any, data: any, instance: stri
     if (phone) {
       console.log('Message status update for:', phone, 'Status:', status);
       
-      let leadStatus = 'lead';
       let evolutionStatus = 'sent';
       
       switch (status) {
         case 1:
         case 'SENT':
           evolutionStatus = 'sent';
-          leadStatus = 'lead';
           break;
         case 2:
         case 'DELIVERED':
           evolutionStatus = 'delivered';
-          leadStatus = 'lead';
           break;
         case 3:
         case 'READ':
           evolutionStatus = 'read';
-          leadStatus = 'lead';
           break;
         case 'ERROR':
         case 'FAILED':
-          leadStatus = 'to_recover';
           evolutionStatus = 'failed';
           break;
       }
       
-      await updateLeadStatusWithPhoneVariations(supabase, phone, leadStatus, {
-        evolution_status: evolutionStatus,
-        last_whatsapp_attempt: new Date().toISOString()
-      });
+      // Não alterar o status do lead, apenas atualizar o evolution_status
+      await updateLeadEvolutionStatusWithPhoneVariations(supabase, phone, evolutionStatus);
     }
   } catch (error) {
     console.error('Error handling message status event:', error);
@@ -176,7 +222,7 @@ async function createLeadFromPendingWithPhoneVariations(supabase: any, phone: st
       return;
     }
 
-    // Criar lead válido com status "lead"
+    // Criar lead válido com status "lead" (será atualizado para "contacted" em seguida)
     const { error: leadError } = await supabase
       .from('leads')
       .insert({
@@ -184,11 +230,13 @@ async function createLeadFromPendingWithPhoneVariations(supabase: any, phone: st
         phone: pendingLead.phone,
         campaign: pendingLead.campaign_name || 'Evolution API',
         campaign_id: pendingLead.campaign_id,
-        status: 'lead',
+        status: 'contacted', // Já criar como "contacted" pois a mensagem foi enviada
         evolution_message_id: evolutionData.evolution_message_id,
         evolution_status: evolutionData.evolution_status,
         whatsapp_delivery_attempts: 1,
-        last_whatsapp_attempt: new Date().toISOString()
+        last_whatsapp_attempt: new Date().toISOString(),
+        first_contact_date: new Date().toISOString(), // Primeiro contato
+        last_contact_date: new Date().toISOString()
       });
 
     if (leadError) {
@@ -202,7 +250,7 @@ async function createLeadFromPendingWithPhoneVariations(supabase: any, phone: st
       .update({ status: 'confirmed' })
       .eq('id', pendingLead.id);
 
-    console.log('Lead created successfully with status "lead" for:', phone);
+    console.log('Lead created successfully with status "contacted" for:', phone);
 
   } catch (error) {
     console.error('Error creating lead from pending:', error);
@@ -212,7 +260,7 @@ async function createLeadFromPendingWithPhoneVariations(supabase: any, phone: st
 async function updateLeadStatusWithPhoneVariations(supabase: any, phone: string, status: string, updates: any) {
   try {
     const phoneVariations = createPhoneVariations(phone);
-    console.log('Updating lead status for phone variations:', phoneVariations);
+    console.log('Updating lead status for phone variations:', phoneVariations, 'to:', status);
     
     let updated = false;
     
@@ -238,6 +286,38 @@ async function updateLeadStatusWithPhoneVariations(supabase: any, phone: string,
     }
   } catch (error) {
     console.error('Error updating lead status:', error);
+  }
+}
+
+async function updateLeadEvolutionStatusWithPhoneVariations(supabase: any, phone: string, evolutionStatus: string) {
+  try {
+    const phoneVariations = createPhoneVariations(phone);
+    console.log('Updating evolution status for phone variations:', phoneVariations, 'to:', evolutionStatus);
+    
+    let updated = false;
+    
+    // Tentar atualizar usando variações do número
+    for (const variation of phoneVariations) {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({
+          evolution_status: evolutionStatus,
+          last_whatsapp_attempt: new Date().toISOString()
+        })
+        .eq('phone', variation);
+
+      if (!error && data) {
+        console.log('Lead evolution status updated for variation:', variation, 'to:', evolutionStatus);
+        updated = true;
+        break;
+      }
+    }
+    
+    if (!updated) {
+      console.warn('No lead found for phone variations:', phoneVariations);
+    }
+  } catch (error) {
+    console.error('Error updating lead evolution status:', error);
   }
 }
 
