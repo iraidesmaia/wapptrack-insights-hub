@@ -37,7 +37,6 @@ export interface Campaign {
   content?: string;
   results?: string;
   active?: boolean;
-  auto_create_leads?: boolean;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
