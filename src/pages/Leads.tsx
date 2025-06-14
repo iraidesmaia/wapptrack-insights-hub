@@ -11,6 +11,7 @@ import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -59,6 +60,53 @@ const Leads = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Configurar escuta em tempo real para mudanças na tabela de leads
+    console.log('🎧 Configurando escuta em tempo real para leads...');
+    const channel = supabase
+      .channel('leads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'leads'
+        },
+        (payload) => {
+          console.log('📡 Mudança detectada na tabela leads:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('➕ Novo lead adicionado:', payload.new);
+            setLeads(prev => [payload.new as Lead, ...prev]);
+            toast.success(`Novo lead adicionado: ${(payload.new as Lead).name}`);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            console.log('📝 Lead atualizado:', payload.new);
+            setLeads(prev => prev.map(lead => 
+              lead.id === (payload.new as Lead).id ? payload.new as Lead : lead
+            ));
+            
+            // Se uma mensagem foi adicionada, mostrar notificação
+            const updatedLead = payload.new as Lead;
+            const oldLead = payload.old as Lead;
+            if (updatedLead.last_message && updatedLead.last_message !== oldLead.last_message) {
+              toast.info(`Nova mensagem de ${updatedLead.name}: ${updatedLead.last_message.substring(0, 50)}${updatedLead.last_message.length > 50 ? '...' : ''}`);
+            }
+          }
+          else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Lead removido:', payload.old);
+            setLeads(prev => prev.filter(lead => lead.id !== (payload.old as Lead).id));
+            toast.info(`Lead removido: ${(payload.old as Lead).name}`);
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: remover a escuta quando o componente for desmontado
+    return () => {
+      console.log('🔌 Removendo escuta em tempo real...');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleRefreshLeads = () => {
