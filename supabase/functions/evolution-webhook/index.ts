@@ -108,46 +108,82 @@ serve(async (req) => {
       
       if (remoteJid && !message.key?.fromMe) {
         const phoneNumber = remoteJid.replace('@s.whatsapp.net', '')
-        console.log(`Processing message from: ${phoneNumber}`)
+        console.log(`🔍 Processing message from: ${phoneNumber}`)
         
         const messageContent = message.message?.conversation || 
                              message.message?.extendedTextMessage?.text || 
                              'Mensagem recebida'
         
-        console.log(`Extracted message content: ${messageContent}`)
+        console.log(`📝 Message content: ${messageContent}`)
         
         // Criar todas as variações possíveis do número
         const phoneVariations = createAllPhoneVariations(phoneNumber);
-        console.log(`Phone variations created: ${JSON.stringify(phoneVariations)}`);
+        console.log(`📱 Phone variations created: ${JSON.stringify(phoneVariations)}`);
         
-        // Primeiro, vamos buscar TODOS os leads para debug
-        const { data: allLeads, error: allLeadsError } = await supabase
-          .from('leads')
-          .select('id, name, phone, status');
-          
-        if (allLeadsError) {
-          console.error('Error fetching all leads for debug:', allLeadsError);
-        } else {
-          console.log(`Total leads in database: ${allLeads?.length}`);
-          console.log('Sample of leads in database:', allLeads?.slice(0, 5).map(l => ({ name: l.name, phone: l.phone })));
-        }
-        
-        // Agora buscar leads que correspondem às variações
-        const { data: matchedLeads, error: searchError } = await supabase
+        // Fazer busca mais robusta usando LIKE para encontrar leads com números similares
+        let matchedLeads = null;
+        let searchError = null;
+
+        // Primeiro tentar busca exata com as variações
+        const { data: exactMatches, error: exactError } = await supabase
           .from('leads')
           .select('*')
           .in('phone', phoneVariations);
 
-        if (searchError) {
-          console.error('Error searching leads:', searchError);
+        if (exactError) {
+          console.error('❌ Error in exact search:', exactError);
+          searchError = exactError;
         } else {
-          console.log(`Found ${matchedLeads?.length || 0} matching leads:`, matchedLeads?.map(l => ({ name: l.name, phone: l.phone, status: l.status })));
+          matchedLeads = exactMatches;
+          console.log(`🎯 Exact matches found: ${matchedLeads?.length || 0}`);
+        }
+
+        // Se não encontrou com busca exata, tentar busca com LIKE pelos últimos 8 dígitos
+        if (!matchedLeads || matchedLeads.length === 0) {
+          const last8Digits = phoneNumber.slice(-8);
+          console.log(`🔍 Trying LIKE search with last 8 digits: ${last8Digits}`);
+          
+          const { data: likeMatches, error: likeError } = await supabase
+            .from('leads')
+            .select('*')
+            .ilike('phone', `%${last8Digits}`);
+
+          if (likeError) {
+            console.error('❌ Error in LIKE search:', likeError);
+          } else {
+            matchedLeads = likeMatches;
+            console.log(`🎯 LIKE matches found: ${matchedLeads?.length || 0}`);
+          }
+        }
+
+        // Se ainda não encontrou, buscar por qualquer número que contenha parte do número
+        if (!matchedLeads || matchedLeads.length === 0) {
+          const last7Digits = phoneNumber.slice(-7);
+          console.log(`🔍 Trying broader search with last 7 digits: ${last7Digits}`);
+          
+          const { data: broadMatches, error: broadError } = await supabase
+            .from('leads')
+            .select('*')
+            .ilike('phone', `%${last7Digits}%`);
+
+          if (broadError) {
+            console.error('❌ Error in broad search:', broadError);
+          } else {
+            matchedLeads = broadMatches;
+            console.log(`🎯 Broad matches found: ${matchedLeads?.length || 0}`);
+          }
         }
 
         if (matchedLeads && matchedLeads.length > 0) {
+          console.log(`✅ Found ${matchedLeads.length} matching leads:`, matchedLeads.map(l => ({ 
+            name: l.name, 
+            phone: l.phone, 
+            status: l.status 
+          })));
+
           // Atualizar todos os leads encontrados
           const updatePromises = matchedLeads.map(async (lead) => {
-            console.log(`Updating lead ${lead.name} (${lead.phone}) - Status: ${lead.status} -> lead`);
+            console.log(`📝 Updating lead ${lead.name} (${lead.phone}) - Status: ${lead.status} -> lead`);
             
             const { data: updatedLead, error: updateError } = await supabase
               .from('leads')
@@ -161,10 +197,10 @@ serve(async (req) => {
               .single();
 
             if (updateError) {
-              console.error(`Error updating lead ${lead.id}:`, updateError);
+              console.error(`❌ Error updating lead ${lead.id}:`, updateError);
               return null;
             } else {
-              console.log(`Successfully updated lead ${lead.name} (${lead.phone})`);
+              console.log(`✅ Successfully updated lead ${lead.name}`);
               return updatedLead;
             }
           });
@@ -172,14 +208,14 @@ serve(async (req) => {
           const updatedLeads = await Promise.all(updatePromises);
           const successfulUpdates = updatedLeads.filter(lead => lead !== null);
           
-          console.log(`Successfully updated ${successfulUpdates.length} leads`);
+          console.log(`🎉 Successfully updated ${successfulUpdates.length} leads`);
           
           // Se o número foi corrigido, atualizar com o número correto
           const correctedPhone = correctPhoneNumber(phoneNumber);
           if (phoneNumber !== correctedPhone) {
             for (const lead of matchedLeads) {
-              if (lead.phone === phoneNumber) {
-                console.log(`Applying phone correction to lead ${lead.name}: ${phoneNumber} -> ${correctedPhone}`);
+              if (lead.phone !== correctedPhone) {
+                console.log(`🔧 Applying phone correction to lead ${lead.name}: ${lead.phone} -> ${correctedPhone}`);
                 await supabase
                   .from('leads')
                   .update({ phone: correctedPhone })
@@ -188,20 +224,20 @@ serve(async (req) => {
             }
           }
         } else {
-          console.error(`❌ No lead found for phone variations: ${JSON.stringify(phoneVariations)}`);
+          console.error(`❌ No lead found for phone: ${phoneNumber}`);
           console.log('🔍 Debug info:');
           console.log('- Original phone from webhook:', phoneNumber);
           console.log('- Corrected phone:', correctPhoneNumber(phoneNumber));
           console.log('- All variations tried:', phoneVariations);
           
-          // Fazer uma busca mais ampla para debug
-          const { data: similarLeads, error: similarError } = await supabase
+          // Buscar todos os leads para comparação manual
+          const { data: allLeads, error: allError } = await supabase
             .from('leads')
             .select('phone, name')
-            .ilike('phone', `%${phoneNumber.slice(-8)}%`);
+            .limit(10);
             
-          if (!similarError && similarLeads && similarLeads.length > 0) {
-            console.log('🔍 Similar leads found by last 8 digits:', similarLeads);
+          if (!allError && allLeads && allLeads.length > 0) {
+            console.log('📋 Sample leads in database:', allLeads);
           }
         }
       }
@@ -212,7 +248,7 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error('💥 Webhook error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
