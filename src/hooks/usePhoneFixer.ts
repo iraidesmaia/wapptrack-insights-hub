@@ -66,7 +66,26 @@ export const usePhoneFixer = () => {
         return leadsData;
       } else {
         toast.info('Nenhum número problemático encontrado para correção');
-        return allLeads || [];
+        // Transform the raw Supabase data to match Lead interface
+        const transformedLeads: Lead[] = (allLeads || []).map(lead => ({
+          id: lead.id,
+          created_at: lead.created_at,
+          name: lead.name,
+          phone: lead.phone,
+          campaign: lead.campaign,
+          campaign_id: lead.campaign_id,
+          status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover',
+          notes: lead.notes,
+          first_contact_date: lead.first_contact_date,
+          last_contact_date: lead.last_contact_date,
+          custom_fields: lead.custom_fields,
+          whatsapp_delivery_attempts: lead.whatsapp_delivery_attempts,
+          last_whatsapp_attempt: lead.last_whatsapp_attempt,
+          last_message: lead.last_message,
+          evolution_message_id: lead.evolution_message_id,
+          evolution_status: lead.evolution_status
+        }));
+        return transformedLeads;
       }
 
     } catch (error) {
