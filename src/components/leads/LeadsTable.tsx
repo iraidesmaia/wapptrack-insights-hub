@@ -44,10 +44,24 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  const truncateMessage = (message: string | undefined, maxLength: number = 50) => {
-    if (!message) return '-';
-    if (message.length <= maxLength) return message;
-    return message.substring(0, maxLength) + '...';
+  const renderMessage = (message: string | undefined | null) => {
+    if (!message || message.trim() === '') {
+      return <span className="text-muted-foreground italic">Sem mensagem</span>;
+    }
+    
+    const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
+    
+    return (
+      <div className="max-w-xs">
+        <span 
+          className="text-sm break-words" 
+          title={message}
+          style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+        >
+          {truncatedMessage}
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -83,15 +97,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 </tr>
               ) : (
                 leads.map((lead) => (
-                  <tr key={lead.id} className="border-b">
-                    <td className="p-4">{lead.name}</td>
+                  <tr key={lead.id} className="border-b hover:bg-muted/50">
+                    <td className="p-4 font-medium">{lead.name}</td>
                     <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
                     <td className="p-4">{lead.campaign}</td>
                     <td className="p-4">{getStatusBadge(lead.status)}</td>
-                    <td className="p-4" title={lead.last_message || ''}>
-                      <span className="text-sm text-muted-foreground">
-                        {truncateMessage(lead.last_message, 40)}
-                      </span>
+                    <td className="p-4">
+                      {renderMessage(lead.last_message)}
                     </td>
                     <td className="p-4">{formatDate(lead.created_at)}</td>
                     <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>

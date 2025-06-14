@@ -10,6 +10,7 @@ import { usePhoneFixer } from '@/hooks/usePhoneFixer';
 import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
+import { toast } from "sonner";
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -33,25 +34,38 @@ const Leads = () => {
     openWhatsApp
   } = useLeadOperations(leads, setLeads);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [leadsData, campaignsData] = await Promise.all([
-          getLeads(),
-          getCampaigns()
-        ]);
-        setLeads(leadsData);
-        setCampaigns(campaignsData);
-      } catch (error) {
-        console.error('Error fetching leads data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [leadsData, campaignsData] = await Promise.all([
+        getLeads(),
+        getCampaigns()
+      ]);
+      setLeads(leadsData);
+      setCampaigns(campaignsData);
+      console.log('📊 Leads carregados:', leadsData.map(lead => ({
+        name: lead.name,
+        phone: lead.phone,
+        last_message: lead.last_message,
+        status: lead.status
+      })));
+    } catch (error) {
+      console.error('Error fetching leads data:', error);
+      toast.error('Erro ao carregar dados dos leads');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRefreshLeads = () => {
+    console.log('🔄 Atualizando lista de leads...');
+    fetchData();
+    toast.success('Lista de leads atualizada!');
+  };
 
   const handleFixPhoneNumbers = async () => {
     try {
@@ -82,6 +96,13 @@ const Leads = () => {
             <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefreshLeads}
+              disabled={isLoading}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleFixPhoneNumbers}
