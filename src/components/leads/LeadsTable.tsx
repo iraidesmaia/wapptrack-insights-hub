@@ -44,13 +44,24 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  const renderMessage = (message: string | undefined | null) => {
-    console.log('🔍 Renderizando mensagem:', { message, type: typeof message });
+  const renderMessage = (message: string | undefined | null, leadName: string) => {
+    console.log(`🔍 Renderizando mensagem para ${leadName}:`, { 
+      message, 
+      type: typeof message,
+      raw: JSON.stringify(message),
+      isNull: message === null,
+      isUndefined: message === undefined,
+      isEmpty: message === '',
+      isStringNull: message === 'null',
+      isStringUndefined: message === 'undefined'
+    });
     
     if (!message || message.trim() === '' || message === 'null' || message === 'undefined') {
+      console.log(`❌ Sem mensagem válida para ${leadName}`);
       return <span className="text-muted-foreground italic">Sem mensagem</span>;
     }
     
+    console.log(`✅ Mensagem válida para ${leadName}: "${message}"`);
     const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
     
     return (
@@ -65,6 +76,12 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
       </div>
     );
   };
+
+  console.log('📊 LeadsTable recebeu leads:', leads.map(lead => ({
+    name: lead.name,
+    last_message: lead.last_message,
+    type: typeof lead.last_message
+  })));
 
   return (
     <Card>
@@ -98,46 +115,53 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                leads.map((lead) => (
-                  <tr key={lead.id} className="border-b hover:bg-muted/50">
-                    <td className="p-4 font-medium">{lead.name}</td>
-                    <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
-                    <td className="p-4">{lead.campaign}</td>
-                    <td className="p-4">{getStatusBadge(lead.status)}</td>
-                    <td className="p-4">
-                      {renderMessage(lead.last_message)}
-                    </td>
-                    <td className="p-4">{formatDate(lead.created_at)}</td>
-                    <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>
-                    <td className="p-4">{lead.last_contact_date ? formatDate(lead.last_contact_date) : '-'}</td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onOpenWhatsApp(lead.phone)}
-                        title="Abrir WhatsApp"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(lead)}
-                        title="Editar lead"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(lead.id)}
-                        title="Excluir lead"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                leads.map((lead) => {
+                  console.log(`🎯 Renderizando linha para ${lead.name}:`, {
+                    last_message: lead.last_message,
+                    type: typeof lead.last_message
+                  });
+                  
+                  return (
+                    <tr key={lead.id} className="border-b hover:bg-muted/50">
+                      <td className="p-4 font-medium">{lead.name}</td>
+                      <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
+                      <td className="p-4">{lead.campaign}</td>
+                      <td className="p-4">{getStatusBadge(lead.status)}</td>
+                      <td className="p-4">
+                        {renderMessage(lead.last_message, lead.name)}
+                      </td>
+                      <td className="p-4">{formatDate(lead.created_at)}</td>
+                      <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>
+                      <td className="p-4">{lead.last_contact_date ? formatDate(lead.last_contact_date) : '-'}</td>
+                      <td className="p-4 text-right whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onOpenWhatsApp(lead.phone)}
+                          title="Abrir WhatsApp"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(lead)}
+                          title="Editar lead"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDelete(lead.id)}
+                          title="Excluir lead"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

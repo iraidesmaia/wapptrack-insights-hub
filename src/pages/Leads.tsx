@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getLeads, getCampaigns } from '@/services/dataService';
 import { Lead, Campaign } from '@/types';
-import { Plus, RefreshCw } from 'lucide-react';
-import { usePhoneFixer } from '@/hooks/usePhoneFixer';
+import { Plus } from 'lucide-react';
 import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
@@ -19,7 +18,6 @@ const Leads = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { fixPhoneNumbers, isLoading: isFixingPhones } = usePhoneFixer();
   const {
     isDialogOpen,
     setIsDialogOpen,
@@ -38,21 +36,35 @@ const Leads = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      console.log('🔄 Iniciando busca de dados...');
+      
       const [leadsData, campaignsData] = await Promise.all([
         getLeads(),
         getCampaigns()
       ]);
       
-      // Garantir que os dados estão sendo processados corretamente
-      const processedLeads = leadsData.map(lead => ({
-        ...lead,
-        last_message: lead.last_message || null // Garantir que null seja preservado
-      }));
+      console.log('📋 Dados brutos do getLeads():', leadsData);
       
+      // Garantir que os dados estão sendo processados corretamente
+      const processedLeads = leadsData.map(lead => {
+        console.log(`🔍 Processando lead ${lead.name}:`, {
+          id: lead.id,
+          last_message: lead.last_message,
+          last_message_type: typeof lead.last_message,
+          last_message_raw: JSON.stringify(lead.last_message)
+        });
+        
+        return {
+          ...lead,
+          last_message: lead.last_message || null
+        };
+      });
+      
+      console.log('✅ Leads processados:', processedLeads);
       setLeads(processedLeads);
       setCampaigns(campaignsData);
       
-      console.log('📊 Leads carregados:', processedLeads.map(lead => ({
+      console.log('📊 Estado final dos leads:', processedLeads.map(lead => ({
         name: lead.name,
         phone: lead.phone,
         last_message: lead.last_message,
@@ -82,22 +94,46 @@ const Leads = () => {
         },
         (payload) => {
           console.log('📡 Mudança detectada na tabela leads:', payload);
+          console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
           
           if (payload.eventType === 'INSERT') {
             console.log('➕ Novo lead adicionado:', payload.new);
             const newLead = payload.new as Lead;
+            console.log('➕ Detalhes da mensagem no INSERT:', {
+              last_message: newLead.last_message,
+              type: typeof newLead.last_message,
+              raw: JSON.stringify(newLead.last_message)
+            });
+            
             // Garantir que a mensagem seja preservada
             const processedLead = {
               ...newLead,
               last_message: newLead.last_message || null
             };
-            setLeads(prev => [processedLead, ...prev]);
+            console.log('➕ Lead processado para insert:', processedLead);
+            
+            setLeads(prev => {
+              const newLeads = [processedLead, ...prev];
+              console.log('➕ Estado atualizado após INSERT:', newLeads);
+              return newLeads;
+            });
             toast.success(`Novo lead adicionado: ${processedLead.name}`);
           } 
           else if (payload.eventType === 'UPDATE') {
             console.log('📝 Lead atualizado:', payload.new);
+            console.log('📝 Lead anterior:', payload.old);
+            
             const updatedLead = payload.new as Lead;
             const oldLead = payload.old as Lead;
+            
+            console.log('📝 Comparação de mensagens:', {
+              old_message: oldLead.last_message,
+              new_message: updatedLead.last_message,
+              old_type: typeof oldLead.last_message,
+              new_type: typeof updatedLead.last_message,
+              old_raw: JSON.stringify(oldLead.last_message),
+              new_raw: JSON.stringify(updatedLead.last_message)
+            });
             
             // Garantir que a mensagem seja preservada
             const processedLead = {
@@ -105,9 +141,15 @@ const Leads = () => {
               last_message: updatedLead.last_message || null
             };
             
-            setLeads(prev => prev.map(lead => 
-              lead.id === processedLead.id ? processedLead : lead
-            ));
+            console.log('📝 Lead processado para update:', processedLead);
+            
+            setLeads(prev => {
+              const updatedLeads = prev.map(lead => 
+                lead.id === processedLead.id ? processedLead : lead
+              );
+              console.log('📝 Estado atualizado após UPDATE:', updatedLeads);
+              return updatedLeads;
+            });
             
             // Se uma mensagem foi adicionada, mostrar notificação
             if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
@@ -132,15 +174,6 @@ const Leads = () => {
     };
   }, []);
 
-  const handleFixPhoneNumbers = async () => {
-    try {
-      const updatedLeads = await fixPhoneNumbers();
-      setLeads(updatedLeads);
-    } catch (error) {
-      console.error('Error fixing phone numbers:', error);
-    }
-  };
-
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -152,6 +185,12 @@ const Leads = () => {
     );
   });
 
+  console.log('🎯 Leads filtrados sendo passados para a tabela:', filteredLeads.map(lead => ({
+    name: lead.name,
+    last_message: lead.last_message,
+    type: typeof lead.last_message
+  })));
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -161,13 +200,6 @@ const Leads = () => {
             <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleFixPhoneNumbers}
-              disabled={isFixingPhones}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" /> Corrigir Números
-            </Button>
             <Button onClick={handleOpenAddDialog}>
               <Plus className="mr-2 h-4 w-4" /> Novo Lead
             </Button>
