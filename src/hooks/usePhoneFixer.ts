@@ -1,0 +1,82 @@
+
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { getLeads } from '@/services/dataService';
+import { toast } from "sonner";
+import { Lead } from '@/types';
+
+export const usePhoneFixer = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fixPhoneNumbers = async (): Promise<Lead[]> => {
+    try {
+      setIsLoading(true);
+      
+      console.log('Iniciando correção de números de telefone...');
+      
+      const { data: allLeads, error: fetchError } = await supabase
+        .from('leads')
+        .select('*');
+
+      if (fetchError) {
+        console.error('Erro ao buscar leads:', fetchError);
+        toast.error('Erro ao buscar leads');
+        throw fetchError;
+      }
+
+      console.log('Total de leads encontrados:', allLeads?.length);
+
+      let correctedCount = 0;
+
+      for (const lead of allLeads || []) {
+        const originalPhone = lead.phone;
+        let correctedPhone = originalPhone;
+
+        if (originalPhone === '5585998732658') {
+          correctedPhone = '558598372658';
+          console.log(`Corrigindo número específico: ${originalPhone} -> ${correctedPhone}`);
+        }
+        else if (originalPhone.startsWith('55') && originalPhone.length === 13) {
+          const withoutCountryCode = originalPhone.slice(2);
+          if (withoutCountryCode.length === 11 && withoutCountryCode[2] === '9' && withoutCountryCode[3] === '9') {
+            correctedPhone = '55' + withoutCountryCode.slice(0, 2) + withoutCountryCode.slice(3);
+            console.log(`Removendo 9 duplicado: ${originalPhone} -> ${correctedPhone}`);
+          }
+        }
+
+        if (correctedPhone !== originalPhone) {
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update({ phone: correctedPhone })
+            .eq('id', lead.id);
+
+          if (updateError) {
+            console.error(`Erro ao atualizar lead ${lead.id}:`, updateError);
+          } else {
+            console.log(`Lead ${lead.name} (${lead.id}) atualizado: ${originalPhone} -> ${correctedPhone}`);
+            correctedCount++;
+          }
+        }
+      }
+
+      if (correctedCount > 0) {
+        toast.success(`${correctedCount} número(s) corrigido(s) com sucesso!`);
+        const leadsData = await getLeads();
+        console.log(`Processo de correção finalizado. ${correctedCount} números corrigidos.`);
+        return leadsData;
+      } else {
+        toast.info('Nenhum número problemático encontrado para correção');
+        return allLeads || [];
+      }
+
+    } catch (error) {
+      console.error('Error fixing phone numbers:', error);
+      toast.error('Erro ao corrigir números');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { fixPhoneNumbers, isLoading };
+};
