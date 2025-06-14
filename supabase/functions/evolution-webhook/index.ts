@@ -33,59 +33,64 @@ const correctPhoneNumber = (phone: string): string => {
   return correctedPhone;
 };
 
-// Função para criar todas as variações possíveis de um número
-const createAllPhoneVariations = (phone: string): string[] => {
-  const originalPhone = phone;
-  const correctedPhone = correctPhoneNumber(phone);
+// Função simplificada para criar variações essenciais de um número
+const createEssentialPhoneVariations = (phone: string): string[] => {
   const variations = new Set<string>();
+  const digits = phone.replace(/\D/g, '');
   
-  // Adicionar número original e corrigido
-  variations.add(originalPhone);
-  variations.add(correctedPhone);
+  console.log(`Criando variações para: ${digits}`);
   
-  // Para cada número (original e corrigido), criar variações
-  [originalPhone, correctedPhone].forEach(num => {
-    // Variação sem código do país (se começar com 55)
-    if (num.startsWith('55') && num.length >= 12) {
-      const withoutCountry = num.slice(2);
-      variations.add(withoutCountry);
-      
-      // Se tem 11 dígitos (DDD + 9 dígitos), tentar sem o 9 extra
-      if (withoutCountry.length === 11 && withoutCountry[2] === '9') {
-        const without9 = withoutCountry.slice(0, 2) + withoutCountry.slice(3);
-        variations.add(without9);
-        variations.add('55' + without9);
-      }
-      
-      // Se tem 10 dígitos (DDD + 8 dígitos), tentar com 9 extra
-      if (withoutCountry.length === 10) {
-        const with9 = withoutCountry.slice(0, 2) + '9' + withoutCountry.slice(2);
-        variations.add(with9);
-        variations.add('55' + with9);
-      }
+  // Adicionar o número original
+  variations.add(digits);
+  
+  // Se começar com 55, criar versões sem código do país
+  if (digits.startsWith('55')) {
+    const withoutCountryCode = digits.slice(2);
+    variations.add(withoutCountryCode);
+    
+    // Para números de 11 dígitos (DDD + 9 dígitos), criar versão sem o 9 extra
+    if (withoutCountryCode.length === 11 && withoutCountryCode[2] === '9') {
+      const ddd = withoutCountryCode.slice(0, 2);
+      const numberPart = withoutCountryCode.slice(3); // Remove o 9
+      const withoutNine = ddd + numberPart;
+      variations.add(withoutNine);
+      variations.add('55' + withoutNine); // Com código do país
     }
     
-    // Variação com código do país (se não começar com 55)
-    if (!num.startsWith('55')) {
-      variations.add('55' + num);
-      
-      // Se tem 10 dígitos, tentar com 9 extra
-      if (num.length === 10) {
-        const with9 = num.slice(0, 2) + '9' + num.slice(2);
-        variations.add(with9);
-        variations.add('55' + with9);
-      }
-      
-      // Se tem 11 dígitos e terceiro dígito é 9, tentar sem o 9
-      if (num.length === 11 && num[2] === '9') {
-        const without9 = num.slice(0, 2) + num.slice(3);
-        variations.add(without9);
-        variations.add('55' + without9);
-      }
+    // Para números de 10 dígitos (DDD + 8 dígitos), criar versão com 9 extra
+    if (withoutCountryCode.length === 10) {
+      const ddd = withoutCountryCode.slice(0, 2);
+      const numberPart = withoutCountryCode.slice(2);
+      const withNine = ddd + '9' + numberPart;
+      variations.add(withNine);
+      variations.add('55' + withNine); // Com código do país
     }
-  });
+  } else {
+    // Se não começar com 55, adicionar versão com código do país
+    variations.add('55' + digits);
+    
+    // Para números de 10 dígitos, criar versão com 9 extra
+    if (digits.length === 10) {
+      const ddd = digits.slice(0, 2);
+      const numberPart = digits.slice(2);
+      const withNine = ddd + '9' + numberPart;
+      variations.add(withNine);
+      variations.add('55' + withNine);
+    }
+    
+    // Para números de 11 dígitos com 9, criar versão sem o 9
+    if (digits.length === 11 && digits[2] === '9') {
+      const ddd = digits.slice(0, 2);
+      const numberPart = digits.slice(3);
+      const withoutNine = ddd + numberPart;
+      variations.add(withoutNine);
+      variations.add('55' + withoutNine);
+    }
+  }
   
-  return Array.from(variations);
+  const result = Array.from(variations);
+  console.log(`Variações criadas: ${JSON.stringify(result)}`);
+  return result;
 };
 
 serve(async (req) => {
@@ -116,15 +121,14 @@ serve(async (req) => {
         
         console.log(`📝 Message content: ${messageContent}`)
         
-        // Criar todas as variações possíveis do número
-        const phoneVariations = createAllPhoneVariations(phoneNumber);
-        console.log(`📱 Phone variations created: ${JSON.stringify(phoneVariations)}`);
+        // Criar variações essenciais do número
+        const phoneVariations = createEssentialPhoneVariations(phoneNumber);
+        console.log(`📱 Phone variations for search: ${JSON.stringify(phoneVariations)}`);
         
-        // Fazer busca mais robusta usando LIKE para encontrar leads com números similares
         let matchedLeads = null;
-        let searchError = null;
 
-        // Primeiro tentar busca exata com as variações
+        // Busca exata com as variações criadas
+        console.log('🔍 Tentando busca exata com variações...');
         const { data: exactMatches, error: exactError } = await supabase
           .from('leads')
           .select('*')
@@ -132,10 +136,16 @@ serve(async (req) => {
 
         if (exactError) {
           console.error('❌ Error in exact search:', exactError);
-          searchError = exactError;
         } else {
           matchedLeads = exactMatches;
           console.log(`🎯 Exact matches found: ${matchedLeads?.length || 0}`);
+          if (matchedLeads && matchedLeads.length > 0) {
+            console.log('✅ Found leads with exact match:', matchedLeads.map(l => ({ 
+              name: l.name, 
+              phone: l.phone, 
+              status: l.status 
+            })));
+          }
         }
 
         // Se não encontrou com busca exata, tentar busca com LIKE pelos últimos 8 dígitos
@@ -156,7 +166,7 @@ serve(async (req) => {
           }
         }
 
-        // Se ainda não encontrou, buscar por qualquer número que contenha parte do número
+        // Se ainda não encontrou, buscar pelos últimos 7 dígitos
         if (!matchedLeads || matchedLeads.length === 0) {
           const last7Digits = phoneNumber.slice(-7);
           console.log(`🔍 Trying broader search with last 7 digits: ${last7Digits}`);
@@ -227,17 +237,16 @@ serve(async (req) => {
           console.error(`❌ No lead found for phone: ${phoneNumber}`);
           console.log('🔍 Debug info:');
           console.log('- Original phone from webhook:', phoneNumber);
-          console.log('- Corrected phone:', correctPhoneNumber(phoneNumber));
           console.log('- All variations tried:', phoneVariations);
           
-          // Buscar todos os leads para comparação manual
-          const { data: allLeads, error: allError } = await supabase
+          // Buscar alguns leads para comparação
+          const { data: sampleLeads, error: sampleError } = await supabase
             .from('leads')
             .select('phone, name')
-            .limit(10);
+            .limit(5);
             
-          if (!allError && allLeads && allLeads.length > 0) {
-            console.log('📋 Sample leads in database:', allLeads);
+          if (!sampleError && sampleLeads && sampleLeads.length > 0) {
+            console.log('📋 Sample leads in database:', sampleLeads);
           }
         }
       }
