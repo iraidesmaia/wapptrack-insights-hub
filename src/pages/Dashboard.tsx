@@ -2,60 +2,54 @@
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import StatCard from '@/components/StatCard';
+import DateRangeFilter from '@/components/DateRangeFilter';
 import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Users, MessageSquare, DollarSign } from 'lucide-react';
-import { getDashboardStats, getCampaignPerformance } from '@/services/dataService';
-import { DashboardStats, CampaignPerformance } from '@/types';
+import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
+import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
+  const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Initialize date range to last 7 days
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    return { startDate: start, endDate: end };
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [dashboardStats, campaignData] = await Promise.all([
-          getDashboardStats(),
-          getCampaignPerformance()
-        ]);
-        setStats(dashboardStats);
-        setCampaignPerformance(campaignData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
-  }, []);
+  }, [dateRange]);
 
-  // Generate random sample data for the timeline chart
-  const generateTimelineData = () => {
-    const data = [];
-    const today = new Date();
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      
-      data.push({
-        date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        leads: Math.floor(Math.random() * 10) + 1,
-        sales: Math.floor(Math.random() * 5),
-      });
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [dashboardStats, campaignData, timeline] = await Promise.all([
+        getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
+        getCampaignPerformance(),
+        getTimelineData(dateRange.startDate, dateRange.endDate)
+      ]);
+      setStats(dashboardStats);
+      setCampaignPerformance(campaignData);
+      setTimelineData(timeline);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    return data;
   };
 
-  const timelineData = generateTimelineData();
+  const handleDateRangeChange = (newRange: DateRange) => {
+    setDateRange(newRange);
+  };
 
   return (
     <MainLayout>
@@ -67,9 +61,14 @@ const Dashboard = () => {
           </p>
         </div>
 
+        <DateRangeFilter 
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+        />
+
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} className="animate-pulse">
                 <CardContent className="p-6">
                   <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
@@ -79,18 +78,32 @@ const Dashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <StatCard
-              title="Leads Hoje"
-              value={stats?.todaysLeads || 0}
+              title="Leads do Período"
+              value={stats?.totalLeads || 0}
               icon={Users}
               iconColor="#10B981"
+            />
+            <StatCard
+              title="Leads do Mês"
+              value={stats?.monthlyLeads || 0}
+              icon={Calendar}
+              iconColor="#10B981"
+              trend={stats?.monthlyLeadsTrend}
             />
             <StatCard
               title="Vendas Confirmadas"
               value={stats?.confirmedSales || 0}
               icon={DollarSign}
               iconColor="#10B981"
+            />
+            <StatCard
+              title="Faturamento do Mês"
+              value={formatCurrency(stats?.monthlyRevenue || 0)}
+              icon={TrendingUp}
+              iconColor="#F59E0B"
+              trend={stats?.monthlyRevenueTrend}
             />
             <StatCard
               title="Conversas Pendentes"
@@ -111,7 +124,7 @@ const Dashboard = () => {
           <Card className="col-span-1 lg:col-span-2">
             <CardHeader>
               <CardTitle>Desempenho no Tempo</CardTitle>
-              <CardDescription>Leads e vendas nos últimos 7 dias</CardDescription>
+              <CardDescription>Leads, vendas e faturamento no período selecionado</CardDescription>
             </CardHeader>
             <CardContent>
               <LineChart 
@@ -119,7 +132,8 @@ const Dashboard = () => {
                 xAxisDataKey="date"
                 lines={[
                   { dataKey: 'leads', color: '#10B981', name: 'Leads' },
-                  { dataKey: 'sales', color: '#F59E0B', name: 'Vendas' }
+                  { dataKey: 'sales', color: '#F59E0B', name: 'Vendas' },
+                  { dataKey: 'revenue', color: '#8B5CF6', name: 'Faturamento' }
                 ]}
                 height={300}
               />

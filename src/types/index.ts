@@ -44,6 +44,35 @@ export interface Sale {
   notes?: string;
 }
 
+export interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface TrendData {
+  value: number;
+  trend: 'up' | 'down' | 'flat';
+  percentage: number;
+}
+
+export interface MonthlyStats {
+  currentMonth: {
+    leads: number;
+    revenue: number;
+    sales: number;
+  };
+  previousMonth: {
+    leads: number;
+    revenue: number;
+    sales: number;
+  };
+  trends: {
+    leads: TrendData;
+    revenue: TrendData;
+    sales: TrendData;
+  };
+}
+
 export interface DashboardStats {
   totalLeads: number;
   totalSales: number;
@@ -52,6 +81,10 @@ export interface DashboardStats {
   todaysLeads: number;
   confirmedSales: number;
   pendingConversations: number;
+  monthlyLeads: number;
+  monthlyRevenue: number;
+  monthlyLeadsTrend: TrendData;
+  monthlyRevenueTrend: TrendData;
 }
 
 export interface CampaignPerformance {
@@ -70,4 +103,11 @@ export interface CompanySettings {
   logo_url?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface TimelineDataPoint {
+  date: string;
+  leads: number;
+  sales: number;
+  revenue: number;
 }
