@@ -51,6 +51,8 @@ export interface Campaign {
   company_subtitle?: string;
   logo_url?: string;
   redirect_type?: string;
+  conversion_keywords?: string[];
+  cancellation_keywords?: string[];
 }
 
 export interface Sale {

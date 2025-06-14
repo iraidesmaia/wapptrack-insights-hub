@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Palavras-chave que indicam conversão/venda
-const CONVERSION_KEYWORDS = [
+// Palavras-chave padrão (fallback)
+const DEFAULT_CONVERSION_KEYWORDS = [
   'obrigado pela compra',
   'obrigada pela compra',
   'venda confirmada',
@@ -26,9 +26,22 @@ const CONVERSION_KEYWORDS = [
   'pedido confirmado'
 ];
 
-function detectConversion(messageContent: string): boolean {
+const DEFAULT_CANCELLATION_KEYWORDS = [
+  'compra cancelada',
+  'pedido cancelado',
+  'cancelamento',
+  'desistiu da compra',
+  'não quer mais',
+  'mudou de ideia',
+  'cancelar pedido',
+  'estorno',
+  'devolver',
+  'não conseguiu pagar'
+];
+
+function detectKeywords(messageContent: string, keywords: string[]): boolean {
   const lowerMessage = messageContent.toLowerCase();
-  return CONVERSION_KEYWORDS.some(keyword => 
+  return keywords.some(keyword => 
     lowerMessage.includes(keyword.toLowerCase())
   );
 }
@@ -78,7 +91,7 @@ serve(async (req) => {
         console.log('🔍 Tentando busca exata com variações específicas para DDD 85...');
         const { data: exactMatches, error: exactError } = await supabase
           .from('leads')
-          .select('*')
+          .select('*, campaigns!leads_campaign_id_fkey(conversion_keywords, cancellation_keywords)')
           .in('phone', phoneVariations);
 
         if (exactError) {
@@ -91,33 +104,44 @@ serve(async (req) => {
               name: l.name, 
               phone: l.phone, 
               status: l.status,
-              has_message: !!l.last_message
+              has_message: !!l.last_message,
+              campaign_id: l.campaign_id
             })));
           }
         }
 
         if (matchedLeads && matchedLeads.length > 0) {
-          console.log(`✅ Found ${matchedLeads.length} matching leads:`, matchedLeads.map(l => ({ 
-            name: l.name, 
-            phone: l.phone, 
-            status: l.status,
-            has_message: !!l.last_message
-          })));
+          console.log(`✅ Found ${matchedLeads.length} matching leads`);
 
           // 🔥 NOVA LÓGICA: Verificar se é mensagem DO COMERCIAL (fromMe: true)
           if (isFromMe) {
-            console.log(`🎯 Message FROM commercial detected! Checking for conversion keywords...`);
+            console.log(`🎯 Message FROM commercial detected! Checking for conversion/cancellation keywords...`);
             console.log(`💬 Commercial message: "${messageContent}"`);
             
-            // Verificar se contém palavras-chave de conversão
-            const hasConversionKeywords = detectConversion(messageContent);
-            
-            if (hasConversionKeywords) {
-              console.log(`🎉 CONVERSION DETECTED! Converting leads to 'converted' status`);
+            // Processar cada lead encontrado
+            const updatePromises = matchedLeads.map(async (lead) => {
+              // Buscar palavras-chave personalizadas da campanha
+              let conversionKeywords = DEFAULT_CONVERSION_KEYWORDS;
+              let cancellationKeywords = DEFAULT_CANCELLATION_KEYWORDS;
               
-              // Atualizar todos os leads encontrados para 'converted'
-              const conversionPromises = matchedLeads.map(async (lead) => {
-                console.log(`🔄 Converting lead ${lead.name} (${lead.phone}) from '${lead.status}' to 'converted'`);
+              if (lead.campaigns && lead.campaigns.conversion_keywords) {
+                conversionKeywords = lead.campaigns.conversion_keywords;
+                console.log(`📋 Using custom conversion keywords for campaign: ${JSON.stringify(conversionKeywords)}`);
+              }
+              
+              if (lead.campaigns && lead.campaigns.cancellation_keywords) {
+                cancellationKeywords = lead.campaigns.cancellation_keywords;
+                console.log(`📋 Using custom cancellation keywords for campaign: ${JSON.stringify(cancellationKeywords)}`);
+              }
+              
+              // Verificar se contém palavras-chave de conversão
+              const hasConversionKeywords = detectKeywords(messageContent, conversionKeywords);
+              
+              // Verificar se contém palavras-chave de cancelamento
+              const hasCancellationKeywords = detectKeywords(messageContent, cancellationKeywords);
+              
+              if (hasConversionKeywords) {
+                console.log(`🎉 CONVERSION DETECTED! Converting lead ${lead.name} to 'converted' status`);
                 
                 const { data: convertedLead, error: conversionError } = await supabase
                   .from('leads')
@@ -136,15 +160,38 @@ serve(async (req) => {
                   console.log(`✅ Successfully converted lead ${lead.name} to 'converted'`);
                   return convertedLead;
                 }
-              });
+              } else if (hasCancellationKeywords) {
+                console.log(`❌ CANCELLATION DETECTED! Marking lead ${lead.name} as 'lost'`);
+                
+                const { data: cancelledLead, error: cancellationError } = await supabase
+                  .from('leads')
+                  .update({ 
+                    status: 'lost',
+                    last_contact_date: new Date().toISOString()
+                  })
+                  .eq('id', lead.id)
+                  .select()
+                  .single();
 
-              const conversionResults = await Promise.all(conversionPromises);
-              const successfulConversions = conversionResults.filter(result => result !== null);
-              
-              console.log(`🎉 Successfully converted ${successfulConversions.length} leads to 'converted' status`);
-            } else {
-              console.log(`💬 Commercial message doesn't contain conversion keywords, ignoring...`);
-            }
+                if (cancellationError) {
+                  console.error(`❌ Error marking lead ${lead.id} as lost:`, cancellationError);
+                  return null;
+                } else {
+                  console.log(`✅ Successfully marked lead ${lead.name} as 'lost'`);
+                  return cancelledLead;
+                }
+              } else {
+                console.log(`💬 Commercial message doesn't contain conversion or cancellation keywords, ignoring...`);
+                return { skipped: true, lead };
+              }
+            });
+
+            const updateResults = await Promise.all(updatePromises);
+            const successfulUpdates = updateResults.filter(result => result !== null && !result.skipped);
+            const skippedUpdates = updateResults.filter(result => result && result.skipped);
+            
+            console.log(`🎉 Successfully processed ${successfulUpdates.length} leads`);
+            console.log(`⏭️ Skipped ${skippedUpdates.length} leads (no keywords matched)`);
           } 
           // 📨 LÓGICA EXISTENTE: Mensagem DO CLIENTE (fromMe: false)
           else if (!isFromMe) {
