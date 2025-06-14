@@ -1,3 +1,4 @@
+
 import { Campaign, Lead, Sale, DashboardStats, CampaignPerformance, MonthlyStats, TimelineDataPoint, TrendData } from "../types";
 import { generateId } from "../lib/utils";
 import { supabase } from "../integrations/supabase/client";
@@ -184,7 +185,9 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       company_subtitle: campaign.company_subtitle,
       logo_url: campaign.logo_url,
       redirect_type: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixel_integration_type: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct'
+      pixel_integration_type: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct',
+      conversion_keywords: campaign.conversion_keywords || [],
+      cancellation_keywords: campaign.cancellation_keywords || []
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -213,7 +216,9 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
         company_subtitle: campaign.company_subtitle,
         logo_url: campaign.logo_url,
         redirect_type: campaign.redirect_type || 'whatsapp',
-        pixel_integration_type: campaign.pixel_integration_type || 'direct'
+        pixel_integration_type: campaign.pixel_integration_type || 'direct',
+        conversion_keywords: campaign.conversion_keywords || [],
+        cancellation_keywords: campaign.cancellation_keywords || []
       })
       .select()
       .single();
@@ -239,7 +244,9 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
       company_subtitle: data.company_subtitle,
       logo_url: data.logo_url,
       redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
+      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct',
+      conversion_keywords: data.conversion_keywords || [],
+      cancellation_keywords: data.cancellation_keywords || []
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -267,6 +274,8 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.logo_url !== undefined) updateData.logo_url = campaign.logo_url;
     if (campaign.redirect_type !== undefined) updateData.redirect_type = campaign.redirect_type;
     if (campaign.pixel_integration_type !== undefined) updateData.pixel_integration_type = campaign.pixel_integration_type;
+    if (campaign.conversion_keywords !== undefined) updateData.conversion_keywords = campaign.conversion_keywords;
+    if (campaign.cancellation_keywords !== undefined) updateData.cancellation_keywords = campaign.cancellation_keywords;
 
     // Update campaign in Supabase
     const { data, error } = await supabase
@@ -297,7 +306,9 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       company_subtitle: data.company_subtitle,
       logo_url: data.logo_url,
       redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
+      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct',
+      conversion_keywords: data.conversion_keywords || [],
+      cancellation_keywords: data.cancellation_keywords || []
     };
   } catch (error) {
     console.error("Error updating campaign:", error);
