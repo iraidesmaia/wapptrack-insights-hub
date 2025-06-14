@@ -1,8 +1,8 @@
 
+
 import { useState, useEffect } from 'react';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
 import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
-import { sendLeadToN8n } from '@/services/n8nService';
 import { toast } from 'sonner';
 
 interface Campaign {
@@ -16,11 +16,6 @@ interface Campaign {
   company_subtitle?: string;
   logo_url?: string;
   redirect_type?: string;
-  utm_source?: string;
-  utm_medium?: string;
-  utm_campaign?: string;
-  utm_content?: string;
-  utm_term?: string;
 }
 
 export const useCampaignData = (campaignId: string | null, debug: boolean) => {
@@ -107,23 +102,6 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       }
     }
     
-    // Enviar dados para n8n
-    if (campaign) {
-      try {
-        await sendLeadToN8n(
-          {
-            name,
-            phone,
-            campaign: campaign.name,
-            campaignId: campaign.id
-          },
-          campaign
-        );
-      } catch (error) {
-        console.error('Erro ao enviar dados para n8n:', error);
-      }
-    }
-    
     // Track the redirect in our system
     const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
     
@@ -203,3 +181,4 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     handleDirectWhatsAppRedirect
   };
 };
+

@@ -18,7 +18,6 @@ const Settings = () => {
     handleEvolutionConfigChange,
     saveEvolutionConfig,
     testEvolutionConnection,
-    testN8nConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
@@ -53,7 +52,6 @@ const Settings = () => {
             onEvolutionConfigChange={handleEvolutionConfigChange}
             onSaveEvolutionConfig={saveEvolutionConfig}
             onTestEvolutionConnection={testEvolutionConnection}
-            onTestN8nConnection={testN8nConnection}
           />
 
           <div className="flex justify-end">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,8 +19,7 @@ export const useSettings = () => {
   });
   
   const [evolutionConfig, setEvolutionConfig] = useState({
-    endpoint_url: '',
-    n8n_webhook_url: ''
+    endpoint_url: ''
   });
 
   const loadSettings = async () => {
@@ -141,59 +139,6 @@ export const useSettings = () => {
     } catch (error: any) {
       console.error('Error testing webhook:', error);
       toast.error(`Erro ao enviar webhook: ${error.message}`);
-    } finally {
-      setTestingEvolution(false);
-    }
-  };
-
-  const testN8nConnection = async () => {
-    if (!evolutionConfig.n8n_webhook_url) {
-      toast.error('Por favor, configure a URL do webhook n8n');
-      return;
-    }
-
-    setTestingEvolution(true);
-    
-    try {
-      console.log('Testing n8n webhook connection...');
-      
-      const testPayload = {
-        test: true,
-        lead: {
-          name: 'Teste Lead',
-          phone: '+5511999999999',
-          campaign: 'Teste Campaign',
-          timestamp: new Date().toISOString()
-        },
-        campaign_data: {
-          id: 'test-campaign-id',
-          name: 'Teste Campaign',
-          source: 'Landing Page'
-        }
-      };
-
-      const response = await fetch(evolutionConfig.n8n_webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(testPayload)
-      });
-
-      console.log('n8n webhook response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.text();
-        console.log('n8n webhook response:', data);
-        toast.success('Webhook n8n enviado com sucesso!');
-      } else {
-        const errorText = await response.text();
-        console.error('n8n webhook error:', errorText);
-        toast.error(`Erro no webhook n8n: ${response.status} - ${response.statusText}`);
-      }
-    } catch (error: any) {
-      console.error('Error testing n8n webhook:', error);
-      toast.error(`Erro ao enviar webhook n8n: ${error.message}`);
     } finally {
       setTestingEvolution(false);
     }
@@ -321,7 +266,6 @@ export const useSettings = () => {
     handleEvolutionConfigChange,
     saveEvolutionConfig,
     testEvolutionConnection,
-    testN8nConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
