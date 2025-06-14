@@ -1,584 +1,165 @@
 
-import React, { useEffect, useState } from 'react';
-import MainLayout from '@/components/MainLayout';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/dataService';
-import { Campaign } from '@/types';
-import { buildUtmUrl, formatDate, generateTrackingUrl } from '@/lib/utils';
-import { Plus, Trash2, Edit, Copy, ExternalLink, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, BarChart3, Users, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import MainLayout from '@/components/MainLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { Campaign } from '@/types';
 
 const Campaigns = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
-  const [uploading, setUploading] = useState(false);
-  const [currentCampaign, setCurrentCampaign] = useState<Partial<Campaign>>({
-    name: '',
-    utm_source: '',
-    utm_medium: '',
-    utm_campaign: '',
-    utm_content: '',
-    utm_term: '',
-    pixel_id: '',
-    whatsapp_number: '',
-    event_type: 'lead',
-    active: true,
-    custom_message: '',
-    company_title: '',
-    company_subtitle: '',
-    redirect_type: 'whatsapp',
-    pixel_integration_type: 'direct'
-  });
-  const [baseUrl, setBaseUrl] = useState('https://seusite.com');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const campaignsData = await getCampaigns();
-        setCampaigns(campaignsData);
-      } catch (error) {
-        console.error('Error fetching campaigns data:', error);
-        toast.error('Erro ao carregar campanhas');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
+    loadCampaigns();
   }, []);
 
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      campaign.name.toLowerCase().includes(searchLower) ||
-      (campaign.utm_source && campaign.utm_source.toLowerCase().includes(searchLower)) ||
-      (campaign.utm_medium && campaign.utm_medium.toLowerCase().includes(searchLower)) ||
-      (campaign.utm_campaign && campaign.utm_campaign.toLowerCase().includes(searchLower))
-    );
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentCampaign({ ...currentCampaign, [name]: value });
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setCurrentCampaign({ ...currentCampaign, active: checked });
-  };
-
-  const handleEventTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, event_type: value as Campaign['event_type'] });
-  };
-
-  const handleRedirectTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, redirect_type: value as Campaign['redirect_type'] });
-  };
-
-  const handlePixelIntegrationTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, pixel_integration_type: value as Campaign['pixel_integration_type'] });
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const loadCampaigns = async () => {
     try {
-      setUploading(true);
-      
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('Você deve selecionar uma imagem para upload.');
-      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `campaign-logo-${Math.random()}.${fileExt}`;
-      const filePath = fileName;
-
-      const { error: uploadError } = await supabase.storage
-        .from('company-logos')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage
-        .from('company-logos')
-        .getPublicUrl(filePath);
-
-      setCurrentCampaign(prev => ({
-        ...prev,
-        logo_url: data.publicUrl
-      }));
-
-      toast.success('Logo enviada com sucesso!');
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error('Erro ao enviar logo');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleOpenAddDialog = () => {
-    setCurrentCampaign({
-      name: '',
-      utm_source: '',
-      utm_medium: '',
-      utm_campaign: '',
-      utm_content: '',
-      utm_term: '',
-      pixel_id: '',
-      whatsapp_number: '',
-      event_type: 'lead',
-      active: true,
-      custom_message: '',
-      company_title: '',
-      company_subtitle: '',
-      redirect_type: 'whatsapp',
-      pixel_integration_type: 'direct'
-    });
-    setDialogMode('add');
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenEditDialog = (campaign: Campaign) => {
-    setCurrentCampaign({ ...campaign });
-    setDialogMode('edit');
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveCampaign = async () => {
-    try {
-      // Validate required fields
-      if (!currentCampaign.name) {
-        toast.error('O nome da campanha é obrigatório');
-        return;
-      }
-
-      if (dialogMode === 'add') {
-        const newCampaign = await addCampaign(currentCampaign as Omit<Campaign, 'id' | 'created_at'>);
-        setCampaigns([...campaigns, newCampaign]);
-        toast.success('Campanha adicionada com sucesso');
-      } else {
-        if (!currentCampaign.id) return;
-        const updatedCampaign = await updateCampaign(currentCampaign.id, currentCampaign);
-        setCampaigns(campaigns.map(campaign => campaign.id === updatedCampaign.id ? updatedCampaign : campaign));
-        toast.success('Campanha atualizada com sucesso');
-      }
-      
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error('Error saving campaign:', error);
-      toast.error('Erro ao salvar campanha');
-    }
-  };
-
-  const handleDeleteCampaign = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta campanha?')) {
-      return;
-    }
-
-    try {
-      await deleteCampaign(id);
-      setCampaigns(campaigns.filter(campaign => campaign.id !== id));
-      toast.success('Campanha excluída com sucesso');
+      if (error) throw error;
+      setCampaigns(data || []);
     } catch (error: any) {
-      console.error('Error deleting campaign:', error);
-      toast.error(error.message || 'Erro ao excluir campanha');
+      console.error('Error loading campaigns:', error);
+      toast.error('Erro ao carregar campanhas');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const copyToClipboard = (text: string, message: string) => {
-    navigator.clipboard.writeText(text)
-      .then(() => toast.success(message))
-      .catch(err => {
-        console.error('Error copying text: ', err);
-        toast.error('Erro ao copiar para o clipboard');
-      });
+  const handleCreateCampaign = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert({
+          name: 'Nova Campanha',
+          active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast.success('Campanha criada com sucesso!');
+      navigate(`/campaigns/${data.id}/edit`);
+    } catch (error: any) {
+      console.error('Error creating campaign:', error);
+      toast.error('Erro ao criar campanha');
+    }
   };
 
-  const getUtmUrl = (campaign: Campaign) => {
-    return buildUtmUrl(
-      baseUrl,
-      campaign.utm_source,
-      campaign.utm_medium,
-      campaign.utm_campaign,
-      campaign.utm_content,
-      campaign.utm_term
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">Carregando campanhas...</p>
+          </div>
+        </div>
+      </MainLayout>
     );
-  };
-
-  const getTrackingUrl = (campaign: Campaign) => {
-    // In a real app, this would use the actual hostname
-    const currentUrl = window.location.origin;
-    return `${currentUrl}/ir?id=${campaign.id}`;
-  };
+  }
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Campanhas</h1>
-            <p className="text-muted-foreground">Crie e gerencie campanhas de marketing</p>
+            <h1 className="text-3xl font-bold">Campanhas</h1>
+            <p className="text-muted-foreground">
+              Gerencie suas campanhas de marketing e acompanhe os resultados
+            </p>
           </div>
-          <Button onClick={handleOpenAddDialog}>
-            <Plus className="mr-2 h-4 w-4" /> Nova Campanha
+          <Button onClick={handleCreateCampaign}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Campanha
           </Button>
         </div>
 
-        <div className="flex items-center">
-          <Input
-            placeholder="Buscar campanhas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-
-        <Card>
-          <CardContent className="p-0">
-            <div className="table-wrapper overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-4 text-left font-medium">Nome</th>
-                    <th className="p-4 text-left font-medium">Origem</th>
-                    <th className="p-4 text-left font-medium">Meio</th>
-                    <th className="p-4 text-left font-medium">Status</th>
-                    <th className="p-4 text-left font-medium">Data</th>
-                    <th className="p-4 text-right font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={6} className="p-4 text-center">
-                        Carregando campanhas...
-                      </td>
-                    </tr>
-                  ) : filteredCampaigns.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-4 text-center">
-                        Nenhuma campanha encontrada
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredCampaigns.map((campaign) => (
-                      <tr key={campaign.id} className="border-b">
-                        <td className="p-4">{campaign.name}</td>
-                        <td className="p-4">{campaign.utm_source || '-'}</td>
-                        <td className="p-4">{campaign.utm_medium || '-'}</td>
-                        <td className="p-4">
-                          {campaign.active ? (
-                            <Badge variant="default" className="bg-primary">Ativa</Badge>
-                          ) : (
-                            <Badge variant="secondary">Inativa</Badge>
-                          )}
-                        </td>
-                        <td className="p-4">{formatDate(campaign.created_at)}</td>
-                        <td className="p-4 text-right whitespace-nowrap">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => copyToClipboard(getTrackingUrl(campaign), 'URL de rastreamento copiada')}
-                            title="Copiar URL"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenEditDialog(campaign)}
-                            title="Editar campanha"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteCampaign(campaign.id)}
-                            title="Excluir campanha"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {dialogMode === 'add' ? 'Adicionar Nova Campanha' : 'Editar Campanha'}
-              </DialogTitle>
-              <DialogDescription>
-                {dialogMode === 'add' 
-                  ? 'Preencha os detalhes para adicionar uma nova campanha.' 
-                  : 'Atualize os detalhes da campanha.'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              {/* Identidade da Empresa */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Identidade da Empresa</h3>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="company_title">Nome da empresa</Label>
-                  <Input
-                    id="company_title"
-                    name="company_title"
-                    value={currentCampaign.company_title || ''}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Minha Empresa"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="company_subtitle">Subtítulo</Label>
-                  <Input
-                    id="company_subtitle"
-                    name="company_subtitle"
-                    value={currentCampaign.company_subtitle || ''}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Sistema de Marketing Digital"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Logo (upload se aplicável)</Label>
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-1">
-                      <Button
-                        variant="outline"
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        disabled={uploading}
-                        className="w-full"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {uploading ? 'Enviando...' : 'Escolher Arquivo'}
-                      </Button>
-                      <input
-                        id="logo-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Formatos aceitos: PNG, JPG, JPEG (máx. 5MB)
-                      </p>
-                    </div>
-                    {currentCampaign.logo_url && (
-                      <div className="flex-shrink-0">
-                        <div className="w-16 h-16 rounded-lg border overflow-hidden">
-                          <img
-                            src={currentCampaign.logo_url}
-                            alt="Logo da campanha"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
+        {campaigns.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <BarChart3 className="w-12 h-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhuma campanha encontrada</h3>
+              <p className="text-muted-foreground text-center mb-6">
+                Crie sua primeira campanha para começar a gerar leads
+              </p>
+              <Button onClick={handleCreateCampaign}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeira Campanha
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {campaigns.map((campaign) => (
+              <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{campaign.name}</CardTitle>
+                    <Badge variant={campaign.active ? 'default' : 'secondary'}>
+                      {campaign.active ? 'Ativa' : 'Inativa'}
+                    </Badge>
                   </div>
-                </div>
-              </div>
-
-              {/* UTM e Personalização */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">UTM e Personalização</h3>
+                  {campaign.utm_source && (
+                    <CardDescription>
+                      {campaign.utm_source} • {campaign.utm_medium || 'N/A'}
+                    </CardDescription>
+                  )}
+                </CardHeader>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Nome da Campanha (utm_campaign)*</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={currentCampaign.name}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Instagram - Stories Junho"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="utm_medium">Meio (utm_medium)</Label>
-                  <Input
-                    id="utm_medium"
-                    name="utm_medium"
-                    value={currentCampaign.utm_medium}
-                    onChange={handleInputChange}
-                    placeholder="Ex: social"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="utm_content">Conteúdo (utm_content)</Label>
-                  <Input
-                    id="utm_content"
-                    name="utm_content"
-                    value={currentCampaign.utm_content}
-                    onChange={handleInputChange}
-                    placeholder="Ex: banner_top"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="custom_message">Mensagem personalizada</Label>
-                  <Textarea
-                    id="custom_message"
-                    name="custom_message"
-                    value={currentCampaign.custom_message || ''}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
-                    rows={3}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Essa mensagem será enviada automaticamente quando o lead clicar para conversar.
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="event_type">Tipo de Evento</Label>
-                  <Select
-                    value={currentCampaign.event_type || 'lead'}
-                    onValueChange={handleEventTypeChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de evento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="contact">Contato</SelectItem>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="page_view">Visualização de Página</SelectItem>
-                      <SelectItem value="sale">Venda</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Define como o contato será registrado no sistema e como o Pixel será disparado
-                  </p>
-                </div>
-              </div>
-
-              {/* Integração e Link */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
-                  <Input
-                    id="whatsapp_number"
-                    name="whatsapp_number"
-                    value={currentCampaign.whatsapp_number}
-                    onChange={handleInputChange}
-                    placeholder="Ex: 5511999887766"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Informe o número que receberá as mensagens (formato internacional, sem espaços ou símbolos)
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="redirect_type">Tipo de redirecionamento</Label>
-                  <Select
-                    value={currentCampaign.redirect_type || 'whatsapp'}
-                    onValueChange={handleRedirectTypeChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de redirecionamento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="whatsapp">Direto para WhatsApp</SelectItem>
-                      <SelectItem value="form">Formulário de Lead</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Define como o usuário será redirecionado ao clicar no link
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="pixel_id">ID do Facebook Pixel</Label>
-                  <Input
-                    id="pixel_id"
-                    name="pixel_id"
-                    value={currentCampaign.pixel_id}
-                    onChange={handleInputChange}
-                    placeholder="Ex: 123456789012345"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="pixel_integration_type">Integração do Pixel</Label>
-                  <Select
-                    value={currentCampaign.pixel_integration_type || 'direct'}
-                    onValueChange={handlePixelIntegrationTypeChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de integração" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="direct">Direto</SelectItem>
-                      <SelectItem value="form">Formulário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Direto: Dispara o evento imediatamente. Formulário: Dispara após preenchimento do formulário
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="baseUrl">URL Base</Label>
-                  <Input
-                    id="baseUrl"
-                    value={baseUrl}
-                    onChange={(e) => setBaseUrl(e.target.value)}
-                    placeholder="https://seusite.com"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    URL base usada para construir links UTM
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2 pt-4 border-t">
-                <Switch
-                  id="active"
-                  checked={currentCampaign.active}
-                  onCheckedChange={handleSwitchChange}
-                />
-                <Label htmlFor="active">Campanha Ativa</Label>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveCampaign}>
-                {dialogMode === 'add' ? 'Adicionar' : 'Atualizar'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <span>0 leads</span>
+                    </div>
+                    <div className="flex items-center">
+                      <TrendingUp className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <span>R$ 0,00</span>
+                    </div>
+                  </div>
+                  
+                  {campaign.conversion_keywords && campaign.conversion_keywords.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {campaign.conversion_keywords.length} palavras-chave de conversão
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => navigate(`/campaigns/${campaign.id}/edit`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toast.info('Relatórios em breve!')}
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </MainLayout>
   );

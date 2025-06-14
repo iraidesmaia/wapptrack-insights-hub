@@ -13,8 +13,10 @@ export type Database = {
         Row: {
           active: boolean | null
           auto_create_leads: boolean | null
+          cancellation_keywords: string[] | null
           company_subtitle: string | null
           company_title: string | null
+          conversion_keywords: string[] | null
           created_at: string | null
           custom_message: string | null
           event_type: string | null
@@ -38,8 +40,10 @@ export type Database = {
         Insert: {
           active?: boolean | null
           auto_create_leads?: boolean | null
+          cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
+          conversion_keywords?: string[] | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
@@ -63,8 +67,10 @@ export type Database = {
         Update: {
           active?: boolean | null
           auto_create_leads?: boolean | null
+          cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
+          conversion_keywords?: string[] | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
