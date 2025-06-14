@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -105,22 +104,20 @@ export const useSettings = () => {
 
   const testEvolutionConnection = async () => {
     if (!evolutionConfig.endpoint_url) {
-      toast.error('Por favor, configure a URL do endpoint');
+      toast.error('Por favor, configure a URL do webhook');
       return;
     }
 
     setTestingEvolution(true);
     
     try {
-      console.log('Testing Evolution API connection...');
+      console.log('Testing webhook connection...');
       
       const testPayload = {
-        webhook: {
-          enabled: true,
-          url: `${window.location.origin}/api/webhook`,
-          events: ['message']
-        },
-        instance: evolutionConfig.instance_name || 'default'
+        test: true,
+        message: 'Teste de conexão webhook',
+        instance: evolutionConfig.instance_name || 'default',
+        timestamp: new Date().toISOString()
       };
 
       const response = await fetch(evolutionConfig.endpoint_url, {
@@ -132,20 +129,20 @@ export const useSettings = () => {
         body: JSON.stringify(testPayload)
       });
 
-      console.log('Evolution API response status:', response.status);
+      console.log('Webhook response status:', response.status);
       
       if (response.ok) {
-        const data = await response.json();
-        console.log('Evolution API response:', data);
-        toast.success('Conexão com Evolution API estabelecida com sucesso!');
+        const data = await response.text();
+        console.log('Webhook response:', data);
+        toast.success('Webhook enviado com sucesso!');
       } else {
         const errorText = await response.text();
-        console.error('Evolution API error:', errorText);
-        toast.error(`Erro na conexão: ${response.status} - ${response.statusText}`);
+        console.error('Webhook error:', errorText);
+        toast.error(`Erro no webhook: ${response.status} - ${response.statusText}`);
       }
     } catch (error: any) {
-      console.error('Error testing Evolution connection:', error);
-      toast.error(`Erro ao testar conexão: ${error.message}`);
+      console.error('Error testing webhook:', error);
+      toast.error(`Erro ao enviar webhook: ${error.message}`);
     } finally {
       setTestingEvolution(false);
     }

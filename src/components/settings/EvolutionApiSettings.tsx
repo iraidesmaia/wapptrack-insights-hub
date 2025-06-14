@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Send, Globe } from 'lucide-react';
+import { Send, Webhook } from 'lucide-react';
 
 interface EvolutionApiSettingsProps {
   evolutionConfig: {
@@ -29,26 +29,26 @@ const EvolutionApiSettings = ({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Globe className="w-5 h-5" />
-          <span>Evolution API</span>
+          <Webhook className="w-5 h-5" />
+          <span>Webhook Evolution API</span>
         </CardTitle>
         <CardDescription>
-          Configure a integração com a Evolution API para WhatsApp
+          Configure o webhook para receber notificações do WhatsApp
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="endpoint_url">URL do Endpoint *</Label>
+          <Label htmlFor="endpoint_url">URL do Webhook *</Label>
           <Input
             id="endpoint_url"
             name="endpoint_url"
             value={evolutionConfig.endpoint_url}
             onChange={onEvolutionConfigChange}
-            placeholder="https://sua-instancia.com/api/v1/config/webhook"
+            placeholder="https://sua-instancia.com/webhook"
             type="url"
           />
           <p className="text-xs text-muted-foreground">
-            Exemplo: https://sua-instancia.lovableproject.com/api/v1/config/webhook
+            URL onde o webhook será enviado
           </p>
         </div>
 
@@ -63,7 +63,7 @@ const EvolutionApiSettings = ({
             type="password"
           />
           <p className="text-xs text-muted-foreground">
-            Se necessário, insira a chave de autenticação da API
+            Se necessário, insira a chave de autenticação
           </p>
         </div>
 
@@ -91,7 +91,7 @@ const EvolutionApiSettings = ({
             className="flex items-center space-x-2"
           >
             <Send className="w-4 h-4" />
-            <span>{testingEvolution ? 'Testando...' : 'Testar Conexão'}</span>
+            <span>{testingEvolution ? 'Enviando...' : 'Testar Webhook'}</span>
           </Button>
         </div>
       </CardContent>
