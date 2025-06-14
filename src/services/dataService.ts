@@ -5,6 +5,8 @@ import { supabase } from "../integrations/supabase/client";
 // Lead methods
 export const getLeads = async (): Promise<Lead[]> => {
   try {
+    console.log('🔄 dataService.getLeads() - Iniciando busca...');
+    
     // Fetch leads from Supabase
     const { data: leads, error } = await supabase
       .from('leads')
@@ -13,19 +15,39 @@ export const getLeads = async (): Promise<Lead[]> => {
 
     if (error) throw error;
     
-    // Map database fields to our Lead interface
-    return (leads || []).map(lead => ({
-      id: lead.id,
+    console.log('📋 dataService.getLeads() - Dados brutos do Supabase:', leads);
+    
+    // Map database fields to our Lead interface - INCLUINDO last_message
+    const mappedLeads = (leads || []).map(lead => {
+      console.log(`🔍 dataService.getLeads() - Mapeando lead ${lead.name}:`, {
+        id: lead.id,
+        last_message: lead.last_message,
+        last_message_type: typeof lead.last_message,
+        last_message_raw: JSON.stringify(lead.last_message)
+      });
+      
+      return {
+        id: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        campaign: lead.campaign,
+        status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover',
+        created_at: lead.created_at,
+        custom_fields: lead.custom_fields as Record<string, string>,
+        notes: lead.notes,
+        first_contact_date: lead.first_contact_date,
+        last_contact_date: lead.last_contact_date,
+        last_message: lead.last_message || null // ✅ INCLUINDO last_message
+      };
+    });
+    
+    console.log('✅ dataService.getLeads() - Leads mapeados:', mappedLeads.map(lead => ({
       name: lead.name,
-      phone: lead.phone,
-      campaign: lead.campaign,
-      status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
-      created_at: lead.created_at,
-      custom_fields: lead.custom_fields as Record<string, string>,
-      notes: lead.notes,
-      first_contact_date: lead.first_contact_date,
-      last_contact_date: lead.last_contact_date
-    }));
+      last_message: lead.last_message,
+      type: typeof lead.last_message
+    })));
+    
+    return mappedLeads;
   } catch (error) {
     console.error("Error fetching leads:", error);
     return [];
@@ -45,25 +67,27 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
         custom_fields: lead.custom_fields || {},
         notes: lead.notes || '',
         first_contact_date: lead.first_contact_date || null,
-        last_contact_date: lead.last_contact_date || null
+        last_contact_date: lead.last_contact_date || null,
+        last_message: lead.last_message || null // ✅ INCLUINDO last_message
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Format the returned data to match the Lead type
+    // Format the returned data to match the Lead type - INCLUINDO last_message
     return {
       id: data.id,
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
-      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
+      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover',
       created_at: data.created_at,
       custom_fields: data.custom_fields as Record<string, string>,
       notes: data.notes,
       first_contact_date: data.first_contact_date,
-      last_contact_date: data.last_contact_date
+      last_contact_date: data.last_contact_date,
+      last_message: data.last_message || null // ✅ INCLUINDO last_message
     };
   } catch (error) {
     console.error("Error adding lead:", error);
@@ -83,6 +107,7 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.notes) updateData.notes = lead.notes;
     if (lead.first_contact_date !== undefined) updateData.first_contact_date = lead.first_contact_date;
     if (lead.last_contact_date !== undefined) updateData.last_contact_date = lead.last_contact_date;
+    if (lead.last_message !== undefined) updateData.last_message = lead.last_message; // ✅ INCLUINDO last_message
 
     // Update lead in Supabase
     const { data, error } = await supabase
@@ -94,18 +119,19 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
 
     if (error) throw error;
 
-    // Format the returned data to match the Lead type
+    // Format the returned data to match the Lead type - INCLUINDO last_message
     return {
       id: data.id,
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
-      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
+      status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover',
       created_at: data.created_at,
       custom_fields: data.custom_fields as Record<string, string>,
       notes: data.notes,
       first_contact_date: data.first_contact_date,
-      last_contact_date: data.last_contact_date
+      last_contact_date: data.last_contact_date,
+      last_message: data.last_message || null // ✅ INCLUINDO last_message
     };
   } catch (error) {
     console.error("Error updating lead:", error);
