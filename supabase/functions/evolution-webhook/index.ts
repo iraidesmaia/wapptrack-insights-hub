@@ -63,7 +63,8 @@ serve(async (req) => {
             console.log('✅ Found leads with exact match:', matchedLeads.map(l => ({ 
               name: l.name, 
               phone: l.phone, 
-              status: l.status 
+              status: l.status,
+              has_message: !!l.last_message
             })));
           }
         }
@@ -72,13 +73,20 @@ serve(async (req) => {
           console.log(`✅ Found ${matchedLeads.length} matching leads:`, matchedLeads.map(l => ({ 
             name: l.name, 
             phone: l.phone, 
-            status: l.status 
+            status: l.status,
+            has_message: !!l.last_message
           })));
 
-          // Atualizar todos os leads encontrados COM O TEXTO DA MENSAGEM
+          // Atualizar todos os leads encontrados, mas APENAS SE NÃO TIVEREM MENSAGEM AINDA
           const updatePromises = matchedLeads.map(async (lead) => {
+            // ✅ VERIFICAR SE O LEAD JÁ TEM UMA MENSAGEM SALVA
+            if (lead.last_message && lead.last_message.trim() !== '') {
+              console.log(`⏭️ Skipping lead ${lead.name} (${lead.phone}) - already has message: "${lead.last_message}"`);
+              return { skipped: true, lead };
+            }
+
             console.log(`📝 Updating lead ${lead.name} (${lead.phone}) - Status: ${lead.status} -> lead`);
-            console.log(`💬 Saving message: "${messageContent}"`);
+            console.log(`💬 Saving FIRST message: "${messageContent}"`);
             
             const { data: updatedLead, error: updateError } = await supabase
               .from('leads')
@@ -95,15 +103,17 @@ serve(async (req) => {
               console.error(`❌ Error updating lead ${lead.id}:`, updateError);
               return null;
             } else {
-              console.log(`✅ Successfully updated lead ${lead.name} with message: "${messageContent}"`);
+              console.log(`✅ Successfully updated lead ${lead.name} with FIRST message: "${messageContent}"`);
               return updatedLead;
             }
           });
 
-          const updatedLeads = await Promise.all(updatePromises);
-          const successfulUpdates = updatedLeads.filter(lead => lead !== null);
+          const updateResults = await Promise.all(updatePromises);
+          const successfulUpdates = updateResults.filter(result => result !== null && !result.skipped);
+          const skippedUpdates = updateResults.filter(result => result && result.skipped);
           
-          console.log(`🎉 Successfully updated ${successfulUpdates.length} leads with message text`);
+          console.log(`🎉 Successfully updated ${successfulUpdates.length} leads with FIRST message`);
+          console.log(`⏭️ Skipped ${skippedUpdates.length} leads that already had messages`);
         } else {
           console.error(`❌ No lead found for phone: ${phoneNumber}`);
           console.log('🔍 Debug info:');
