@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Lead, Campaign } from '@/types';
 import { addLead, updateLead, deleteLead, addSale } from '@/services/dataService';
 import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } from '@/lib/phoneUtils';
+import { correctPhoneNumber, shouldCorrectPhone } from '@/lib/phoneCorrection';
 import { toast } from "sonner";
 
 export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.SetStateAction<Lead[]>>) => {
@@ -94,7 +95,15 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       let updatedLead: Lead;
       const wasConverted = currentLead.status === 'converted';
 
-      const processedPhone = processBrazilianPhone(currentLead.phone);
+      let processedPhone = processBrazilianPhone(currentLead.phone);
+      
+      // Aplicar correção automática se necessário
+      if (shouldCorrectPhone(processedPhone)) {
+        const originalPhone = processedPhone;
+        processedPhone = correctPhoneNumber(processedPhone);
+        toast.info(`Número corrigido automaticamente: ${originalPhone} → ${processedPhone}`);
+      }
+
       const leadToSave = { ...currentLead, phone: processedPhone };
 
       if (dialogMode === 'add') {
