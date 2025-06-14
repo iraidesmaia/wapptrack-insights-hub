@@ -32,7 +32,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
 
     // Validate Brazilian phone format
     if (!validateBrazilianPhone(phone)) {
-      setError('Por favor, informe um número válido (DDD + 9 dígitos)');
+      setError('Por favor, informe um número válido (DDD + 8 ou 9 dígitos)');
       return;
     }
 
@@ -75,16 +75,16 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="(85) 99999-9999"
+                placeholder="(85) 99999-9999 ou (85) 9999-9999"
                 value={phone}
                 onChange={handlePhoneChange}
                 className="pl-12"
-                maxLength={15}
+                maxLength={16}
                 required
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Digite apenas o DDD e número (ex: 85999999999)
+              Digite o DDD e número (8 ou 9 dígitos). Ex: 85998372658 ou 8598372658
             </p>
           </div>
           {error && (

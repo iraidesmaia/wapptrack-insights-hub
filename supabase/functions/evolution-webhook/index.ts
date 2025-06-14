@@ -70,7 +70,7 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
       console.log('Processing message from:', fromPhone);
       
       // Atualizar lead para status "engaged" se respondeu
-      await updateLeadStatus(supabase, fromPhone, 'engaged', {
+      await updateLeadStatusWithPhoneVariations(supabase, fromPhone, 'engaged', {
         evolution_message_id: messageData.key?.id,
         evolution_status: 'replied',
         last_contact_date: new Date().toISOString()
@@ -91,7 +91,7 @@ async function handleSendMessageEvent(supabase: any, data: any, instance: string
       console.log('Message sent successfully to:', toPhone);
       
       // Procurar lead pendente e criar lead válido com status "lead"
-      await createLeadFromPending(supabase, toPhone, {
+      await createLeadFromPendingWithPhoneVariations(supabase, toPhone, {
         evolution_message_id: messageId,
         evolution_status: 'sent'
       });
@@ -117,17 +117,17 @@ async function handleMessageStatusEvent(supabase: any, data: any, instance: stri
         case 1:
         case 'SENT':
           evolutionStatus = 'sent';
-          leadStatus = 'lead'; // Alterar para 'lead' ao invés de 'novo'
+          leadStatus = 'lead';
           break;
         case 2:
         case 'DELIVERED':
           evolutionStatus = 'delivered';
-          leadStatus = 'lead'; // Manter como 'lead'
+          leadStatus = 'lead';
           break;
         case 3:
         case 'READ':
           evolutionStatus = 'read';
-          leadStatus = 'lead'; // Manter como 'lead'
+          leadStatus = 'lead';
           break;
         case 'ERROR':
         case 'FAILED':
@@ -136,7 +136,7 @@ async function handleMessageStatusEvent(supabase: any, data: any, instance: stri
           break;
       }
       
-      await updateLeadStatus(supabase, phone, leadStatus, {
+      await updateLeadStatusWithPhoneVariations(supabase, phone, leadStatus, {
         evolution_status: evolutionStatus,
         last_whatsapp_attempt: new Date().toISOString()
       });
@@ -146,24 +146,37 @@ async function handleMessageStatusEvent(supabase: any, data: any, instance: stri
   }
 }
 
-async function createLeadFromPending(supabase: any, phone: string, evolutionData: any) {
+async function createLeadFromPendingWithPhoneVariations(supabase: any, phone: string, evolutionData: any) {
   try {
-    // Buscar lead pendente
-    const { data: pendingLead, error: pendingError } = await supabase
-      .from('pending_leads')
-      .select('*')
-      .eq('phone', phone)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const phoneVariations = createPhoneVariations(phone);
+    console.log('Searching for pending lead with phone variations:', phoneVariations);
+    
+    let pendingLead = null;
+    
+    // Tentar encontrar lead pendente usando variações do número
+    for (const variation of phoneVariations) {
+      const { data, error } = await supabase
+        .from('pending_leads')
+        .select('*')
+        .eq('phone', variation)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!error && data) {
+        pendingLead = data;
+        console.log('Found pending lead with phone variation:', variation);
+        break;
+      }
+    }
 
-    if (pendingError || !pendingLead) {
-      console.warn('No pending lead found for phone:', phone);
+    if (!pendingLead) {
+      console.warn('No pending lead found for phone variations:', phoneVariations);
       return;
     }
 
-    // Criar lead válido com status "lead" ao invés de "novo"
+    // Criar lead válido com status "lead"
     const { error: leadError } = await supabase
       .from('leads')
       .insert({
@@ -171,7 +184,7 @@ async function createLeadFromPending(supabase: any, phone: string, evolutionData
         phone: pendingLead.phone,
         campaign: pendingLead.campaign_name || 'Evolution API',
         campaign_id: pendingLead.campaign_id,
-        status: 'lead', // Alterar de 'novo' para 'lead'
+        status: 'lead',
         evolution_message_id: evolutionData.evolution_message_id,
         evolution_status: evolutionData.evolution_status,
         whatsapp_delivery_attempts: 1,
@@ -196,24 +209,85 @@ async function createLeadFromPending(supabase: any, phone: string, evolutionData
   }
 }
 
-async function updateLeadStatus(supabase: any, phone: string, status: string, updates: any) {
+async function updateLeadStatusWithPhoneVariations(supabase: any, phone: string, status: string, updates: any) {
   try {
-    const { error } = await supabase
-      .from('leads')
-      .update({
-        status,
-        ...updates
-      })
-      .eq('phone', phone);
+    const phoneVariations = createPhoneVariations(phone);
+    console.log('Updating lead status for phone variations:', phoneVariations);
+    
+    let updated = false;
+    
+    // Tentar atualizar usando variações do número
+    for (const variation of phoneVariations) {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({
+          status,
+          ...updates
+        })
+        .eq('phone', variation);
 
-    if (error) {
-      console.error('Error updating lead status:', error);
-    } else {
-      console.log('Lead status updated for:', phone, 'to:', status);
+      if (!error && data) {
+        console.log('Lead status updated for variation:', variation, 'to:', status);
+        updated = true;
+        break;
+      }
+    }
+    
+    if (!updated) {
+      console.warn('No lead found for phone variations:', phoneVariations);
     }
   } catch (error) {
     console.error('Error updating lead status:', error);
   }
+}
+
+function createPhoneVariations(phone: string): string[] {
+  const digits = phone.replace(/\D/g, '');
+  const variations: string[] = [digits];
+  
+  if (digits.startsWith('55')) {
+    // Remove country code
+    const withoutCountryCode = digits.slice(2);
+    variations.push(withoutCountryCode);
+    
+    // If it's 11 digits (DDD + 9 digits), also try without the first 9
+    if (withoutCountryCode.length === 11) {
+      const ddd = withoutCountryCode.slice(0, 2);
+      const number = withoutCountryCode.slice(3); // Remove the 9
+      variations.push(ddd + number);
+      variations.push('55' + ddd + number);
+    }
+    
+    // If it's 10 digits (DDD + 8 digits), also try with a 9 added
+    if (withoutCountryCode.length === 10) {
+      const ddd = withoutCountryCode.slice(0, 2);
+      const number = withoutCountryCode.slice(2);
+      variations.push(ddd + '9' + number);
+      variations.push('55' + ddd + '9' + number);
+    }
+  } else {
+    // Add country code
+    variations.push('55' + digits);
+    
+    // If it's 10 digits (DDD + 8 digits), also try with a 9 added
+    if (digits.length === 10) {
+      const ddd = digits.slice(0, 2);
+      const number = digits.slice(2);
+      variations.push(ddd + '9' + number);
+      variations.push('55' + ddd + '9' + number);
+    }
+    
+    // If it's 11 digits (DDD + 9 digits), also try without the first 9
+    if (digits.length === 11) {
+      const ddd = digits.slice(0, 2);
+      const number = digits.slice(3); // Remove the 9
+      variations.push(ddd + number);
+      variations.push('55' + ddd + number);
+    }
+  }
+  
+  // Remove duplicates
+  return [...new Set(variations)];
 }
 
 function extractPhoneNumber(jid: string): string | null {

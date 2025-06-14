@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -96,7 +95,7 @@ const Leads = () => {
   const handleOpenEditDialog = (lead: Lead) => {
     // Format existing phone for editing (remove country code for display)
     let displayPhone = lead.phone;
-    if (lead.phone.startsWith('55') && lead.phone.length === 13) {
+    if (lead.phone.startsWith('55')) {
       const phoneWithoutCountryCode = lead.phone.slice(2);
       displayPhone = formatBrazilianPhone(phoneWithoutCountryCode);
     }
@@ -136,7 +135,7 @@ const Leads = () => {
 
       // Validate phone format
       if (!validateBrazilianPhone(currentLead.phone)) {
-        toast.error('Por favor, informe um número válido (DDD + 9 dígitos)');
+        toast.error('Por favor, informe um número válido (DDD + 8 ou 9 dígitos)');
         return;
       }
 
@@ -354,13 +353,13 @@ const Leads = () => {
                     name="phone"
                     value={currentLead.phone}
                     onChange={handlePhoneChange}
-                    placeholder="(85) 99999-9999"
+                    placeholder="(85) 99999-9999 ou (85) 9999-9999"
                     className="pl-12"
-                    maxLength={15}
+                    maxLength={16}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Digite apenas o DDD e número (ex: 85999999999)
+                  Digite o DDD e número (8 ou 9 dígitos). Ex: 85998372658 ou 8598372658
                 </p>
               </div>
               <div className="grid gap-2">
