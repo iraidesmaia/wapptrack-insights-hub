@@ -9,8 +9,6 @@ import { Send, Webhook } from 'lucide-react';
 interface EvolutionApiSettingsProps {
   evolutionConfig: {
     endpoint_url: string;
-    api_key: string;
-    instance_name: string;
   };
   testingEvolution: boolean;
   onEvolutionConfigChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -49,35 +47,6 @@ const EvolutionApiSettings = ({
           />
           <p className="text-xs text-muted-foreground">
             URL onde o webhook será enviado
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="api_key">Chave da API (opcional)</Label>
-          <Input
-            id="api_key"
-            name="api_key"
-            value={evolutionConfig.api_key}
-            onChange={onEvolutionConfigChange}
-            placeholder="Sua chave da API"
-            type="password"
-          />
-          <p className="text-xs text-muted-foreground">
-            Se necessário, insira a chave de autenticação
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="instance_name">Nome da Instância</Label>
-          <Input
-            id="instance_name"
-            name="instance_name"
-            value={evolutionConfig.instance_name}
-            onChange={onEvolutionConfigChange}
-            placeholder="default"
-          />
-          <p className="text-xs text-muted-foreground">
-            Nome da instância do WhatsApp (padrão: default)
           </p>
         </div>
 

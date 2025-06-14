@@ -19,9 +19,7 @@ export const useSettings = () => {
   });
   
   const [evolutionConfig, setEvolutionConfig] = useState({
-    endpoint_url: '',
-    api_key: '',
-    instance_name: ''
+    endpoint_url: ''
   });
 
   const loadSettings = async () => {
@@ -116,15 +114,13 @@ export const useSettings = () => {
       const testPayload = {
         test: true,
         message: 'Teste de conexão webhook',
-        instance: evolutionConfig.instance_name || 'default',
         timestamp: new Date().toISOString()
       };
 
       const response = await fetch(evolutionConfig.endpoint_url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(evolutionConfig.api_key && { 'Authorization': `Bearer ${evolutionConfig.api_key}` })
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(testPayload)
       });
