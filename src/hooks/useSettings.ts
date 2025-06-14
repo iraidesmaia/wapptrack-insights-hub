@@ -19,7 +19,7 @@ export const useSettings = () => {
   });
   
   const [evolutionConfig, setEvolutionConfig] = useState({
-    endpoint_url: ''
+    webhook_url: ''
   });
 
   const loadSettings = async () => {
@@ -65,12 +65,12 @@ export const useSettings = () => {
 
   const loadEvolutionConfig = async () => {
     try {
-      const saved = localStorage.getItem('evolution_config');
+      const saved = localStorage.getItem('webhook_config');
       if (saved) {
         setEvolutionConfig(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Error loading Evolution config:', error);
+      console.error('Error loading webhook config:', error);
     }
   };
 
@@ -92,16 +92,16 @@ export const useSettings = () => {
 
   const saveEvolutionConfig = () => {
     try {
-      localStorage.setItem('evolution_config', JSON.stringify(evolutionConfig));
-      toast.success('Configurações da Evolution salvas!');
+      localStorage.setItem('webhook_config', JSON.stringify(evolutionConfig));
+      toast.success('Configurações do webhook salvas!');
     } catch (error) {
-      console.error('Error saving Evolution config:', error);
-      toast.error('Erro ao salvar configurações da Evolution');
+      console.error('Error saving webhook config:', error);
+      toast.error('Erro ao salvar configurações do webhook');
     }
   };
 
   const testEvolutionConnection = async () => {
-    if (!evolutionConfig.endpoint_url) {
+    if (!evolutionConfig.webhook_url) {
       toast.error('Por favor, configure a URL do webhook');
       return;
     }
@@ -109,15 +109,19 @@ export const useSettings = () => {
     setTestingEvolution(true);
     
     try {
-      console.log('Testing webhook connection...');
+      console.log('Testando conexão do webhook...');
       
       const testPayload = {
         test: true,
-        message: 'Teste de conexão webhook',
-        timestamp: new Date().toISOString()
+        campaign_id: 'test-campaign',
+        campaign_name: 'Teste de Webhook',
+        lead_name: 'Lead de Teste',
+        lead_phone: '11999999999',
+        timestamp: new Date().toISOString(),
+        event_type: 'test'
       };
 
-      const response = await fetch(evolutionConfig.endpoint_url, {
+      const response = await fetch(evolutionConfig.webhook_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -130,7 +134,7 @@ export const useSettings = () => {
       if (response.ok) {
         const data = await response.text();
         console.log('Webhook response:', data);
-        toast.success('Webhook enviado com sucesso!');
+        toast.success('Webhook testado com sucesso!');
       } else {
         const errorText = await response.text();
         console.error('Webhook error:', errorText);
@@ -138,7 +142,7 @@ export const useSettings = () => {
       }
     } catch (error: any) {
       console.error('Error testing webhook:', error);
-      toast.error(`Erro ao enviar webhook: ${error.message}`);
+      toast.error(`Erro ao testar webhook: ${error.message}`);
     } finally {
       setTestingEvolution(false);
     }

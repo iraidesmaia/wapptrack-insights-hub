@@ -48,10 +48,10 @@ const Settings = () => {
 
           <EvolutionApiSettings
             evolutionConfig={evolutionConfig}
-            testingEvolution={testingEvolution}
+            testingWebhook={testingEvolution}
             onEvolutionConfigChange={handleEvolutionConfigChange}
             onSaveEvolutionConfig={saveEvolutionConfig}
-            onTestEvolutionConnection={testEvolutionConnection}
+            onTestWebhookConnection={testEvolutionConnection}
           />
 
           <div className="flex justify-end">

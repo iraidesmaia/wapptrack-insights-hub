@@ -1,9 +1,8 @@
-
-
 import { useState, useEffect } from 'react';
 import { getCampaigns, trackRedirect } from '@/services/dataService';
 import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
 import { toast } from 'sonner';
+import { sendWebhookData } from '@/services/webhookService';
 
 interface Campaign {
   id: string;
@@ -89,6 +88,30 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
   const handleFormSubmit = async (phone: string, name: string) => {
     if (!campaignId) {
       throw new Error('ID da campanha não encontrado');
+    }
+
+    // Enviar dados via webhook se configurado
+    try {
+      const webhookConfig = localStorage.getItem('webhook_config');
+      if (webhookConfig) {
+        const config = JSON.parse(webhookConfig);
+        if (config.webhook_url) {
+          const webhookData = {
+            campaign_id: campaignId,
+            campaign_name: campaign?.name,
+            lead_name: name,
+            lead_phone: phone,
+            timestamp: new Date().toISOString(),
+            event_type: campaign?.event_type
+          };
+          
+          await sendWebhookData(config.webhook_url, webhookData);
+          console.log('Dados enviados via webhook com sucesso');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao enviar dados via webhook:', error);
+      // Não interromper o fluxo se o webhook falhar
     }
 
     // Track the event before redirecting
@@ -181,4 +204,3 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     handleDirectWhatsAppRedirect
   };
 };
-

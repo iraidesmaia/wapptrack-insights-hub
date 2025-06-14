@@ -8,45 +8,45 @@ import { Send, Webhook } from 'lucide-react';
 
 interface EvolutionApiSettingsProps {
   evolutionConfig: {
-    endpoint_url: string;
+    webhook_url: string;
   };
-  testingEvolution: boolean;
+  testingWebhook: boolean;
   onEvolutionConfigChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSaveEvolutionConfig: () => void;
-  onTestEvolutionConnection: () => Promise<void>;
+  onTestWebhookConnection: () => Promise<void>;
 }
 
 const EvolutionApiSettings = ({
   evolutionConfig,
-  testingEvolution,
+  testingWebhook,
   onEvolutionConfigChange,
   onSaveEvolutionConfig,
-  onTestEvolutionConnection
+  onTestWebhookConnection
 }: EvolutionApiSettingsProps) => {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Webhook className="w-5 h-5" />
-          <span>Webhook Evolution API</span>
+          <span>Webhook para Leads</span>
         </CardTitle>
         <CardDescription>
-          Configure o webhook para receber notificações do WhatsApp
+          Configure o webhook para receber dados dos leads automaticamente
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="endpoint_url">URL do Webhook *</Label>
+          <Label htmlFor="webhook_url">URL do Webhook *</Label>
           <Input
-            id="endpoint_url"
-            name="endpoint_url"
-            value={evolutionConfig.endpoint_url}
+            id="webhook_url"
+            name="webhook_url"
+            value={evolutionConfig.webhook_url}
             onChange={onEvolutionConfigChange}
-            placeholder="https://sua-instancia.com/webhook"
+            placeholder="https://webhook.site/seu-webhook"
             type="url"
           />
           <p className="text-xs text-muted-foreground">
-            URL onde o webhook será enviado
+            URL onde os dados dos leads serão enviados
           </p>
         </div>
 
@@ -55,12 +55,12 @@ const EvolutionApiSettings = ({
             Salvar Configuração
           </Button>
           <Button 
-            onClick={onTestEvolutionConnection} 
-            disabled={testingEvolution || !evolutionConfig.endpoint_url}
+            onClick={onTestWebhookConnection} 
+            disabled={testingWebhook || !evolutionConfig.webhook_url}
             className="flex items-center space-x-2"
           >
             <Send className="w-4 h-4" />
-            <span>{testingEvolution ? 'Enviando...' : 'Testar Webhook'}</span>
+            <span>{testingWebhook ? 'Enviando...' : 'Testar Webhook'}</span>
           </Button>
         </div>
       </CardContent>
