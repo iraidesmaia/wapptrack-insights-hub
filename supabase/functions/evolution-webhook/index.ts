@@ -7,61 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função para criar variações específicas para DDD 85
-const createPhoneVariationsForDDD85 = (phone: string): string[] => {
-  const variations = new Set<string>();
-  const digits = phone.replace(/\D/g, '');
-  
-  console.log(`Criando variações específicas para DDD 85 do número: ${digits}`);
-  
-  // Extrair apenas os últimos 8 ou 9 dígitos (sem DDD e código do país)
-  let phoneDigits = '';
-  
-  if (digits.startsWith('5585')) {
-    phoneDigits = digits.slice(4); // Remove 55 + 85
-  } else if (digits.startsWith('85')) {
-    phoneDigits = digits.slice(2); // Remove 85
-  } else if (digits.length === 8 || digits.length === 9) {
-    phoneDigits = digits; // Assume que já são apenas os dígitos do telefone
-  } else {
-    // Pegar os últimos 8 ou 9 dígitos
-    phoneDigits = digits.slice(-9);
-    if (phoneDigits.length > 9) {
-      phoneDigits = phoneDigits.slice(-8);
-    }
-  }
-  
-  console.log(`Dígitos do telefone extraídos: ${phoneDigits}`);
-  
-  // Criar as duas variações específicas para DDD 85
-  if (phoneDigits.length === 9 && phoneDigits.startsWith('9')) {
-    // Se tem 9 dígitos e começa com 9: 85998372658
-    variations.add('85' + phoneDigits);
-    // Versão sem o 9 extra: 8598372658
-    variations.add('85' + phoneDigits.slice(1));
-  } else if (phoneDigits.length === 8) {
-    // Se tem 8 dígitos: 8598372658
-    variations.add('85' + phoneDigits);
-    // Versão com 9 extra: 85998372658
-    variations.add('859' + phoneDigits);
-  } else if (phoneDigits.length === 9 && !phoneDigits.startsWith('9')) {
-    // Se tem 9 dígitos mas não começa com 9, adicionar com e sem 9
-    variations.add('85' + phoneDigits);
-    variations.add('859' + phoneDigits);
-  }
-  
-  // Adicionar versões com código do país também
-  variations.forEach(variation => {
-    if (!variation.startsWith('55')) {
-      variations.add('55' + variation);
-    }
-  });
-  
-  const result = Array.from(variations);
-  console.log(`Variações criadas para busca: ${JSON.stringify(result)}`);
-  return result;
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -90,13 +35,19 @@ serve(async (req) => {
         
         console.log(`📝 Message content: ${messageContent}`)
         
-        // Criar variações específicas para DDD 85
-        const phoneVariations = createPhoneVariationsForDDD85(phoneNumber);
+        // Criar as duas variações específicas para DDD 85
+        const phoneVariations = [
+          '85998372658',
+          '8598372658',
+          '5585998372658', 
+          '558598372658'
+        ];
+        
         console.log(`📱 Phone variations for search: ${JSON.stringify(phoneVariations)}`);
         
         let matchedLeads = null;
 
-        // Busca exata com as variações criadas
+        // Busca exata com as variações específicas
         console.log('🔍 Tentando busca exata com variações específicas para DDD 85...');
         const { data: exactMatches, error: exactError } = await supabase
           .from('leads')
@@ -117,24 +68,6 @@ serve(async (req) => {
           }
         }
 
-        // Se não encontrou com busca exata, tentar busca com LIKE pelos últimos 8 dígitos
-        if (!matchedLeads || matchedLeads.length === 0) {
-          const last8Digits = phoneNumber.slice(-8);
-          console.log(`🔍 Trying LIKE search with last 8 digits: ${last8Digits}`);
-          
-          const { data: likeMatches, error: likeError } = await supabase
-            .from('leads')
-            .select('*')
-            .ilike('phone', `%${last8Digits}`);
-
-          if (likeError) {
-            console.error('❌ Error in LIKE search:', likeError);
-          } else {
-            matchedLeads = likeMatches;
-            console.log(`🎯 LIKE matches found: ${matchedLeads?.length || 0}`);
-          }
-        }
-
         if (matchedLeads && matchedLeads.length > 0) {
           console.log(`✅ Found ${matchedLeads.length} matching leads:`, matchedLeads.map(l => ({ 
             name: l.name, 
@@ -142,9 +75,10 @@ serve(async (req) => {
             status: l.status 
           })));
 
-          // Atualizar todos os leads encontrados
+          // Atualizar todos os leads encontrados COM O TEXTO DA MENSAGEM
           const updatePromises = matchedLeads.map(async (lead) => {
             console.log(`📝 Updating lead ${lead.name} (${lead.phone}) - Status: ${lead.status} -> lead`);
+            console.log(`💬 Saving message: "${messageContent}"`);
             
             const { data: updatedLead, error: updateError } = await supabase
               .from('leads')
@@ -161,7 +95,7 @@ serve(async (req) => {
               console.error(`❌ Error updating lead ${lead.id}:`, updateError);
               return null;
             } else {
-              console.log(`✅ Successfully updated lead ${lead.name}`);
+              console.log(`✅ Successfully updated lead ${lead.name} with message: "${messageContent}"`);
               return updatedLead;
             }
           });
@@ -169,12 +103,12 @@ serve(async (req) => {
           const updatedLeads = await Promise.all(updatePromises);
           const successfulUpdates = updatedLeads.filter(lead => lead !== null);
           
-          console.log(`🎉 Successfully updated ${successfulUpdates.length} leads`);
+          console.log(`🎉 Successfully updated ${successfulUpdates.length} leads with message text`);
         } else {
           console.error(`❌ No lead found for phone: ${phoneNumber}`);
           console.log('🔍 Debug info:');
           console.log('- Original phone from webhook:', phoneNumber);
-          console.log('- All variations tried:', phoneVariations);
+          console.log('- Variations tried:', phoneVariations);
           
           // Buscar alguns leads para comparação
           const { data: sampleLeads, error: sampleError } = await supabase
