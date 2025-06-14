@@ -109,12 +109,6 @@ const Leads = () => {
     };
   }, []);
 
-  const handleRefreshLeads = () => {
-    console.log('🔄 Atualizando lista de leads...');
-    fetchData();
-    toast.success('Lista de leads atualizada!');
-  };
-
   const handleFixPhoneNumbers = async () => {
     try {
       const updatedLeads = await fixPhoneNumbers();
@@ -144,13 +138,6 @@ const Leads = () => {
             <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleRefreshLeads}
-              disabled={isLoading}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
-            </Button>
             <Button 
               variant="outline" 
               onClick={handleFixPhoneNumbers}
