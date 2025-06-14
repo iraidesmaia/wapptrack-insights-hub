@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getLeads, addLead, updateLead, deleteLead, getCampaigns, addSale } from '@/services/dataService';
 import { Lead, Campaign } from '@/types';
-import { formatDate, formatPhoneNumber } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone, formatPhoneWithCountryCode } from '@/lib/phoneUtils';
 import { Plus, Trash2, Edit, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,6 +69,12 @@ const Leads = () => {
     setCurrentLead({ ...currentLead, [name]: value });
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatBrazilianPhone(value);
+    setCurrentLead({ ...currentLead, phone: formatted });
+  };
+
   const handleSelectChange = (name: string, value: string) => {
     setCurrentLead({ ...currentLead, [name]: value });
   };
@@ -86,7 +94,14 @@ const Leads = () => {
   };
 
   const handleOpenEditDialog = (lead: Lead) => {
-    setCurrentLead({ ...lead });
+    // Format existing phone for editing (remove country code for display)
+    let displayPhone = lead.phone;
+    if (lead.phone.startsWith('55') && lead.phone.length === 13) {
+      const phoneWithoutCountryCode = lead.phone.slice(2);
+      displayPhone = formatBrazilianPhone(phoneWithoutCountryCode);
+    }
+    
+    setCurrentLead({ ...lead, phone: displayPhone });
     setDialogMode('edit');
     setIsDialogOpen(true);
   };
@@ -94,12 +109,12 @@ const Leads = () => {
   const createSaleFromLead = async (lead: Lead) => {
     try {
       const newSale = await addSale({
-        value: 0, // Valor padrão, pode ser editado depois
+        value: 0,
         date: new Date().toISOString(),
         lead_id: lead.id,
         lead_name: lead.name,
         campaign: lead.campaign,
-        product: '', // Produto vazio, pode ser preenchido depois
+        product: '',
         notes: `Venda criada automaticamente quando lead foi convertido`
       });
       
@@ -119,11 +134,21 @@ const Leads = () => {
         return;
       }
 
+      // Validate phone format
+      if (!validateBrazilianPhone(currentLead.phone)) {
+        toast.error('Por favor, informe um número válido (DDD + 9 dígitos)');
+        return;
+      }
+
       let updatedLead: Lead;
       const wasConverted = currentLead.status === 'converted';
 
+      // Process phone to add country code before saving
+      const processedPhone = processBrazilianPhone(currentLead.phone);
+      const leadToSave = { ...currentLead, phone: processedPhone };
+
       if (dialogMode === 'add') {
-        const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'created_at'>);
+        const newLead = await addLead(leadToSave as Omit<Lead, 'id' | 'created_at'>);
         setLeads([newLead, ...leads]);
         updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');
@@ -134,7 +159,7 @@ const Leads = () => {
         const originalLead = leads.find(lead => lead.id === currentLead.id);
         const statusChangedToConverted = originalLead?.status !== 'converted' && currentLead.status === 'converted';
         
-        updatedLead = await updateLead(currentLead.id, currentLead);
+        updatedLead = await updateLead(currentLead.id, leadToSave);
         setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
         toast.success('Lead atualizado com sucesso');
         
@@ -187,6 +212,8 @@ const Leads = () => {
         return <Badge variant="default" className="bg-green-500">Lead</Badge>;
       case 'to_recover':
         return <Badge variant="default" className="bg-orange-500">A recuperar</Badge>;
+      case 'engaged':
+        return <Badge variant="default" className="bg-purple-500">Engajado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -252,7 +279,7 @@ const Leads = () => {
                     filteredLeads.map((lead) => (
                       <tr key={lead.id} className="border-b">
                         <td className="p-4">{lead.name}</td>
-                        <td className="p-4">{lead.phone}</td>
+                        <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
                         <td className="p-4">{lead.campaign}</td>
                         <td className="p-4">{getStatusBadge(lead.status)}</td>
                         <td className="p-4">{formatDate(lead.created_at)}</td>
@@ -318,16 +345,23 @@ const Leads = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={currentLead.phone}
-                  onChange={(e) => {
-                    const formatted = formatPhoneNumber(e.target.value);
-                    setCurrentLead({ ...currentLead, phone: formatted });
-                  }}
-                  placeholder="(00) 00000-0000"
-                />
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
+                    +55
+                  </div>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={currentLead.phone}
+                    onChange={handlePhoneChange}
+                    placeholder="(85) 99999-9999"
+                    className="pl-12"
+                    maxLength={15}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Digite apenas o DDD e número (ex: 85999999999)
+                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="campaign">Campanha</Label>
@@ -364,6 +398,7 @@ const Leads = () => {
                     <SelectItem value="qualified">Qualificado</SelectItem>
                     <SelectItem value="converted">Convertido</SelectItem>
                     <SelectItem value="lost">Perdido</SelectItem>
+                    <SelectItem value="engaged">Engajado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

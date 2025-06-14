@@ -97,14 +97,26 @@ export function buildUtmUrl(
   return queryString ? `${baseUrl}?${queryString}` : baseUrl
 }
 
-// Phone number mask formatter
+// Phone number mask formatter - updated for Brazilian phones with country code
 export function formatPhoneNumber(value: string): string {
   if (!value) return value
   
   // Remove all non-digits
   const phone = value.replace(/\D/g, '')
   
-  // Apply mask based on length
+  // Check if it's a Brazilian number with country code (55)
+  if (phone.startsWith('55') && phone.length >= 12) {
+    const ddd = phone.slice(2, 4)
+    const number = phone.slice(4)
+    
+    if (number.length <= 5) {
+      return `+55 (${ddd}) ${number}`
+    } else {
+      return `+55 (${ddd}) ${number.slice(0, 5)}-${number.slice(5, 9)}`
+    }
+  }
+  
+  // Fallback to original formatting for other cases
   if (phone.length <= 2) {
     return phone
   } else if (phone.length <= 6) {

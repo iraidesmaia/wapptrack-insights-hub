@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } from '@/lib/phoneUtils';
 
 interface ContactFormProps {
   onSubmit: (phone: string, name: string) => Promise<void>;
@@ -15,6 +16,12 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatBrazilianPhone(value);
+    setPhone(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -23,9 +30,17 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
       return;
     }
 
+    // Validate Brazilian phone format
+    if (!validateBrazilianPhone(phone)) {
+      setError('Por favor, informe um número válido (DDD + 9 dígitos)');
+      return;
+    }
+
     setError('');
     try {
-      await onSubmit(phone, name);
+      // Process phone to add Brazil country code (55)
+      const processedPhone = processBrazilianPhone(phone);
+      await onSubmit(processedPhone, name);
     } catch (err) {
       setError('Erro ao processar redirecionamento');
     }
@@ -53,14 +68,24 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Seu WhatsApp*</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="(00) 00000-0000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
+                +55
+              </div>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(85) 99999-9999"
+                value={phone}
+                onChange={handlePhoneChange}
+                className="pl-12"
+                maxLength={15}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Digite apenas o DDD e número (ex: 85999999999)
+            </p>
           </div>
           {error && (
             <p className="text-sm text-red-600">{error}</p>
