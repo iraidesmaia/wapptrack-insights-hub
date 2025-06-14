@@ -83,14 +83,14 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
 
 async function handleSendMessageEvent(supabase: any, data: any, instance: string) {
   try {
-    // Mensagem enviada com sucesso - criar lead válido
+    // Mensagem enviada com sucesso - criar lead válido com status "lead"
     const toPhone = extractPhoneNumber(data.key?.remoteJid || data.to);
     const messageId = data.key?.id || data.messageId;
     
     if (toPhone) {
       console.log('Message sent successfully to:', toPhone);
       
-      // Procurar lead pendente e criar lead válido
+      // Procurar lead pendente e criar lead válido com status "lead"
       await createLeadFromPending(supabase, toPhone, {
         evolution_message_id: messageId,
         evolution_status: 'sent'
@@ -117,14 +117,17 @@ async function handleMessageStatusEvent(supabase: any, data: any, instance: stri
         case 1:
         case 'SENT':
           evolutionStatus = 'sent';
+          leadStatus = 'lead'; // Alterar para 'lead' ao invés de 'novo'
           break;
         case 2:
         case 'DELIVERED':
           evolutionStatus = 'delivered';
+          leadStatus = 'lead'; // Manter como 'lead'
           break;
         case 3:
         case 'READ':
           evolutionStatus = 'read';
+          leadStatus = 'lead'; // Manter como 'lead'
           break;
         case 'ERROR':
         case 'FAILED':
@@ -160,7 +163,7 @@ async function createLeadFromPending(supabase: any, phone: string, evolutionData
       return;
     }
 
-    // Criar lead válido
+    // Criar lead válido com status "lead" ao invés de "novo"
     const { error: leadError } = await supabase
       .from('leads')
       .insert({
@@ -168,7 +171,7 @@ async function createLeadFromPending(supabase: any, phone: string, evolutionData
         phone: pendingLead.phone,
         campaign: pendingLead.campaign_name || 'Evolution API',
         campaign_id: pendingLead.campaign_id,
-        status: 'lead',
+        status: 'lead', // Alterar de 'novo' para 'lead'
         evolution_message_id: evolutionData.evolution_message_id,
         evolution_status: evolutionData.evolution_status,
         whatsapp_delivery_attempts: 1,
@@ -186,7 +189,7 @@ async function createLeadFromPending(supabase: any, phone: string, evolutionData
       .update({ status: 'confirmed' })
       .eq('id', pendingLead.id);
 
-    console.log('Lead created successfully for:', phone);
+    console.log('Lead created successfully with status "lead" for:', phone);
 
   } catch (error) {
     console.error('Error creating lead from pending:', error);
