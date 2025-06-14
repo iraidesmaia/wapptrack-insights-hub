@@ -29,7 +29,7 @@ const Redirect = () => {
 
   useEffect(() => {
     // Handle direct WhatsApp redirect
-    if (campaign?.redirectType === 'whatsapp' && !isLoading) {
+    if (campaign?.redirect_type === 'whatsapp' && !isLoading) {
       setShowLoadingScreen(true);
       
       // Start loading animation
@@ -101,7 +101,7 @@ const Redirect = () => {
   }
 
   // Don't show form if campaign is direct WhatsApp redirect
-  if (campaign?.redirectType === 'whatsapp') {
+  if (campaign?.redirect_type === 'whatsapp') {
     return null;
   }
 

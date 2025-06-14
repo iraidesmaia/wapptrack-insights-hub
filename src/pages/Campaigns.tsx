@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -26,20 +27,20 @@ const Campaigns = () => {
   const [uploading, setUploading] = useState(false);
   const [currentCampaign, setCurrentCampaign] = useState<Partial<Campaign>>({
     name: '',
-    utmSource: '',
-    utmMedium: '',
-    utmCampaign: '',
-    utmContent: '',
-    utmTerm: '',
-    pixelId: '',
-    whatsappNumber: '',
-    eventType: 'lead',
+    utm_source: '',
+    utm_medium: '',
+    utm_campaign: '',
+    utm_content: '',
+    utm_term: '',
+    pixel_id: '',
+    whatsapp_number: '',
+    event_type: 'lead',
     active: true,
-    customMessage: '',
-    companyTitle: '',
-    companySubtitle: '',
-    redirectType: 'whatsapp',
-    pixelIntegrationType: 'direct'
+    custom_message: '',
+    company_title: '',
+    company_subtitle: '',
+    redirect_type: 'whatsapp',
+    pixel_integration_type: 'direct'
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
 
@@ -64,9 +65,9 @@ const Campaigns = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       campaign.name.toLowerCase().includes(searchLower) ||
-      (campaign.utmSource && campaign.utmSource.toLowerCase().includes(searchLower)) ||
-      (campaign.utmMedium && campaign.utmMedium.toLowerCase().includes(searchLower)) ||
-      (campaign.utmCampaign && campaign.utmCampaign.toLowerCase().includes(searchLower))
+      (campaign.utm_source && campaign.utm_source.toLowerCase().includes(searchLower)) ||
+      (campaign.utm_medium && campaign.utm_medium.toLowerCase().includes(searchLower)) ||
+      (campaign.utm_campaign && campaign.utm_campaign.toLowerCase().includes(searchLower))
     );
   });
 
@@ -80,15 +81,15 @@ const Campaigns = () => {
   };
 
   const handleEventTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, eventType: value as Campaign['eventType'] });
+    setCurrentCampaign({ ...currentCampaign, event_type: value as Campaign['event_type'] });
   };
 
   const handleRedirectTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, redirectType: value as Campaign['redirectType'] });
+    setCurrentCampaign({ ...currentCampaign, redirect_type: value as Campaign['redirect_type'] });
   };
 
   const handlePixelIntegrationTypeChange = (value: string) => {
-    setCurrentCampaign({ ...currentCampaign, pixelIntegrationType: value as Campaign['pixelIntegrationType'] });
+    setCurrentCampaign({ ...currentCampaign, pixel_integration_type: value as Campaign['pixel_integration_type'] });
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,7 +119,7 @@ const Campaigns = () => {
 
       setCurrentCampaign(prev => ({
         ...prev,
-        logoUrl: data.publicUrl
+        logo_url: data.publicUrl
       }));
 
       toast.success('Logo enviada com sucesso!');
@@ -133,20 +134,20 @@ const Campaigns = () => {
   const handleOpenAddDialog = () => {
     setCurrentCampaign({
       name: '',
-      utmSource: '',
-      utmMedium: '',
-      utmCampaign: '',
-      utmContent: '',
-      utmTerm: '',
-      pixelId: '',
-      whatsappNumber: '',
-      eventType: 'lead',
+      utm_source: '',
+      utm_medium: '',
+      utm_campaign: '',
+      utm_content: '',
+      utm_term: '',
+      pixel_id: '',
+      whatsapp_number: '',
+      event_type: 'lead',
       active: true,
-      customMessage: '',
-      companyTitle: '',
-      companySubtitle: '',
-      redirectType: 'whatsapp',
-      pixelIntegrationType: 'direct'
+      custom_message: '',
+      company_title: '',
+      company_subtitle: '',
+      redirect_type: 'whatsapp',
+      pixel_integration_type: 'direct'
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -167,7 +168,7 @@ const Campaigns = () => {
       }
 
       if (dialogMode === 'add') {
-        const newCampaign = await addCampaign(currentCampaign as Omit<Campaign, 'id' | 'createdAt'>);
+        const newCampaign = await addCampaign(currentCampaign as Omit<Campaign, 'id' | 'created_at'>);
         setCampaigns([...campaigns, newCampaign]);
         toast.success('Campanha adicionada com sucesso');
       } else {
@@ -211,11 +212,11 @@ const Campaigns = () => {
   const getUtmUrl = (campaign: Campaign) => {
     return buildUtmUrl(
       baseUrl,
-      campaign.utmSource,
-      campaign.utmMedium,
-      campaign.utmCampaign,
-      campaign.utmContent,
-      campaign.utmTerm
+      campaign.utm_source,
+      campaign.utm_medium,
+      campaign.utm_campaign,
+      campaign.utm_content,
+      campaign.utm_term
     );
   };
 
@@ -278,8 +279,8 @@ const Campaigns = () => {
                     filteredCampaigns.map((campaign) => (
                       <tr key={campaign.id} className="border-b">
                         <td className="p-4">{campaign.name}</td>
-                        <td className="p-4">{campaign.utmSource || '-'}</td>
-                        <td className="p-4">{campaign.utmMedium || '-'}</td>
+                        <td className="p-4">{campaign.utm_source || '-'}</td>
+                        <td className="p-4">{campaign.utm_medium || '-'}</td>
                         <td className="p-4">
                           {campaign.active ? (
                             <Badge variant="default" className="bg-primary">Ativa</Badge>
@@ -287,7 +288,7 @@ const Campaigns = () => {
                             <Badge variant="secondary">Inativa</Badge>
                           )}
                         </td>
-                        <td className="p-4">{formatDate(campaign.createdAt)}</td>
+                        <td className="p-4">{formatDate(campaign.created_at)}</td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <Button
                             variant="ghost"
@@ -342,22 +343,22 @@ const Campaigns = () => {
                 <h3 className="text-lg font-semibold border-b pb-2">Identidade da Empresa</h3>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="companyTitle">Nome da empresa</Label>
+                  <Label htmlFor="company_title">Nome da empresa</Label>
                   <Input
-                    id="companyTitle"
-                    name="companyTitle"
-                    value={currentCampaign.companyTitle || ''}
+                    id="company_title"
+                    name="company_title"
+                    value={currentCampaign.company_title || ''}
                     onChange={handleInputChange}
                     placeholder="Ex: Minha Empresa"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="companySubtitle">Subtítulo</Label>
+                  <Label htmlFor="company_subtitle">Subtítulo</Label>
                   <Input
-                    id="companySubtitle"
-                    name="companySubtitle"
-                    value={currentCampaign.companySubtitle || ''}
+                    id="company_subtitle"
+                    name="company_subtitle"
+                    value={currentCampaign.company_subtitle || ''}
                     onChange={handleInputChange}
                     placeholder="Ex: Sistema de Marketing Digital"
                   />
@@ -387,11 +388,11 @@ const Campaigns = () => {
                         Formatos aceitos: PNG, JPG, JPEG (máx. 5MB)
                       </p>
                     </div>
-                    {currentCampaign.logoUrl && (
+                    {currentCampaign.logo_url && (
                       <div className="flex-shrink-0">
                         <div className="w-16 h-16 rounded-lg border overflow-hidden">
                           <img
-                            src={currentCampaign.logoUrl}
+                            src={currentCampaign.logo_url}
                             alt="Logo da campanha"
                             className="w-full h-full object-cover"
                           />
@@ -419,33 +420,33 @@ const Campaigns = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="utmMedium">Meio (utm_medium)</Label>
+                  <Label htmlFor="utm_medium">Meio (utm_medium)</Label>
                   <Input
-                    id="utmMedium"
-                    name="utmMedium"
-                    value={currentCampaign.utmMedium}
+                    id="utm_medium"
+                    name="utm_medium"
+                    value={currentCampaign.utm_medium}
                     onChange={handleInputChange}
                     placeholder="Ex: social"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="utmContent">Conteúdo (utm_content)</Label>
+                  <Label htmlFor="utm_content">Conteúdo (utm_content)</Label>
                   <Input
-                    id="utmContent"
-                    name="utmContent"
-                    value={currentCampaign.utmContent}
+                    id="utm_content"
+                    name="utm_content"
+                    value={currentCampaign.utm_content}
                     onChange={handleInputChange}
                     placeholder="Ex: banner_top"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="customMessage">Mensagem personalizada</Label>
+                  <Label htmlFor="custom_message">Mensagem personalizada</Label>
                   <Textarea
-                    id="customMessage"
-                    name="customMessage"
-                    value={currentCampaign.customMessage || ''}
+                    id="custom_message"
+                    name="custom_message"
+                    value={currentCampaign.custom_message || ''}
                     onChange={handleInputChange}
                     placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
                     rows={3}
@@ -456,9 +457,9 @@ const Campaigns = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="eventType">Tipo de Evento</Label>
+                  <Label htmlFor="event_type">Tipo de Evento</Label>
                   <Select
-                    value={currentCampaign.eventType || 'lead'}
+                    value={currentCampaign.event_type || 'lead'}
                     onValueChange={handleEventTypeChange}
                   >
                     <SelectTrigger>
@@ -482,11 +483,11 @@ const Campaigns = () => {
                 <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="whatsappNumber">Número do WhatsApp</Label>
+                  <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
                   <Input
-                    id="whatsappNumber"
-                    name="whatsappNumber"
-                    value={currentCampaign.whatsappNumber}
+                    id="whatsapp_number"
+                    name="whatsapp_number"
+                    value={currentCampaign.whatsapp_number}
                     onChange={handleInputChange}
                     placeholder="Ex: 5511999887766"
                   />
@@ -496,9 +497,9 @@ const Campaigns = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="redirectType">Tipo de redirecionamento</Label>
+                  <Label htmlFor="redirect_type">Tipo de redirecionamento</Label>
                   <Select
-                    value={currentCampaign.redirectType || 'whatsapp'}
+                    value={currentCampaign.redirect_type || 'whatsapp'}
                     onValueChange={handleRedirectTypeChange}
                   >
                     <SelectTrigger>
@@ -515,20 +516,20 @@ const Campaigns = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="pixelId">ID do Facebook Pixel</Label>
+                  <Label htmlFor="pixel_id">ID do Facebook Pixel</Label>
                   <Input
-                    id="pixelId"
-                    name="pixelId"
-                    value={currentCampaign.pixelId}
+                    id="pixel_id"
+                    name="pixel_id"
+                    value={currentCampaign.pixel_id}
                     onChange={handleInputChange}
                     placeholder="Ex: 123456789012345"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="pixelIntegrationType">Integração do Pixel</Label>
+                  <Label htmlFor="pixel_integration_type">Integração do Pixel</Label>
                   <Select
-                    value={currentCampaign.pixelIntegrationType || 'direct'}
+                    value={currentCampaign.pixel_integration_type || 'direct'}
                     onValueChange={handlePixelIntegrationTypeChange}
                   >
                     <SelectTrigger>

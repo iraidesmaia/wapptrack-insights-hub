@@ -20,11 +20,11 @@ export const getLeads = async (): Promise<Lead[]> => {
       phone: lead.phone,
       campaign: lead.campaign,
       status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
-      createdAt: lead.created_at,
-      customFields: lead.custom_fields as Record<string, string>,
+      created_at: lead.created_at,
+      custom_fields: lead.custom_fields as Record<string, string>,
       notes: lead.notes,
-      firstContactDate: lead.first_contact_date,
-      lastContactDate: lead.last_contact_date
+      first_contact_date: lead.first_contact_date,
+      last_contact_date: lead.last_contact_date
     }));
   } catch (error) {
     console.error("Error fetching leads:", error);
@@ -32,7 +32,7 @@ export const getLeads = async (): Promise<Lead[]> => {
   }
 };
 
-export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lead> => {
+export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Lead> => {
   try {
     // Insert lead into Supabase
     const { data, error } = await supabase
@@ -42,10 +42,10 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lea
         phone: lead.phone,
         campaign: lead.campaign,
         status: lead.status || 'new',
-        custom_fields: lead.customFields || {},
+        custom_fields: lead.custom_fields || {},
         notes: lead.notes || '',
-        first_contact_date: lead.firstContactDate || null,
-        last_contact_date: lead.lastContactDate || null
+        first_contact_date: lead.first_contact_date || null,
+        last_contact_date: lead.last_contact_date || null
       })
       .select()
       .single();
@@ -59,11 +59,11 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>): Promise<Lea
       phone: data.phone,
       campaign: data.campaign,
       status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
-      createdAt: data.created_at,
-      customFields: data.custom_fields as Record<string, string>,
+      created_at: data.created_at,
+      custom_fields: data.custom_fields as Record<string, string>,
       notes: data.notes,
-      firstContactDate: data.first_contact_date,
-      lastContactDate: data.last_contact_date
+      first_contact_date: data.first_contact_date,
+      last_contact_date: data.last_contact_date
     };
   } catch (error) {
     console.error("Error adding lead:", error);
@@ -79,10 +79,10 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.phone) updateData.phone = lead.phone;
     if (lead.campaign) updateData.campaign = lead.campaign;
     if (lead.status) updateData.status = lead.status;
-    if (lead.customFields) updateData.custom_fields = lead.customFields;
+    if (lead.custom_fields) updateData.custom_fields = lead.custom_fields;
     if (lead.notes) updateData.notes = lead.notes;
-    if (lead.firstContactDate !== undefined) updateData.first_contact_date = lead.firstContactDate;
-    if (lead.lastContactDate !== undefined) updateData.last_contact_date = lead.lastContactDate;
+    if (lead.first_contact_date !== undefined) updateData.first_contact_date = lead.first_contact_date;
+    if (lead.last_contact_date !== undefined) updateData.last_contact_date = lead.last_contact_date;
 
     // Update lead in Supabase
     const { data, error } = await supabase
@@ -101,11 +101,11 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       phone: data.phone,
       campaign: data.campaign,
       status: data.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost',
-      createdAt: data.created_at,
-      customFields: data.custom_fields as Record<string, string>,
+      created_at: data.created_at,
+      custom_fields: data.custom_fields as Record<string, string>,
       notes: data.notes,
-      firstContactDate: data.first_contact_date,
-      lastContactDate: data.last_contact_date
+      first_contact_date: data.first_contact_date,
+      last_contact_date: data.last_contact_date
     };
   } catch (error) {
     console.error("Error updating lead:", error);
@@ -143,22 +143,22 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
     return (campaigns || []).map(campaign => ({
       id: campaign.id,
       name: campaign.name,
-      utmSource: campaign.utm_source,
-      utmMedium: campaign.utm_medium,
-      utmCampaign: campaign.utm_campaign,
-      utmContent: campaign.utm_content,
-      utmTerm: campaign.utm_term,
-      pixelId: campaign.pixel_id,
-      whatsappNumber: campaign.whatsapp_number,
-      eventType: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
+      utm_source: campaign.utm_source,
+      utm_medium: campaign.utm_medium,
+      utm_campaign: campaign.utm_campaign,
+      utm_content: campaign.utm_content,
+      utm_term: campaign.utm_term,
+      pixel_id: campaign.pixel_id,
+      whatsapp_number: campaign.whatsapp_number,
+      event_type: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: campaign.active,
-      createdAt: campaign.created_at,
-      customMessage: campaign.custom_message,
-      companyTitle: campaign.company_title,
-      companySubtitle: campaign.company_subtitle,
-      logoUrl: campaign.logo_url,
-      redirectType: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixelIntegrationType: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct'
+      created_at: campaign.created_at,
+      custom_message: campaign.custom_message,
+      company_title: campaign.company_title,
+      company_subtitle: campaign.company_subtitle,
+      logo_url: campaign.logo_url,
+      redirect_type: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixel_integration_type: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct'
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -166,28 +166,28 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
   }
 };
 
-export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>): Promise<Campaign> => {
+export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>): Promise<Campaign> => {
   try {
     // Insert campaign into Supabase
     const { data, error } = await supabase
       .from('campaigns')
       .insert({
         name: campaign.name,
-        utm_source: campaign.utmSource,
-        utm_medium: campaign.utmMedium,
-        utm_campaign: campaign.utmCampaign,
-        utm_content: campaign.utmContent,
-        utm_term: campaign.utmTerm,
-        pixel_id: campaign.pixelId,
-        whatsapp_number: campaign.whatsappNumber,
-        event_type: campaign.eventType,
+        utm_source: campaign.utm_source,
+        utm_medium: campaign.utm_medium,
+        utm_campaign: campaign.utm_campaign,
+        utm_content: campaign.utm_content,
+        utm_term: campaign.utm_term,
+        pixel_id: campaign.pixel_id,
+        whatsapp_number: campaign.whatsapp_number,
+        event_type: campaign.event_type,
         active: campaign.active,
-        custom_message: campaign.customMessage,
-        company_title: campaign.companyTitle,
-        company_subtitle: campaign.companySubtitle,
-        logo_url: campaign.logoUrl,
-        redirect_type: campaign.redirectType || 'whatsapp',
-        pixel_integration_type: campaign.pixelIntegrationType || 'direct'
+        custom_message: campaign.custom_message,
+        company_title: campaign.company_title,
+        company_subtitle: campaign.company_subtitle,
+        logo_url: campaign.logo_url,
+        redirect_type: campaign.redirect_type || 'whatsapp',
+        pixel_integration_type: campaign.pixel_integration_type || 'direct'
       })
       .select()
       .single();
@@ -198,22 +198,22 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>):
     return {
       id: data.id,
       name: data.name,
-      utmSource: data.utm_source,
-      utmMedium: data.utm_medium,
-      utmCampaign: data.utm_campaign,
-      utmContent: data.utm_content,
-      utmTerm: data.utm_term,
-      pixelId: data.pixel_id,
-      whatsappNumber: data.whatsapp_number,
-      eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
+      utm_source: data.utm_source,
+      utm_medium: data.utm_medium,
+      utm_campaign: data.utm_campaign,
+      utm_content: data.utm_content,
+      utm_term: data.utm_term,
+      pixel_id: data.pixel_id,
+      whatsapp_number: data.whatsapp_number,
+      event_type: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
-      createdAt: data.created_at,
-      customMessage: data.custom_message,
-      companyTitle: data.company_title,
-      companySubtitle: data.company_subtitle,
-      logoUrl: data.logo_url,
-      redirectType: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixelIntegrationType: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
+      created_at: data.created_at,
+      custom_message: data.custom_message,
+      company_title: data.company_title,
+      company_subtitle: data.company_subtitle,
+      logo_url: data.logo_url,
+      redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -226,21 +226,21 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     // Prepare the update data
     const updateData: any = {};
     if (campaign.name) updateData.name = campaign.name;
-    if (campaign.utmSource !== undefined) updateData.utm_source = campaign.utmSource;
-    if (campaign.utmMedium !== undefined) updateData.utm_medium = campaign.utmMedium;
-    if (campaign.utmCampaign !== undefined) updateData.utm_campaign = campaign.utmCampaign;
-    if (campaign.utmContent !== undefined) updateData.utm_content = campaign.utmContent;
-    if (campaign.utmTerm !== undefined) updateData.utm_term = campaign.utmTerm;
-    if (campaign.pixelId !== undefined) updateData.pixel_id = campaign.pixelId;
-    if (campaign.whatsappNumber !== undefined) updateData.whatsapp_number = campaign.whatsappNumber;
-    if (campaign.eventType !== undefined) updateData.event_type = campaign.eventType;
+    if (campaign.utm_source !== undefined) updateData.utm_source = campaign.utm_source;
+    if (campaign.utm_medium !== undefined) updateData.utm_medium = campaign.utm_medium;
+    if (campaign.utm_campaign !== undefined) updateData.utm_campaign = campaign.utm_campaign;
+    if (campaign.utm_content !== undefined) updateData.utm_content = campaign.utm_content;
+    if (campaign.utm_term !== undefined) updateData.utm_term = campaign.utm_term;
+    if (campaign.pixel_id !== undefined) updateData.pixel_id = campaign.pixel_id;
+    if (campaign.whatsapp_number !== undefined) updateData.whatsapp_number = campaign.whatsapp_number;
+    if (campaign.event_type !== undefined) updateData.event_type = campaign.event_type;
     if (campaign.active !== undefined) updateData.active = campaign.active;
-    if (campaign.customMessage !== undefined) updateData.custom_message = campaign.customMessage;
-    if (campaign.companyTitle !== undefined) updateData.company_title = campaign.companyTitle;
-    if (campaign.companySubtitle !== undefined) updateData.company_subtitle = campaign.companySubtitle;
-    if (campaign.logoUrl !== undefined) updateData.logo_url = campaign.logoUrl;
-    if (campaign.redirectType !== undefined) updateData.redirect_type = campaign.redirectType;
-    if (campaign.pixelIntegrationType !== undefined) updateData.pixel_integration_type = campaign.pixelIntegrationType;
+    if (campaign.custom_message !== undefined) updateData.custom_message = campaign.custom_message;
+    if (campaign.company_title !== undefined) updateData.company_title = campaign.company_title;
+    if (campaign.company_subtitle !== undefined) updateData.company_subtitle = campaign.company_subtitle;
+    if (campaign.logo_url !== undefined) updateData.logo_url = campaign.logo_url;
+    if (campaign.redirect_type !== undefined) updateData.redirect_type = campaign.redirect_type;
+    if (campaign.pixel_integration_type !== undefined) updateData.pixel_integration_type = campaign.pixel_integration_type;
 
     // Update campaign in Supabase
     const { data, error } = await supabase
@@ -256,22 +256,22 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     return {
       id: data.id,
       name: data.name,
-      utmSource: data.utm_source,
-      utmMedium: data.utm_medium,
-      utmCampaign: data.utm_campaign,
-      utmContent: data.utm_content,
-      utmTerm: data.utm_term,
-      pixelId: data.pixel_id,
-      whatsappNumber: data.whatsapp_number,
-      eventType: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
+      utm_source: data.utm_source,
+      utm_medium: data.utm_medium,
+      utm_campaign: data.utm_campaign,
+      utm_content: data.utm_content,
+      utm_term: data.utm_term,
+      pixel_id: data.pixel_id,
+      whatsapp_number: data.whatsapp_number,
+      event_type: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
-      createdAt: data.created_at,
-      customMessage: data.custom_message,
-      companyTitle: data.company_title,
-      companySubtitle: data.company_subtitle,
-      logoUrl: data.logo_url,
-      redirectType: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixelIntegrationType: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
+      created_at: data.created_at,
+      custom_message: data.custom_message,
+      company_title: data.company_title,
+      company_subtitle: data.company_subtitle,
+      logo_url: data.logo_url,
+      redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
+      pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct'
     };
   } catch (error) {
     console.error("Error updating campaign:", error);
@@ -323,8 +323,8 @@ export const getSales = async (): Promise<Sale[]> => {
       id: sale.id,
       value: sale.value,
       date: sale.date,
-      leadId: sale.lead_id,
-      leadName: sale.lead_name,
+      lead_id: sale.lead_id,
+      lead_name: sale.lead_name,
       campaign: sale.campaign,
       product: sale.product,
       notes: sale.notes
@@ -343,8 +343,8 @@ export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
       .insert({
         value: sale.value,
         date: sale.date,
-        lead_id: sale.leadId,
-        lead_name: sale.leadName,
+        lead_id: sale.lead_id,
+        lead_name: sale.lead_name,
         campaign: sale.campaign,
         product: sale.product,
         notes: sale.notes
@@ -359,8 +359,8 @@ export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
       id: data.id,
       value: data.value,
       date: data.date,
-      leadId: data.lead_id,
-      leadName: data.lead_name,
+      lead_id: data.lead_id,
+      lead_name: data.lead_name,
       campaign: data.campaign,
       product: data.product,
       notes: data.notes
@@ -377,8 +377,8 @@ export const updateSale = async (id: string, sale: Partial<Sale>): Promise<Sale>
     const updateData: any = {};
     if (sale.value !== undefined) updateData.value = sale.value;
     if (sale.date) updateData.date = sale.date;
-    if (sale.leadId) updateData.lead_id = sale.leadId;
-    if (sale.leadName) updateData.lead_name = sale.leadName;
+    if (sale.lead_id) updateData.lead_id = sale.lead_id;
+    if (sale.lead_name) updateData.lead_name = sale.lead_name;
     if (sale.campaign) updateData.campaign = sale.campaign;
     if (sale.product !== undefined) updateData.product = sale.product;
     if (sale.notes !== undefined) updateData.notes = sale.notes;
@@ -398,8 +398,8 @@ export const updateSale = async (id: string, sale: Partial<Sale>): Promise<Sale>
       id: data.id,
       value: data.value,
       date: data.date,
-      leadId: data.lead_id,
-      leadName: data.lead_name,
+      lead_id: data.lead_id,
+      lead_name: data.lead_name,
       campaign: data.campaign,
       product: data.product,
       notes: data.notes
@@ -499,13 +499,13 @@ export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date):
       pendingConversations: 0,
       monthlyLeads: 0,
       monthlyRevenue: 0,
-      monthlyLeadsTrend: { value: 0, trend: 'flat', percentage: 0 },
-      monthlyRevenueTrend: { value: 0, trend: 'flat', percentage: 0 }
+      monthlyLeadsTrend: { trend: 'flat', percentage: 0 },
+      monthlyRevenueTrend: { trend: 'flat', percentage: 0 }
     };
   }
 };
 
-export const getMonthlyStats = async (): Promise<MonthlyStats> => {
+export const getMonthlyStats = async (): Promise<MonthlyStats & { trends: { leads: TrendData; revenue: TrendData; sales: TrendData } }> => {
   try {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -563,13 +563,11 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
     return {
       currentMonth: {
         leads: currentLeads || 0,
-        revenue: currentRevenue,
-        sales: currentSales
+        revenue: currentRevenue
       },
       previousMonth: {
         leads: previousLeads || 0,
-        revenue: previousRevenue,
-        sales: previousSales
+        revenue: previousRevenue
       },
       trends: {
         leads: leadsTrend,
@@ -580,12 +578,12 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
   } catch (error) {
     console.error("Error fetching monthly stats:", error);
     return {
-      currentMonth: { leads: 0, revenue: 0, sales: 0 },
-      previousMonth: { leads: 0, revenue: 0, sales: 0 },
+      currentMonth: { leads: 0, revenue: 0 },
+      previousMonth: { leads: 0, revenue: 0 },
       trends: {
-        leads: { value: 0, trend: 'flat', percentage: 0 },
-        revenue: { value: 0, trend: 'flat', percentage: 0 },
-        sales: { value: 0, trend: 'flat', percentage: 0 }
+        leads: { trend: 'flat', percentage: 0 },
+        revenue: { trend: 'flat', percentage: 0 },
+        sales: { trend: 'flat', percentage: 0 }
       }
     };
   }
@@ -643,7 +641,6 @@ export const getTimelineData = async (startDate: Date, endDate: Date): Promise<T
 const calculateTrend = (current: number, previous: number): TrendData => {
   if (previous === 0) {
     return {
-      value: current,
       trend: current > 0 ? 'up' : 'flat',
       percentage: current > 0 ? 100 : 0
     };
@@ -652,7 +649,6 @@ const calculateTrend = (current: number, previous: number): TrendData => {
   const percentage = ((current - previous) / previous) * 100;
   
   return {
-    value: current,
     trend: percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'flat',
     percentage: Math.abs(percentage)
   };
@@ -737,8 +733,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       pendingConversations: 0,
       monthlyLeads: 0,
       monthlyRevenue: 0,
-      monthlyLeadsTrend: { value: 0, trend: 'flat', percentage: 0 },
-      monthlyRevenueTrend: { value: 0, trend: 'flat', percentage: 0 }
+      monthlyLeadsTrend: { trend: 'flat', percentage: 0 },
+      monthlyRevenueTrend: { trend: 'flat', percentage: 0 }
     };
   }
 };
