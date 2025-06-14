@@ -211,8 +211,6 @@ const Leads = () => {
         return <Badge variant="default" className="bg-green-500">Lead</Badge>;
       case 'to_recover':
         return <Badge variant="default" className="bg-orange-500">A recuperar</Badge>;
-      case 'engaged':
-        return <Badge variant="default" className="bg-purple-500">Engajado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -397,7 +395,6 @@ const Leads = () => {
                     <SelectItem value="qualified">Qualificado</SelectItem>
                     <SelectItem value="converted">Convertido</SelectItem>
                     <SelectItem value="lost">Perdido</SelectItem>
-                    <SelectItem value="engaged">Engajado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

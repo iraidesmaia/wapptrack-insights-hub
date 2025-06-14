@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -69,8 +68,8 @@ async function handleMessageEvent(supabase: any, data: any, instance: string) {
     if (fromPhone && messageData.messageType !== 'senderKeyDistributionMessage') {
       console.log('Processing message from:', fromPhone);
       
-      // Atualizar lead para status "engaged" se respondeu
-      await updateLeadStatusWithPhoneVariations(supabase, fromPhone, 'engaged', {
+      // Atualizar lead para status "lead" se respondeu
+      await updateLeadStatusWithPhoneVariations(supabase, fromPhone, 'lead', {
         evolution_message_id: messageData.key?.id,
         evolution_status: 'replied',
         last_contact_date: new Date().toISOString()
@@ -114,7 +113,7 @@ async function handleSendMessageEvent(supabase: any, data: any, instance: string
       if (existingLead) {
         // Lead existe - atualizar status para "contacted" se necessário
         const currentStatus = existingLead.status;
-        const shouldUpdateToContacted = ['new', 'lead', 'engaged'].includes(currentStatus);
+        const shouldUpdateToContacted = ['new', 'lead'].includes(currentStatus);
         
         if (shouldUpdateToContacted) {
           console.log(`Updating lead status from ${currentStatus} to contacted for phone:`, toPhone);
