@@ -19,6 +19,10 @@ export const useSettings = () => {
   });
   
   const [evolutionConfig, setEvolutionConfig] = useState({
+    evolution_api_key: '',
+    evolution_instance_name: '',
+    evolution_base_url: '',
+    webhook_callback_url: 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook',
     webhook_url: ''
   });
 
@@ -65,12 +69,16 @@ export const useSettings = () => {
 
   const loadEvolutionConfig = async () => {
     try {
-      const saved = localStorage.getItem('webhook_config');
+      const saved = localStorage.getItem('evolution_config');
       if (saved) {
-        setEvolutionConfig(JSON.parse(saved));
+        const config = JSON.parse(saved);
+        setEvolutionConfig({
+          ...evolutionConfig,
+          ...config
+        });
       }
     } catch (error) {
-      console.error('Error loading webhook config:', error);
+      console.error('Error loading Evolution config:', error);
     }
   };
 
@@ -82,7 +90,7 @@ export const useSettings = () => {
     }));
   };
 
-  const handleEvolutionConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEvolutionConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEvolutionConfig(prev => ({
       ...prev,
@@ -92,11 +100,11 @@ export const useSettings = () => {
 
   const saveEvolutionConfig = () => {
     try {
-      localStorage.setItem('webhook_config', JSON.stringify(evolutionConfig));
-      toast.success('Configurações do webhook salvas!');
+      localStorage.setItem('evolution_config', JSON.stringify(evolutionConfig));
+      toast.success('Configurações da Evolution API salvas!');
     } catch (error) {
-      console.error('Error saving webhook config:', error);
-      toast.error('Erro ao salvar configurações do webhook');
+      console.error('Error saving Evolution config:', error);
+      toast.error('Erro ao salvar configurações da Evolution API');
     }
   };
 
@@ -118,7 +126,12 @@ export const useSettings = () => {
         lead_name: 'Lead de Teste',
         lead_phone: '11999999999',
         timestamp: new Date().toISOString(),
-        event_type: 'test'
+        event_type: 'test',
+        evolution_config: {
+          api_key: evolutionConfig.evolution_api_key ? '***' : '',
+          instance: evolutionConfig.evolution_instance_name,
+          base_url: evolutionConfig.evolution_base_url
+        }
       };
 
       const response = await fetch(evolutionConfig.webhook_url, {

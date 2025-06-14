@@ -12,11 +12,15 @@ export type Database = {
       campaigns: {
         Row: {
           active: boolean | null
+          auto_create_leads: boolean | null
           company_subtitle: string | null
           company_title: string | null
           created_at: string | null
           custom_message: string | null
           event_type: string | null
+          evolution_api_key: string | null
+          evolution_base_url: string | null
+          evolution_instance_name: string | null
           id: string
           logo_url: string | null
           name: string
@@ -28,15 +32,20 @@ export type Database = {
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
+          webhook_callback_url: string | null
           whatsapp_number: string | null
         }
         Insert: {
           active?: boolean | null
+          auto_create_leads?: boolean | null
           company_subtitle?: string | null
           company_title?: string | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
+          evolution_api_key?: string | null
+          evolution_base_url?: string | null
+          evolution_instance_name?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -48,15 +57,20 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
         Update: {
           active?: boolean | null
+          auto_create_leads?: boolean | null
           company_subtitle?: string | null
           company_title?: string | null
           created_at?: string | null
           custom_message?: string | null
           event_type?: string | null
+          evolution_api_key?: string | null
+          evolution_base_url?: string | null
+          evolution_instance_name?: string | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -68,6 +82,7 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -150,6 +165,8 @@ export type Database = {
           campaign_id: string | null
           created_at: string | null
           custom_fields: Json | null
+          evolution_message_id: string | null
+          evolution_status: string | null
           first_contact_date: string | null
           id: string
           last_contact_date: string | null
@@ -165,6 +182,8 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          evolution_message_id?: string | null
+          evolution_status?: string | null
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
@@ -180,6 +199,8 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          evolution_message_id?: string | null
+          evolution_status?: string | null
           first_contact_date?: string | null
           id?: string
           last_contact_date?: string | null
@@ -199,6 +220,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_leads: {
+        Row: {
+          campaign_id: string
+          campaign_name: string | null
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          status: string | null
+          webhook_data: Json | null
+          webhook_sent_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          campaign_name?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          status?: string | null
+          webhook_data?: Json | null
+          webhook_sent_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          campaign_name?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          status?: string | null
+          webhook_data?: Json | null
+          webhook_sent_at?: string | null
+        }
+        Relationships: []
       }
       sales: {
         Row: {

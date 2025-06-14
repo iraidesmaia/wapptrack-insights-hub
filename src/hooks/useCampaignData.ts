@@ -4,6 +4,7 @@ import { getCampaigns, trackRedirect, updateLead } from '@/services/dataService'
 import { initFacebookPixel, trackPageView, trackEventByType } from '@/lib/fbPixel';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
+import { sendToEvolutionAPI } from '@/services/evolutionApiService';
 import { Lead } from '@/types';
 
 interface Campaign {
@@ -108,7 +109,7 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       throw new Error('ID da campanha não encontrado');
     }
 
-    // Enviar dados via webhook se configurado
+    // Enviar dados via webhook externo se configurado
     try {
       const webhookConfig = localStorage.getItem('webhook_config');
       if (webhookConfig) {
@@ -124,17 +125,17 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
           };
           
           await sendWebhookData(config.webhook_url, webhookData);
-          console.log('Dados enviados via webhook com sucesso');
+          console.log('Dados enviados via webhook externo com sucesso');
         }
       }
     } catch (error) {
-      console.error('Erro ao enviar dados via webhook:', error);
-      // Não interromper o fluxo se o webhook falhar
+      console.error('Erro ao enviar dados via webhook externo:', error);
+      // Não interromper o fluxo se o webhook externo falhar
     }
 
-    // Track the event before redirecting
+    // Track the event before processing
     if (campaign && campaign.event_type && pixelInitialized) {
-      console.log('Tracking event before redirect:', campaign.event_type);
+      console.log('Tracking event before processing:', campaign.event_type);
       const success = trackEventByType(campaign.event_type);
       if (success) {
         console.log('Event tracked successfully');
@@ -142,6 +143,45 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         console.warn('Failed to track event:', campaign.event_type);
       }
     }
+
+    // Verificar se Evolution API está configurada
+    const evolutionConfigStr = localStorage.getItem('evolution_config');
+    
+    if (evolutionConfigStr) {
+      try {
+        const evolutionConfig = JSON.parse(evolutionConfigStr);
+        
+        if (evolutionConfig.evolution_api_key && evolutionConfig.evolution_instance_name) {
+          console.log('Using Evolution API for lead processing...');
+          
+          // Enviar via Evolution API
+          const result = await sendToEvolutionAPI({
+            campaignId,
+            campaignName: campaign?.name || 'Default Campaign',
+            phone,
+            name,
+            message: campaign?.custom_message
+          });
+
+          if (result.success) {
+            toast.success('Mensagem enviada! Aguarde a confirmação de entrega.');
+            console.log('Lead sent to Evolution API successfully');
+            
+            // Redirecionar para uma página de confirmação ou aguardar webhook
+            return;
+          } else {
+            throw new Error(result.error || 'Erro ao enviar via Evolution API');
+          }
+        }
+      } catch (error) {
+        console.error('Error with Evolution API:', error);
+        toast.error('Erro ao processar via Evolution API. Tentando método alternativo...');
+        // Continuar com o fluxo tradicional
+      }
+    }
+
+    // Fluxo tradicional (fallback)
+    console.log('Using traditional WhatsApp redirect...');
     
     // Track the redirect in our system
     const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
@@ -150,8 +190,6 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
     const targetPhone = result.targetPhone || campaign?.whatsapp_number;
     
     if (!targetPhone) {
-      // Se não há número do WhatsApp, marcar como "A recuperar"
-      // Como trackRedirect pode não retornar leadId, vamos buscar o lead pelo telefone
       console.warn('Número de WhatsApp não configurado para esta campanha');
       toast.error('Número de WhatsApp não configurado para esta campanha');
       throw new Error('Número de WhatsApp não configurado');
@@ -171,12 +209,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
       whatsappUrl += `?text=${encodedMessage}`;
     }
     
-    // Tentar redirecionar para o WhatsApp
     try {
       console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-      
-      // Como o trackRedirect pode não retornar leadId, vamos assumir que foi bem-sucedido
-      // e deixar o status como 'lead' (isso pode ser melhorado posteriormente)
       console.log('WhatsApp redirect successful');
       
       window.location.href = whatsappUrl;
