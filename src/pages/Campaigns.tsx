@@ -57,6 +57,19 @@ const Campaigns = () => {
   const [showCustomUtm, setShowCustomUtm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
+  // Atualiza os UTMs conforme a campanha selecionada
+  useEffect(() => {
+    if (selectedCampaign) {
+      setCustomUtms({
+        utm_source: selectedCampaign.utm_source || "",
+        utm_medium: selectedCampaign.utm_medium || "",
+        utm_campaign: selectedCampaign.utm_campaign || "",
+        utm_content: selectedCampaign.utm_content || "",
+        utm_term: selectedCampaign.utm_term || "",
+      });
+    }
+  }, [selectedCampaign]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
