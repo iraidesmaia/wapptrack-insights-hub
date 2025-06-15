@@ -54,6 +54,7 @@ const Campaigns = () => {
     utm_content: "",
     utm_term: "",
   });
+  const [showCustomUtm, setShowCustomUtm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   useEffect(() => {
@@ -62,10 +63,6 @@ const Campaigns = () => {
         setIsLoading(true);
         const campaignsData = await getCampaigns();
         setCampaigns(campaignsData);
-        // Seleciona automaticamente a primeira campanha, se houver
-        if (campaignsData && campaignsData.length > 0) {
-          setSelectedCampaign(campaignsData[0]);
-        }
       } catch (error) {
         console.error('Error fetching campaigns data:', error);
         toast.error('Erro ao carregar campanhas');
@@ -76,13 +73,6 @@ const Campaigns = () => {
 
     fetchData();
   }, []);
-
-  // Quando houver alteração na lista e não houver selectedCampaign, seleciona a primeira
-  useEffect(() => {
-    if (!selectedCampaign && campaigns.length > 0) {
-      setSelectedCampaign(campaigns[0]);
-    }
-  }, [campaigns]);
 
   const filteredCampaigns = campaigns.filter((campaign) => {
     const searchLower = searchTerm.toLowerCase();
@@ -183,30 +173,6 @@ const Campaigns = () => {
       });
   };
 
-  // Dropdown de seleção de campanha
-  const CampaignSelectDropdown = () => (
-    <div className="mb-3">
-      <label className="block text-sm font-medium mb-1">Selecionar campanha:</label>
-      <select
-        className="border px-3 py-2 rounded-md bg-background w-full sm:w-auto"
-        value={selectedCampaign?.id || ""}
-        onChange={e => {
-          const found = campaigns.find(c => c.id === e.target.value);
-          setSelectedCampaign(found || null);
-        }}
-        disabled={campaigns.length === 0}
-      >
-        {campaigns.length === 0 ? (
-          <option value="">Nenhuma campanha encontrada</option>
-        ) : (
-          campaigns.map(campaign =>
-            <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
-          )
-        )}
-      </select>
-    </div>
-  );
-
   // Função para gerar URL LIMPA (sem UTMs)
   const getTrackingUrl = (campaign: Campaign) => {
     const currentUrl = window.location.origin;
@@ -252,23 +218,29 @@ const Campaigns = () => {
           </div>
         </div>
 
-        {/* BLOCO SEMPRE VISÍVEL PARA LINK LIMPO E UTM */}
-        <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
-          <CampaignSelectDropdown />
-          {selectedCampaign ? (
-            <>
-              <span className="font-semibold">Link de rastreamento limpo:</span>
-              <div className="flex gap-2 mt-1">
-                <input
-                  className="w-full px-2 py-1 border rounded bg-gray-100 text-sm"
-                  readOnly
-                  value={getTrackingUrl(selectedCampaign)}
-                />
-                <Button variant="outline" onClick={() => handleCopyTrackingUrl(selectedCampaign)}>
-                  Copiar
-                </Button>
-              </div>
-              {/* UTM SEMPRE ABERTO */}
+        {/* BLOCO PARA VISUALIZAR LINK LIMPO DA CAMPANHA SELECIONADA */}
+        {selectedCampaign && (
+          <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
+            <span className="font-semibold">Link de rastreamento limpo:</span>
+            <div className="flex gap-2 mt-1">
+              <input
+                className="w-full px-2 py-1 border rounded bg-gray-100 text-sm"
+                readOnly
+                value={getTrackingUrl(selectedCampaign)}
+              />
+              <Button variant="outline" onClick={() => handleCopyTrackingUrl(selectedCampaign)}>
+                Copiar
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              className="mt-2"
+              variant="secondary"
+              onClick={() => setShowCustomUtm((v) => !v)}
+            >
+              {showCustomUtm ? "Fechar UTMs customizados" : "Gerar link com UTMs customizados"}
+            </Button>
+            {showCustomUtm && (
               <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
                 <input className="border px-2 py-1 rounded" placeholder="utm_source"
                   value={customUtms.utm_source}
@@ -298,11 +270,9 @@ const Campaigns = () => {
                   Copiar link com UTMs
                 </Button>
               </div>
-            </>
-          ) : (
-            <div className="text-gray-500 text-sm">Nenhuma campanha selecionada.</div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Filtros */}
         <CampaignFilters 
