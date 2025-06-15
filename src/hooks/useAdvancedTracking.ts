@@ -100,11 +100,10 @@ export const useAdvancedTracking = () => {
         return { success: false, error: 'No pixel ID configured' };
       }
 
-      // Get Facebook access token from localStorage/environment
-      // In production, this should be securely stored
-      const accessToken = localStorage.getItem('facebook_access_token');
+      // Get Facebook access token from campaign or fallback to localStorage
+      const accessToken = campaign.facebook_access_token || localStorage.getItem('facebook_access_token');
       if (!accessToken) {
-        console.warn('No Facebook access token configured');
+        console.warn('No Facebook access token configured for campaign:', campaign.name);
         return { success: false, error: 'No access token configured' };
       }
 

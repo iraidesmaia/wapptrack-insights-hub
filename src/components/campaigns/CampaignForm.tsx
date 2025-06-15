@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -296,6 +295,21 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 onChange={handleInputChange}
                 placeholder="Ex: 123456789012345"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="facebook_access_token">Facebook Access Token</Label>
+              <Input
+                id="facebook_access_token"
+                name="facebook_access_token"
+                type="password"
+                value={campaign.facebook_access_token || ''}
+                onChange={handleInputChange}
+                placeholder="Ex: EAABwzLixn..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Token de acesso para a Conversions API do Facebook. Necessário para tracking avançado
+              </p>
             </div>
 
             <div className="grid gap-2">
