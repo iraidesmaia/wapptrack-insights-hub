@@ -52,6 +52,7 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         const targetCampaign = campaigns.find(c => c.id === campaignId);
         
         if (targetCampaign) {
+          console.log('Campaign loaded:', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
           setCampaign(targetCampaign);
           
           // Initialize Facebook Pixel if there's a pixel ID
@@ -222,6 +223,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
 
   const handleDirectWhatsAppRedirect = async (campaignData: Campaign) => {
     try {
+      console.log('Processing direct WhatsApp redirect for campaign:', campaignData.name);
+      
       // Track the event
       if (campaignData.event_type && pixelInitialized) {
         console.log('Tracking event before redirect:', campaignData.event_type);
@@ -233,7 +236,7 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         }
       }
       
-      // Track the redirect in our system
+      // Track the redirect in our system (sem telefone para redirecionamento direto)
       const result = await trackRedirect(campaignId!, '', '', campaignData.event_type);
       
       // Get target WhatsApp number
@@ -253,19 +256,18 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         whatsappUrl += `?text=${encodedMessage}`;
       }
       
-      // Tentar redirecionar para o WhatsApp
-      try {
-        console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-        console.log('WhatsApp redirect successful');
-        
-        window.location.href = whatsappUrl;
-      } catch (error) {
-        console.error('Error redirecting to WhatsApp:', error);
-        throw new Error('Erro ao redirecionar para WhatsApp');
-      }
+      // Redirecionar para o WhatsApp
+      console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
+      window.open(whatsappUrl, '_blank');
+      
+      // Opcional: fechar a janela atual após um pequeno delay
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+      
     } catch (err) {
-      console.error('Error tracking redirect:', err);
-      throw new Error('Erro ao processar redirecionamento');
+      console.error('Error in direct WhatsApp redirect:', err);
+      throw new Error('Erro ao processar redirecionamento direto');
     }
   };
 

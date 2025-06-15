@@ -28,8 +28,9 @@ const Redirect = () => {
   } = useCampaignData(campaignId, debug);
 
   useEffect(() => {
-    // Handle direct WhatsApp redirect
-    if (campaign?.redirect_type === 'whatsapp' && !isLoading) {
+    // Handle direct WhatsApp redirect - só quando a campanha for carregada e for redirecionamento direto
+    if (campaign && campaign.redirect_type === 'whatsapp' && !isLoading && !showLoadingScreen) {
+      console.log('Starting direct WhatsApp redirect for campaign:', campaign.name);
       setShowLoadingScreen(true);
       
       // Start loading animation
@@ -50,7 +51,7 @@ const Redirect = () => {
         }
       }, 3000);
     }
-  }, [campaign, isLoading, handleDirectWhatsAppRedirect]);
+  }, [campaign, isLoading, handleDirectWhatsAppRedirect, showLoadingScreen]);
 
   const onFormSubmit = async (phone: string, name: string) => {
     setLoading(true);
@@ -77,7 +78,7 @@ const Redirect = () => {
   };
 
   // Show loading screen for direct WhatsApp redirect
-  if (showLoadingScreen) {
+  if (showLoadingScreen && campaign?.redirect_type === 'whatsapp') {
     return <LoadingScreen progress={loadingProgress} />;
   }
 
@@ -100,11 +101,29 @@ const Redirect = () => {
     );
   }
 
-  // Don't show form if campaign is direct WhatsApp redirect
-  if (campaign?.redirect_type === 'whatsapp') {
+  // Se ainda está carregando a campanha, mostrar loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md">
+          <BrandingSection
+            isLoading={true}
+            logo={companyBranding.logo}
+            title={companyBranding.title}
+            subtitle={companyBranding.subtitle}
+            campaignName=""
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Se é redirecionamento direto e já está processando, não mostrar o formulário
+  if (campaign?.redirect_type === 'whatsapp' && showLoadingScreen) {
     return null;
   }
 
+  // Mostrar formulário para campanhas de formulário ou se não há redirecionamento direto
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
