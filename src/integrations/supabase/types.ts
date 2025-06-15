@@ -12,23 +12,34 @@ export type Database = {
       campaigns: {
         Row: {
           active: boolean | null
+          advanced_matching_enabled: boolean | null
           auto_create_leads: boolean | null
           cancellation_keywords: string[] | null
           company_subtitle: string | null
           company_title: string | null
+          conversion_api_enabled: boolean | null
           conversion_keywords: string[] | null
           created_at: string | null
+          custom_audience_pixel_id: string | null
           custom_message: string | null
+          data_processing_options: string[] | null
+          data_processing_options_country: number | null
+          data_processing_options_state: number | null
           event_type: string | null
           evolution_api_key: string | null
           evolution_base_url: string | null
           evolution_instance_name: string | null
+          external_id: string | null
+          facebook_access_token: string | null
           id: string
           logo_url: string | null
           name: string
           pixel_id: string | null
           pixel_integration_type: string | null
           redirect_type: string | null
+          server_side_api_enabled: boolean | null
+          test_event_code: string | null
+          tracking_domain: string | null
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -39,23 +50,34 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
+          conversion_api_enabled?: boolean | null
           conversion_keywords?: string[] | null
           created_at?: string | null
+          custom_audience_pixel_id?: string | null
           custom_message?: string | null
+          data_processing_options?: string[] | null
+          data_processing_options_country?: number | null
+          data_processing_options_state?: number | null
           event_type?: string | null
           evolution_api_key?: string | null
           evolution_base_url?: string | null
           evolution_instance_name?: string | null
+          external_id?: string | null
+          facebook_access_token?: string | null
           id?: string
           logo_url?: string | null
           name: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
           redirect_type?: string | null
+          server_side_api_enabled?: boolean | null
+          test_event_code?: string | null
+          tracking_domain?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -66,23 +88,34 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
+          conversion_api_enabled?: boolean | null
           conversion_keywords?: string[] | null
           created_at?: string | null
+          custom_audience_pixel_id?: string | null
           custom_message?: string | null
+          data_processing_options?: string[] | null
+          data_processing_options_country?: number | null
+          data_processing_options_state?: number | null
           event_type?: string | null
           evolution_api_key?: string | null
           evolution_base_url?: string | null
           evolution_instance_name?: string | null
+          external_id?: string | null
+          facebook_access_token?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
           redirect_type?: string | null
+          server_side_api_enabled?: boolean | null
+          test_event_code?: string | null
+          tracking_domain?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null

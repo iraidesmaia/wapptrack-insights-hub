@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,10 +13,13 @@ const Redirect = () => {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('id');
   const debug = searchParams.get('debug') === 'true';
-  
+
   const [loading, setLoading] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [manualFallback, setManualFallback] = useState(false);
+
+  const alreadyRedirected = useRef(false);
 
   const {
     campaign,
@@ -27,30 +30,54 @@ const Redirect = () => {
     handleDirectWhatsAppRedirect
   } = useCampaignData(campaignId, debug);
 
+  // Nova função para construir URL e redirecionar
+  const performWhatsAppRedirect = () => {
+    if (!campaign?.whatsapp_number) {
+      setShowLoadingScreen(false);
+      setManualFallback(true);
+      console.warn('WhatsApp não configurado para a campanha');
+      return;
+    }
+    // Mensagem personalizada, se houver
+    let whatsappUrl = `https://wa.me/${campaign.whatsapp_number}`;
+    if (campaign.custom_message) {
+      whatsappUrl += `?text=${encodeURIComponent(campaign.custom_message)}`;
+    }
+    // Redirecionamento
+    window.location.href = whatsappUrl;
+  };
+
   useEffect(() => {
-    // Handle direct WhatsApp redirect
-    if (campaign?.redirect_type === 'whatsapp' && !isLoading) {
+    // Só rodar para campanhas que são redirect_type "whatsapp"
+    if (campaign?.redirect_type === 'whatsapp' && !isLoading && !alreadyRedirected.current) {
+      alreadyRedirected.current = true;
       setShowLoadingScreen(true);
-      
-      // Start loading animation
+      setManualFallback(false);
+
       let progress = 0;
       const interval = setInterval(() => {
-        progress += 100 / 30; // 30 frames over 3 seconds
+        progress += 100 / 30;
         setLoadingProgress(Math.min(progress, 100));
       }, 100);
 
-      // Redirect after 3 seconds
-      setTimeout(async () => {
+      setTimeout(() => {
         clearInterval(interval);
         try {
-          await handleDirectWhatsAppRedirect(campaign);
+          performWhatsAppRedirect();
         } catch (err) {
-          console.error('Error in direct redirect:', err);
           setShowLoadingScreen(false);
+          setManualFallback(true);
+          console.error('Erro no redirecionamento:', err);
         }
       }, 3000);
+
+      // Fallback se não redirecionar em 6 segundos
+      setTimeout(() => {
+        setShowLoadingScreen(false);
+        setManualFallback(true);
+      }, 6000);
     }
-  }, [campaign, isLoading, handleDirectWhatsAppRedirect]);
+  }, [campaign, isLoading]);
 
   const onFormSubmit = async (phone: string, name: string) => {
     setLoading(true);
@@ -63,7 +90,7 @@ const Redirect = () => {
     }
   };
 
-  // Function to toggle debug mode
+  // Alternar modo de debug
   const handleToggleDebug = () => {
     togglePixelDebug(!debug);
     const newUrl = new URL(window.location.href);
@@ -76,9 +103,40 @@ const Redirect = () => {
     window.location.reload();
   };
 
-  // Show loading screen for direct WhatsApp redirect
+  // Tela de loading do redirecionamento direto
   if (showLoadingScreen) {
     return <LoadingScreen progress={loadingProgress} />;
+  }
+
+  // Tela de fallback manual de redirecionamento
+  if (manualFallback && campaign?.redirect_type === 'whatsapp') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Não foi possível redirecionar automaticamente</CardTitle>
+            <CardDescription>
+              Clique no botão abaixo para ser atendido no WhatsApp.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full mb-2"
+              onClick={performWhatsAppRedirect}
+            >
+              Ir para o WhatsApp
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => window.location.href = '/'}
+            >
+              Voltar ao início
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
@@ -100,8 +158,9 @@ const Redirect = () => {
     );
   }
 
-  // Don't show form if campaign is direct WhatsApp redirect
+  // Não mostrar o form se for redirect_type whatsapp
   if (campaign?.redirect_type === 'whatsapp') {
+    // Nada, pois o fallback está acima
     return null;
   }
 
