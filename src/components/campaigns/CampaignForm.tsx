@@ -11,7 +11,6 @@ import { Upload } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Campaign } from '@/types/campaign';
-import AdvancedTrackingSettings from './AdvancedTrackingSettings';
 
 interface CampaignFormProps {
   isOpen: boolean;
@@ -111,11 +110,10 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">Básico</TabsTrigger>
             <TabsTrigger value="utm">UTM & Tracking</TabsTrigger>
             <TabsTrigger value="integration">Integração</TabsTrigger>
-            <TabsTrigger value="advanced">Avançado</TabsTrigger>
           </TabsList>
           
           <TabsContent value="basic" className="space-y-4">
@@ -349,13 +347,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 />
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="advanced" className="space-y-4">
-            <AdvancedTrackingSettings 
-              campaign={campaign}
-              onCampaignChange={onCampaignChange}
-            />
           </TabsContent>
         </Tabs>
 
