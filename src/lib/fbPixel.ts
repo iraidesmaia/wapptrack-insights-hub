@@ -1,14 +1,35 @@
 
-// Facebook Pixel utility functions
+// Facebook Pixel utility functions with optimized parameters
 
 declare global {
   interface Window {
     fbq: any;
-    _fbq: any; // Add _fbq to the window interface
-    fbPixelInitialized?: boolean; // Add a flag to track initialization
-    fbDebug?: boolean; // Add a debug flag
+    _fbq: any;
+    fbPixelInitialized?: boolean;
+    fbDebug?: boolean;
   }
 }
+
+// SHA-256 hash function for personal data (LGPD compliance)
+const hashData = async (data: string): Promise<string> => {
+  if (!data) return '';
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data.toLowerCase().trim());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// Normalize phone number for Facebook
+const normalizePhone = (phone: string): string => {
+  let normalized = phone.replace(/\D/g, '');
+  if (normalized.startsWith('85') && normalized.length === 11) {
+    normalized = '55' + normalized;
+  } else if (!normalized.startsWith('55') && normalized.length === 11) {
+    normalized = '55' + normalized;
+  }
+  return normalized;
+};
 
 /**
  * Initializes the Facebook Pixel with the given ID
@@ -21,7 +42,6 @@ export const initFacebookPixel = (pixelId?: string, debug: boolean = false) => {
     return false;
   }
   
-  // Clean up the Pixel ID - remove any leading/trailing spaces
   const cleanPixelId = pixelId.trim();
   
   if (cleanPixelId === '') {
@@ -29,17 +49,14 @@ export const initFacebookPixel = (pixelId?: string, debug: boolean = false) => {
     return false;
   }
 
-  // Activate debug mode if requested
   window.fbDebug = debug;
   
-  // Check if the pixel is already initialized
   if (window.fbPixelInitialized) {
     if (debug) console.log('Facebook Pixel already initialized with ID:', cleanPixelId);
     return true;
   }
   
   try {
-    // Initialize Facebook Pixel
     const fbInitFunction = function(f: any, b: any, e: any, v: any, n: any, t: any, s: any) {
       if (f.fbq) return;
       n = f.fbq = function() {
@@ -54,20 +71,19 @@ export const initFacebookPixel = (pixelId?: string, debug: boolean = false) => {
       t.async = !0;
       t.src = v;
       s = b.getElementsByTagName(e)[0];
-      if (s && s.parentNode) { // Add null check
+      if (s && s.parentNode) {
         s.parentNode.insertBefore(t, s);
       }
     };
     
-    // Execute the function with all 7 required parameters
     fbInitFunction(
       window,
       document,
       'script',
       'https://connect.facebook.net/en_US/fbevents.js',
-      null,  // n - will be assigned in the function
-      null,  // t - will be assigned in the function
-      null   // s - will be assigned in the function
+      null,
+      null,
+      null
     );
     
     window.fbq('init', cleanPixelId);
@@ -75,7 +91,6 @@ export const initFacebookPixel = (pixelId?: string, debug: boolean = false) => {
     
     if (debug) {
       console.log('Facebook Pixel initialized with ID:', cleanPixelId);
-      // Add a visual indicator for debugging
       const debugDiv = document.createElement('div');
       debugDiv.style.position = 'fixed';
       debugDiv.style.bottom = '10px';
@@ -99,48 +114,119 @@ export const initFacebookPixel = (pixelId?: string, debug: boolean = false) => {
 };
 
 /**
- * Tracks a PageView event
+ * Tracks an optimized PageView event with Facebook recommended parameters
  */
-export const trackPageView = () => {
+export const trackOptimizedPageView = (campaignName?: string, contentCategory?: string) => {
   if (!window.fbq) {
     console.warn('Facebook Pixel not initialized. Cannot track PageView.');
     return false;
   }
   
   try {
-    window.fbq('track', 'PageView');
+    const pageViewData = {
+      content_name: campaignName || document.title,
+      content_category: contentCategory || 'marketing',
+      referrer: document.referrer,
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+      page_title: document.title
+    };
+
+    window.fbq('track', 'PageView', pageViewData);
+    
     if (window.fbDebug) {
-      console.log('Facebook Pixel PageView event tracked');
-      updateDebugDiv('PageView tracked');
+      console.log('Facebook Pixel Optimized PageView tracked:', pageViewData);
+      updateDebugDiv('PageView tracked', pageViewData);
     }
     return true;
   } catch (error) {
-    console.error('Error tracking PageView event:', error);
+    console.error('Error tracking optimized PageView event:', error);
     return false;
   }
 };
 
 /**
- * Tracks a Lead event
- * @param value Optional value of the lead
- * @param currency Optional currency code
+ * Tracks an optimized Lead event with Facebook recommended parameters and Advanced Matching
  */
-export const trackLead = (value?: number, currency: string = 'BRL') => {
+export const trackOptimizedLead = async (leadData: {
+  name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  value?: number;
+  campaignName?: string;
+  contentCategory?: string;
+}) => {
   if (!window.fbq) {
     console.warn('Facebook Pixel not initialized. Cannot track Lead.');
     return false;
   }
   
   try {
-    const params = value ? { value, currency } : {};
-    window.fbq('track', 'Lead', params);
-    if (window.fbDebug) {
-      console.log('Facebook Pixel Lead event tracked', params);
-      updateDebugDiv('Lead tracked', params);
+    // Build custom data with Facebook recommended parameters
+    const customData = {
+      value: leadData.value || 100,
+      currency: 'BRL',
+      content_name: leadData.campaignName || 'Formulário Lead',
+      content_category: leadData.contentCategory || 'contato',
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+      page_title: document.title,
+      referrer: document.referrer
+    };
+
+    // Build Advanced Matching data (hashed)
+    const advancedMatching: any = {};
+    
+    if (leadData.name) {
+      const nameParts = leadData.name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      if (firstName) advancedMatching.fn = await hashData(firstName);
+      if (lastName) advancedMatching.ln = await hashData(lastName);
     }
+    
+    if (leadData.email) {
+      advancedMatching.em = await hashData(leadData.email);
+    }
+    
+    if (leadData.phone) {
+      const normalizedPhone = normalizePhone(leadData.phone);
+      advancedMatching.ph = await hashData(normalizedPhone);
+    }
+    
+    if (leadData.city) {
+      advancedMatching.ct = await hashData(leadData.city);
+    }
+    
+    if (leadData.state) {
+      advancedMatching.st = await hashData(leadData.state);
+    }
+    
+    // Always include country
+    advancedMatching.country = await hashData('br');
+
+    // Track with both custom data and advanced matching
+    window.fbq('track', 'Lead', customData, { eventID: `lead_${Date.now()}` });
+    
+    // Track advanced matching separately if we have personal data
+    if (Object.keys(advancedMatching).length > 1) { // more than just country
+      window.fbq('track', 'Lead', customData, advancedMatching);
+    }
+    
+    if (window.fbDebug) {
+      console.log('Facebook Pixel Optimized Lead tracked:', {
+        customData,
+        advancedMatching: { ...advancedMatching, em: advancedMatching.em ? '[HASHED]' : undefined, ph: advancedMatching.ph ? '[HASHED]' : undefined }
+      });
+      updateDebugDiv('Lead tracked', customData);
+    }
+    
     return true;
   } catch (error) {
-    console.error('Error tracking Lead event:', error);
+    console.error('Error tracking optimized Lead event:', error);
     return false;
   }
 };
@@ -169,8 +255,6 @@ export const trackContact = () => {
 
 /**
  * Tracks a Purchase event
- * @param value Value of the purchase
- * @param currency Currency code
  */
 export const trackPurchase = (value: number, currency: string = 'BRL') => {
   if (!window.fbq) {
@@ -192,12 +276,20 @@ export const trackPurchase = (value: number, currency: string = 'BRL') => {
 };
 
 /**
- * Tracks an event based on the specified event type
- * @param eventType The type of event to track
- * @param value Optional value for the event
- * @returns boolean indicating success or failure
+ * Tracks an event based on the specified event type using optimized parameters
  */
-export const trackEventByType = (eventType?: string, value?: number): boolean => {
+export const trackOptimizedEventByType = async (
+  eventType?: string, 
+  campaignName?: string,
+  leadData?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    city?: string;
+    state?: string;
+    value?: number;
+  }
+): Promise<boolean> => {
   if (!eventType) {
     console.warn('No event type specified for tracking');
     return false;
@@ -205,18 +297,29 @@ export const trackEventByType = (eventType?: string, value?: number): boolean =>
   
   switch (eventType) {
     case 'lead':
-      return trackLead(value);
     case 'contact':
-      return trackContact();
+      return await trackOptimizedLead({
+        ...leadData,
+        campaignName,
+        contentCategory: 'contato'
+      });
     case 'sale':
-      return trackPurchase(value || 0);
+    case 'purchase':
+      return trackPurchase(leadData?.value || 0);
     case 'page_view':
-      return trackPageView();
+      return trackOptimizedPageView(campaignName, 'marketing');
     default:
-      console.warn(`Unknown event type: ${eventType}, defaulting to PageView`);
-      return trackPageView();
+      console.warn(`Unknown event type: ${eventType}, defaulting to optimized PageView`);
+      return trackOptimizedPageView(campaignName, 'marketing');
   }
 };
+
+// Legacy functions for backward compatibility
+export const trackPageView = () => trackOptimizedPageView();
+export const trackLead = (value?: number, currency: string = 'BRL') => 
+  trackOptimizedLead({ value, campaignName: 'Legacy Lead' });
+export const trackEventByType = (eventType?: string, value?: number) => 
+  trackOptimizedEventByType(eventType, 'Legacy Campaign', { value });
 
 /**
  * Helper function to update the debug div with event information
