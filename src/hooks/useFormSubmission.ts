@@ -1,6 +1,7 @@
 
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { trackEventByType } from '@/lib/fbPixel';
+import { useAdvancedTracking } from './useAdvancedTracking';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
 import { sendToEvolutionAPI } from '@/services/evolutionApiService';
@@ -12,6 +13,8 @@ export const useFormSubmission = (
   campaign: Campaign | null,
   pixelInitialized: boolean
 ) => {
+  const { trackLeadWithConversions } = useAdvancedTracking();
+
   const updateLeadWhatsAppStatus = async (leadId: string, delivered: boolean) => {
     try {
       const status: Lead['status'] = delivered ? 'lead' : 'to_recover';
@@ -28,7 +31,7 @@ export const useFormSubmission = (
     }
   };
 
-  const handleFormSubmit = async (phone: string, name: string) => {
+  const handleFormSubmit = async (phone: string, name: string, email?: string) => {
     if (!campaignId) {
       throw new Error('ID da campanha não encontrado');
     }
@@ -44,6 +47,7 @@ export const useFormSubmission = (
             campaign_name: campaign?.name,
             lead_name: name,
             lead_phone: phone,
+            lead_email: email,
             timestamp: new Date().toISOString(),
             event_type: campaign?.event_type
           };
@@ -57,7 +61,7 @@ export const useFormSubmission = (
       // Não interromper o fluxo se o webhook externo falhar
     }
 
-    // Track the event before processing
+    // Track the event before processing (client-side pixel)
     if (campaign && campaign.event_type && pixelInitialized) {
       console.log('Tracking event before processing:', campaign.event_type);
       const success = trackEventByType(campaign.event_type);
@@ -109,6 +113,36 @@ export const useFormSubmission = (
     
     // Track the redirect in our system
     const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
+    
+    // 🆕 ADVANCED TRACKING: Send conversion event via Conversions API
+    if (campaign) {
+      try {
+        const { score, conversionResult } = await trackLeadWithConversions(
+          campaign,
+          {
+            name,
+            phone,
+            email
+          },
+          result.leadId // If trackRedirect returns the lead ID
+        );
+        
+        console.log('Advanced tracking results:', {
+          leadScore: score,
+          conversionsSent: conversionResult.success,
+          eventsReceived: conversionResult.events_received
+        });
+
+        if (conversionResult.success) {
+          toast.success(`Lead processado com sucesso! Score: ${score}`);
+        } else {
+          console.warn('Conversions API failed:', conversionResult.error);
+        }
+      } catch (trackingError) {
+        console.error('Advanced tracking error:', trackingError);
+        // Don't block the main flow if advanced tracking fails
+      }
+    }
     
     // Get target WhatsApp number
     const targetPhone = result.targetPhone || campaign?.whatsapp_number;

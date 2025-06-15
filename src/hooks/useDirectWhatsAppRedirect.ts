@@ -1,6 +1,7 @@
 
 import { trackRedirect } from '@/services/dataService';
 import { trackEventByType } from '@/lib/fbPixel';
+import { useAdvancedTracking } from './useAdvancedTracking';
 import { toast } from 'sonner';
 import { Campaign } from '@/types/campaign';
 
@@ -8,11 +9,13 @@ export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
   pixelInitialized: boolean
 ) => {
+  const { trackPageViewWithConversions } = useAdvancedTracking();
+
   const handleDirectWhatsAppRedirect = async (campaignData: Campaign) => {
     try {
       console.log('Processing direct WhatsApp redirect for campaign:', campaignData.name);
       
-      // Track the event
+      // Track the event (client-side pixel)
       if (campaignData.event_type && pixelInitialized) {
         console.log('Tracking event before redirect:', campaignData.event_type);
         const success = trackEventByType(campaignData.event_type);
@@ -21,6 +24,18 @@ export const useDirectWhatsAppRedirect = (
         } else {
           console.warn('Failed to track event:', campaignData.event_type);
         }
+      }
+
+      // 🆕 ADVANCED TRACKING: Send page view via Conversions API
+      try {
+        const conversionResult = await trackPageViewWithConversions(campaignData);
+        console.log('Page view conversion tracking:', {
+          success: conversionResult.success,
+          eventsReceived: conversionResult.events_received
+        });
+      } catch (trackingError) {
+        console.error('Advanced page view tracking error:', trackingError);
+        // Don't block the main flow if advanced tracking fails
       }
       
       // Track the redirect in our system (para redirecionamento direto, apenas registrar o evento)
