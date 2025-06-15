@@ -8,9 +8,10 @@ export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
   pixelInitialized: boolean
 ) => {
-  const handleDirectWhatsAppRedirect = async (campaignData: Campaign) => {
+  const handleDirectWhatsAppRedirect = async (campaignData: Campaign, phone: string, name: string) => {
     try {
       console.log('Processing direct WhatsApp redirect for campaign:', campaignData.name);
+      console.log('Contact info:', { phone, name });
       
       // Track the event
       if (campaignData.event_type && pixelInitialized) {
@@ -23,8 +24,8 @@ export const useDirectWhatsAppRedirect = (
         }
       }
       
-      // Track the redirect in our system (para redirecionamento direto, apenas registrar o evento)
-      const result = await trackRedirect(campaignId!, 'Redirecionamento Direto', 'Visitante', campaignData.event_type);
+      // Track the redirect in our system and save the lead
+      const result = await trackRedirect(campaignId!, phone, name, campaignData.event_type);
       
       // Get target WhatsApp number
       const targetPhone = result.targetPhone || campaignData.whatsapp_number;
@@ -57,7 +58,7 @@ export const useDirectWhatsAppRedirect = (
         } else {
           console.log('WhatsApp opened in new tab successfully');
           // Opcional: mostrar mensagem de sucesso
-          toast.success('Redirecionando para o WhatsApp...');
+          toast.success('Lead salvo! Redirecionando para o WhatsApp...');
         }
       } catch (error) {
         // Fallback final
