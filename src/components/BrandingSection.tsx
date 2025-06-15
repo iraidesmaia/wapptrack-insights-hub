@@ -17,12 +17,11 @@ const BrandingSection: React.FC<BrandingSectionProps> = ({
   subtitle,
   campaignName
 }) => {
-  // Define se o logo está vazio (ou é só um placeholder)
-  const noLogo = !logo || logo.trim() === '';
+  // Não mostra logo nenhuma se não foi enviada pelo usuário (também não mostra logo fake/padrão)
+  const noLogo = !logo || logo.trim() === '' || logo.includes('unsplash.com/photo-1618160702438-9b02ab6515c9');
 
   return (
     <div className="mb-8 text-center">
-      {/* Caso loading, mantenha skeleton normalmente */}
       {isLoading ? (
         <div className="flex items-center justify-center space-x-3 mb-4">
           <div className="flex-shrink-0">
@@ -34,13 +33,13 @@ const BrandingSection: React.FC<BrandingSectionProps> = ({
           </div>
         </div>
       ) : noLogo ? (
-        // Sem logo: Centraliza nome e subtítulo
-        <div className="flex flex-col items-center justify-center mb-4 h-16">
+        // Centraliza nome e subtítulo, sem espaço reservado para logo
+        <div className="flex flex-col items-center justify-center mb-4" style={{ minHeight: '4rem' }}>
           <span className="font-bold text-2xl text-primary">{title}</span>
           <span className="text-sm text-muted-foreground">{subtitle}</span>
         </div>
       ) : (
-        // Com logo: mantém layout original
+        // Mostra logo ENVIADA PELO USUÁRIO
         <div className="flex items-center justify-center space-x-3 mb-4">
           <div className="flex-shrink-0">
             <img
@@ -67,4 +66,3 @@ const BrandingSection: React.FC<BrandingSectionProps> = ({
 };
 
 export default BrandingSection;
-
