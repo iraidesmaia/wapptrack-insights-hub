@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/dataService';
 import { Campaign } from '@/types';
 import { buildUtmUrl, formatDate, generateTrackingUrl } from '@/lib/utils';
-import { Plus, Trash2, Edit, Copy, ExternalLink, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, ExternalLink, Upload, Tags } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
+import GlobalKeywordsSettings from '@/components/campaigns/GlobalKeywordsSettings';
 
 const Campaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -43,6 +43,7 @@ const Campaigns = () => {
     pixel_integration_type: 'direct'
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
+  const [isGlobalKeywordsOpen, setIsGlobalKeywordsOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -234,9 +235,18 @@ const Campaigns = () => {
             <h1 className="text-2xl font-bold">Campanhas</h1>
             <p className="text-muted-foreground">Crie e gerencie campanhas de marketing</p>
           </div>
-          <Button onClick={handleOpenAddDialog}>
-            <Plus className="mr-2 h-4 w-4" /> Nova Campanha
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsGlobalKeywordsOpen(true)}
+              title="Configurações de Tags Globais"
+            >
+              <Tags className="mr-2 h-4 w-4" /> Configurar Tags
+            </Button>
+            <Button onClick={handleOpenAddDialog}>
+              <Plus className="mr-2 h-4 w-4" /> Nova Campanha
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center">
@@ -579,6 +589,11 @@ const Campaigns = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <GlobalKeywordsSettings 
+          open={isGlobalKeywordsOpen}
+          onOpenChange={setIsGlobalKeywordsOpen}
+        />
       </div>
     </MainLayout>
   );
