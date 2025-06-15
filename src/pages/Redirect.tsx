@@ -18,7 +18,6 @@ const Redirect = () => {
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const redirectExecuted = useRef(false);
-  const [showContactForm, setShowContactForm] = useState(false);
 
   const {
     campaign,
@@ -30,54 +29,41 @@ const Redirect = () => {
   } = useCampaignData(campaignId, debug);
 
   useEffect(() => {
-    // Para redirecionamento direto, mostrar formulário de contato primeiro
+    // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada
     if (campaign && 
         campaign.redirect_type === 'whatsapp' && 
         !isLoading && 
         !redirectExecuted.current) {
       
-      console.log('Direct WhatsApp redirect detected, showing contact form first');
-      setShowContactForm(true);
+      redirectExecuted.current = true;
+      console.log('Starting direct WhatsApp redirect for campaign:', campaign.name);
+      setShowLoadingScreen(true);
+      
+      // Start loading animation
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 100 / 30; // 30 frames over 3 seconds
+        setLoadingProgress(Math.min(progress, 100));
+      }, 100);
+
+      // Redirect after 3 seconds
+      setTimeout(async () => {
+        clearInterval(interval);
+        try {
+          await handleDirectWhatsAppRedirect(campaign);
+        } catch (err) {
+          console.error('Error in direct redirect:', err);
+          setShowLoadingScreen(false);
+          redirectExecuted.current = false;
+        }
+      }, 3000);
     }
-  }, [campaign, isLoading]);
+  }, [campaign, isLoading, handleDirectWhatsAppRedirect]);
 
   const onFormSubmit = async (phone: string, name: string) => {
     setLoading(true);
     try {
-      if (campaign?.redirect_type === 'whatsapp') {
-        // Para redirecionamento direto, salvar lead e depois redirecionar
-        console.log('Saving lead for direct redirect:', { phone, name });
-        
-        // Usar o hook de form submission para salvar o lead
-        await handleFormSubmit(phone, name);
-        
-        // Agora iniciar o processo de redirecionamento
-        setShowContactForm(false);
-        setShowLoadingScreen(true);
-        redirectExecuted.current = true;
-        
-        // Start loading animation
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 100 / 30; // 30 frames over 3 seconds
-          setLoadingProgress(Math.min(progress, 100));
-        }, 100);
-
-        // Redirect after 3 seconds
-        setTimeout(async () => {
-          clearInterval(interval);
-          try {
-            await handleDirectWhatsAppRedirect(campaign);
-          } catch (err) {
-            console.error('Error in direct redirect:', err);
-            setShowLoadingScreen(false);
-            redirectExecuted.current = false;
-          }
-        }, 3000);
-      } else {
-        // Para campanhas normais de formulário
-        await handleFormSubmit(phone, name);
-      }
+      await handleFormSubmit(phone, name);
     } catch (err) {
       console.error('Error in form submit:', err);
     } finally {
@@ -139,7 +125,12 @@ const Redirect = () => {
     );
   }
 
-  // Mostrar formulário de contato (tanto para campanhas normais quanto para redirecionamento direto)
+  // Se é redirecionamento direto e já está processando, não mostrar o formulário
+  if (campaign?.redirect_type === 'whatsapp' && showLoadingScreen) {
+    return null;
+  }
+
+  // Mostrar formulário para campanhas de formulário ou se não há redirecionamento direto
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
