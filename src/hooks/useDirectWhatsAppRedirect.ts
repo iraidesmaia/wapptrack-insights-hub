@@ -23,11 +23,8 @@ export const useDirectWhatsAppRedirect = (
         }
       }
       
-      // Track the redirect in our system (para redirecionamento direto, apenas registrar o evento)
-      const result = await trackRedirect(campaignId!, 'Redirecionamento Direto', 'Visitante', campaignData.event_type);
-      
-      // Get target WhatsApp number
-      const targetPhone = result.targetPhone || campaignData.whatsapp_number;
+      // Get target WhatsApp number from campaign
+      const targetPhone = campaignData.whatsapp_number;
       
       if (!targetPhone) {
         console.warn('Número de WhatsApp não configurado para esta campanha');
