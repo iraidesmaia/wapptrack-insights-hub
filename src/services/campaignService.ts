@@ -31,7 +31,17 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       redirect_type: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
       pixel_integration_type: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct',
       conversion_keywords: campaign.conversion_keywords || [],
-      cancellation_keywords: campaign.cancellation_keywords || []
+      cancellation_keywords: campaign.cancellation_keywords || [],
+      conversion_api_enabled: campaign.conversion_api_enabled || false,
+      advanced_matching_enabled: campaign.advanced_matching_enabled || false,
+      server_side_api_enabled: campaign.server_side_api_enabled || false,
+      test_event_code: campaign.test_event_code,
+      custom_audience_pixel_id: campaign.custom_audience_pixel_id,
+      tracking_domain: campaign.tracking_domain,
+      external_id: campaign.external_id,
+      data_processing_options: campaign.data_processing_options || [],
+      data_processing_options_country: campaign.data_processing_options_country || 0,
+      data_processing_options_state: campaign.data_processing_options_state || 0
     }));
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -90,7 +100,17 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
       redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
       pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct',
       conversion_keywords: data.conversion_keywords || [],
-      cancellation_keywords: data.cancellation_keywords || []
+      cancellation_keywords: data.cancellation_keywords || [],
+      conversion_api_enabled: data.conversion_api_enabled || false,
+      advanced_matching_enabled: data.advanced_matching_enabled || false,
+      server_side_api_enabled: data.server_side_api_enabled || false,
+      test_event_code: data.test_event_code,
+      custom_audience_pixel_id: data.custom_audience_pixel_id,
+      tracking_domain: data.tracking_domain,
+      external_id: data.external_id,
+      data_processing_options: data.data_processing_options || [],
+      data_processing_options_country: data.data_processing_options_country || 0,
+      data_processing_options_state: data.data_processing_options_state || 0
     };
   } catch (error) {
     console.error("Error adding campaign:", error);
@@ -151,7 +171,17 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       redirect_type: (data.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
       pixel_integration_type: (data.pixel_integration_type as 'direct' | 'form') || 'direct',
       conversion_keywords: data.conversion_keywords || [],
-      cancellation_keywords: data.cancellation_keywords || []
+      cancellation_keywords: data.cancellation_keywords || [],
+      conversion_api_enabled: data.conversion_api_enabled || false,
+      advanced_matching_enabled: data.advanced_matching_enabled || false,
+      server_side_api_enabled: data.server_side_api_enabled || false,
+      test_event_code: data.test_event_code,
+      custom_audience_pixel_id: data.custom_audience_pixel_id,
+      tracking_domain: data.tracking_domain,
+      external_id: data.external_id,
+      data_processing_options: data.data_processing_options || [],
+      data_processing_options_country: data.data_processing_options_country || 0,
+      data_processing_options_state: data.data_processing_options_state || 0
     };
   } catch (error) {
     console.error("Error updating campaign:", error);

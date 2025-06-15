@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,17 @@ const Campaigns = () => {
     company_title: '',
     company_subtitle: '',
     redirect_type: 'whatsapp',
-    pixel_integration_type: 'direct'
+    pixel_integration_type: 'direct',
+    conversion_api_enabled: true,
+    advanced_matching_enabled: true,
+    server_side_api_enabled: true,
+    test_event_code: '',
+    custom_audience_pixel_id: '',
+    tracking_domain: '',
+    external_id: '',
+    data_processing_options: [],
+    data_processing_options_country: 0,
+    data_processing_options_state: 0
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
   const [isGlobalKeywordsOpen, setIsGlobalKeywordsOpen] = useState(false);
@@ -83,7 +92,17 @@ const Campaigns = () => {
       company_title: '',
       company_subtitle: '',
       redirect_type: 'whatsapp',
-      pixel_integration_type: 'direct'
+      pixel_integration_type: 'direct',
+      conversion_api_enabled: true,
+      advanced_matching_enabled: true,
+      server_side_api_enabled: true,
+      test_event_code: '',
+      custom_audience_pixel_id: '',
+      tracking_domain: '',
+      external_id: '',
+      data_processing_options: [],
+      data_processing_options_country: 0,
+      data_processing_options_state: 0
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -146,7 +165,6 @@ const Campaigns = () => {
   };
 
   const getTrackingUrl = (campaign: Campaign) => {
-    // In a real app, this would use the actual hostname
     const currentUrl = window.location.origin;
     return `${currentUrl}/ir?id=${campaign.id}`;
   };
@@ -161,7 +179,7 @@ const Campaigns = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Campanhas</h1>
-            <p className="text-muted-foreground">Crie e gerencie campanhas de marketing</p>
+            <p className="text-muted-foreground">Crie e gerencie campanhas com tracking avançado e máximos parâmetros</p>
           </div>
           <div className="flex gap-2">
             <Button 

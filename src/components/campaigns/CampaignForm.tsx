@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Campaign } from '@/types';
+import AdvancedTrackingSettings from './AdvancedTrackingSettings';
 
 interface CampaignFormProps {
   isOpen: boolean;
@@ -96,88 +99,92 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'add' ? 'Adicionar Nova Campanha' : 'Editar Campanha'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'add' 
-              ? 'Preencha os detalhes para adicionar uma nova campanha.' 
-              : 'Atualize os detalhes da campanha.'}
+              ? 'Configure sua campanha com tracking avançado e máximos parâmetros.' 
+              : 'Atualize os detalhes da campanha e configurações de tracking.'}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6">
-          {/* Identidade da Empresa */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Identidade da Empresa</h3>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="company_title">Nome da empresa</Label>
-              <Input
-                id="company_title"
-                name="company_title"
-                value={campaign.company_title || ''}
-                onChange={handleInputChange}
-                placeholder="Ex: Minha Empresa"
-              />
-            </div>
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="basic">Básico</TabsTrigger>
+            <TabsTrigger value="utm">UTM & Tracking</TabsTrigger>
+            <TabsTrigger value="integration">Integração</TabsTrigger>
+            <TabsTrigger value="advanced">Avançado</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="basic" className="space-y-4">
+            {/* Identidade da Empresa */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Identidade da Empresa</h3>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="company_title">Nome da empresa</Label>
+                <Input
+                  id="company_title"
+                  name="company_title"
+                  value={campaign.company_title || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Minha Empresa"
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="company_subtitle">Subtítulo</Label>
-              <Input
-                id="company_subtitle"
-                name="company_subtitle"
-                value={campaign.company_subtitle || ''}
-                onChange={handleInputChange}
-                placeholder="Ex: Sistema de Marketing Digital"
-              />
-            </div>
+              <div className="grid gap-2">
+                <Label htmlFor="company_subtitle">Subtítulo</Label>
+                <Input
+                  id="company_subtitle"
+                  name="company_subtitle"
+                  value={campaign.company_subtitle || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Sistema de Marketing Digital"
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label>Logo (upload se aplicável)</Label>
-              <div className="flex items-start space-x-4">
-                <div className="flex-1">
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('logo-upload')?.click()}
-                    disabled={uploading}
-                    className="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploading ? 'Enviando...' : 'Escolher Arquivo'}
-                  </Button>
-                  <input
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Formatos aceitos: PNG, JPG, JPEG (máx. 5MB)
-                  </p>
-                </div>
-                {campaign.logo_url && (
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 rounded-lg border overflow-hidden">
-                      <img
-                        src={campaign.logo_url}
-                        alt="Logo da campanha"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+              <div className="grid gap-2">
+                <Label>Logo (upload se aplicável)</Label>
+                <div className="flex items-start space-x-4">
+                  <div className="flex-1">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('logo-upload')?.click()}
+                      disabled={uploading}
+                      className="w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploading ? 'Enviando...' : 'Escolher Arquivo'}
+                    </Button>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Formatos aceitos: PNG, JPG, JPEG (máx. 5MB)
+                    </p>
                   </div>
-                )}
+                  {campaign.logo_url && (
+                    <div className="flex-shrink-0">
+                      <div className="w-16 h-16 rounded-lg border overflow-hidden">
+                        <img
+                          src={campaign.logo_url}
+                          alt="Logo da campanha"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* UTM e Personalização */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">UTM e Personalização</h3>
-            
             <div className="grid gap-2">
               <Label htmlFor="name">Nome da Campanha (utm_campaign)*</Label>
               <Input
@@ -190,170 +197,168 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="utm_medium">Meio (utm_medium)</Label>
-              <Input
-                id="utm_medium"
-                name="utm_medium"
-                value={campaign.utm_medium}
-                onChange={handleInputChange}
-                placeholder="Ex: social"
+            <div className="flex items-center space-x-2 pt-4 border-t">
+              <Switch
+                id="active"
+                checked={campaign.active}
+                onCheckedChange={handleSwitchChange}
               />
+              <Label htmlFor="active">Campanha Ativa</Label>
             </div>
+          </TabsContent>
 
-            <div className="grid gap-2">
-              <Label htmlFor="utm_content">Conteúdo (utm_content)</Label>
-              <Input
-                id="utm_content"
-                name="utm_content"
-                value={campaign.utm_content}
-                onChange={handleInputChange}
-                placeholder="Ex: banner_top"
-              />
+          <TabsContent value="utm" className="space-y-4">
+            {/* UTM e Personalização */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">UTM e Personalização</h3>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="utm_medium">Meio (utm_medium)</Label>
+                <Input
+                  id="utm_medium"
+                  name="utm_medium"
+                  value={campaign.utm_medium}
+                  onChange={handleInputChange}
+                  placeholder="Ex: social"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="utm_content">Conteúdo (utm_content)</Label>
+                <Input
+                  id="utm_content"
+                  name="utm_content"
+                  value={campaign.utm_content}
+                  onChange={handleInputChange}
+                  placeholder="Ex: banner_top"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="custom_message">Mensagem personalizada</Label>
+                <Textarea
+                  id="custom_message"
+                  name="custom_message"
+                  value={campaign.custom_message || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Essa mensagem será enviada automaticamente quando o lead clicar para conversar.
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="event_type">Tipo de Evento</Label>
+                <Select
+                  value={campaign.event_type || 'lead'}
+                  onValueChange={handleEventTypeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contact">Contato</SelectItem>
+                    <SelectItem value="lead">Lead</SelectItem>
+                    <SelectItem value="page_view">Visualização de Página</SelectItem>
+                    <SelectItem value="sale">Venda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          </TabsContent>
 
-            <div className="grid gap-2">
-              <Label htmlFor="custom_message">Mensagem personalizada</Label>
-              <Textarea
-                id="custom_message"
-                name="custom_message"
-                value={campaign.custom_message || ''}
-                onChange={handleInputChange}
-                placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Essa mensagem será enviada automaticamente quando o lead clicar para conversar.
-              </p>
+          <TabsContent value="integration" className="space-y-4">
+            {/* Integração e Link */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
+                <Input
+                  id="whatsapp_number"
+                  name="whatsapp_number"
+                  value={campaign.whatsapp_number}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 5511999887766"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="redirect_type">Tipo de redirecionamento</Label>
+                <Select
+                  value={campaign.redirect_type || 'whatsapp'}
+                  onValueChange={handleRedirectTypeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de redirecionamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whatsapp">Direto para WhatsApp</SelectItem>
+                    <SelectItem value="form">Formulário de Lead</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pixel_id">ID do Facebook Pixel</Label>
+                <Input
+                  id="pixel_id"
+                  name="pixel_id"
+                  value={campaign.pixel_id}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 123456789012345"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="facebook_access_token">Facebook Access Token</Label>
+                <Input
+                  id="facebook_access_token"
+                  name="facebook_access_token"
+                  type="password"
+                  value={campaign.facebook_access_token || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: EAABwzLixn..."
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pixel_integration_type">Integração do Pixel</Label>
+                <Select
+                  value={campaign.pixel_integration_type || 'direct'}
+                  onValueChange={handlePixelIntegrationTypeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de integração" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="direct">Direto</SelectItem>
+                    <SelectItem value="form">Formulário</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="baseUrl">URL Base</Label>
+                <Input
+                  id="baseUrl"
+                  value={baseUrl}
+                  onChange={(e) => onBaseUrlChange(e.target.value)}
+                  placeholder="https://seusite.com"
+                />
+              </div>
             </div>
+          </TabsContent>
 
-            <div className="grid gap-2">
-              <Label htmlFor="event_type">Tipo de Evento</Label>
-              <Select
-                value={campaign.event_type || 'lead'}
-                onValueChange={handleEventTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="contact">Contato</SelectItem>
-                  <SelectItem value="lead">Lead</SelectItem>
-                  <SelectItem value="page_view">Visualização de Página</SelectItem>
-                  <SelectItem value="sale">Venda</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Define como o contato será registrado no sistema e como o Pixel será disparado
-              </p>
-            </div>
-          </div>
-
-          {/* Integração e Link */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
-              <Input
-                id="whatsapp_number"
-                name="whatsapp_number"
-                value={campaign.whatsapp_number}
-                onChange={handleInputChange}
-                placeholder="Ex: 5511999887766"
-              />
-              <p className="text-xs text-muted-foreground">
-                Informe o número que receberá as mensagens (formato internacional, sem espaços ou símbolos)
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="redirect_type">Tipo de redirecionamento</Label>
-              <Select
-                value={campaign.redirect_type || 'whatsapp'}
-                onValueChange={handleRedirectTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de redirecionamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp">Direto para WhatsApp</SelectItem>
-                  <SelectItem value="form">Formulário de Lead</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Define como o usuário será redirecionado ao clicar no link
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="pixel_id">ID do Facebook Pixel</Label>
-              <Input
-                id="pixel_id"
-                name="pixel_id"
-                value={campaign.pixel_id}
-                onChange={handleInputChange}
-                placeholder="Ex: 123456789012345"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="facebook_access_token">Facebook Access Token</Label>
-              <Input
-                id="facebook_access_token"
-                name="facebook_access_token"
-                type="password"
-                value={campaign.facebook_access_token || ''}
-                onChange={handleInputChange}
-                placeholder="Ex: EAABwzLixn..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Token de acesso para a Conversions API do Facebook. Necessário para tracking avançado
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="pixel_integration_type">Integração do Pixel</Label>
-              <Select
-                value={campaign.pixel_integration_type || 'direct'}
-                onValueChange={handlePixelIntegrationTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de integração" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="direct">Direto</SelectItem>
-                  <SelectItem value="form">Formulário</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Direto: Dispara o evento imediatamente. Formulário: Dispara após preenchimento do formulário
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="baseUrl">URL Base</Label>
-              <Input
-                id="baseUrl"
-                value={baseUrl}
-                onChange={(e) => onBaseUrlChange(e.target.value)}
-                placeholder="https://seusite.com"
-              />
-              <p className="text-xs text-muted-foreground">
-                URL base usada para construir links UTM
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 pt-4 border-t">
-            <Switch
-              id="active"
-              checked={campaign.active}
-              onCheckedChange={handleSwitchChange}
+          <TabsContent value="advanced" className="space-y-4">
+            <AdvancedTrackingSettings 
+              campaign={campaign}
+              onCampaignChange={onCampaignChange}
             />
-            <Label htmlFor="active">Campanha Ativa</Label>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
