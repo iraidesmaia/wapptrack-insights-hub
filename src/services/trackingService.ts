@@ -1,91 +1,101 @@
 
 import { supabase } from "../integrations/supabase/client";
 
+/**
+ * Inclui campos UTM opcionalmente no lead.
+ */
 export const trackRedirect = async (
   campaignId: string, 
   phone: string, 
   name?: string,
-  eventType?: string
+  eventType?: string,
+  utms?: {
+    utm_source?: string
+    utm_medium?: string
+    utm_campaign?: string
+    utm_content?: string
+    utm_term?: string
+  }
 ): Promise<{targetPhone?: string}> => {
   try {
-    // Find the campaign by ID
+    // Busca a campanha por ID
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select('*')
       .eq('id', campaignId)
       .single();
 
-    // Create a default campaign if one with the specified ID doesn't exist
+    // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
       
-      // Create a new lead with a default campaign name if phone is provided
       if (phone) {
         const defaultCampaign = "Default Campaign";
-        
-        // Insert the new lead
+        const leadData: any = {
+          name: name || 'Lead via Tracking',
+          phone,
+          campaign: defaultCampaign,
+          status: 'new',
+          ...utms
+        };
+
         const { error: leadError } = await supabase
           .from('leads')
-          .insert({
-            name: name || 'Lead via Tracking',
-            phone,
-            campaign: defaultCampaign,
-            status: 'new'
-          });
+          .insert(leadData);
 
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('Created lead with default campaign');
+          console.log('Created lead with default campaign and UTMs:', utms);
         }
         
-        // Return your WhatsApp number
+        // WhatsApp fallback
         return { targetPhone: '5585998372658' };
       }
-      
-      // Return your WhatsApp number as default
       return { targetPhone: '5585998372658' };
     }
 
-    // Event type handling based on campaign settings
     const type = eventType || campaign.event_type || 'lead';
-    
-    // Create a lead if the event type is 'lead' and the phone number doesn't exist yet
+
     if ((type === 'lead' || type === 'contact') && phone) {
-      // Check if the lead with this phone already exists
+      // Checa lead duplicado pelo telefone
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
         .select('id')
         .eq('phone', phone)
         .limit(1);
-      
+
       if (checkError) {
         console.error('Error checking for existing lead:', checkError);
       }
-      
-      // If no lead exists with this phone, create a new one
+
       if (!existingLead || existingLead.length === 0) {
+        const leadData: any = {
+          name: name || 'Lead via Tracking',
+          phone,
+          campaign: campaign.name,
+          campaign_id: campaign.id,
+          status: 'new',
+          ...utms
+        };
+
         const { error: leadError } = await supabase
           .from('leads')
-          .insert({
-            name: name || 'Lead via Tracking',
-            phone,
-            campaign: campaign.name,
-            campaign_id: campaign.id,
-            status: 'new'
-          });
-        
+          .insert(leadData);
+
         if (leadError) {
           console.error('Error creating lead:', leadError);
+        } else {
+          console.log('Lead created with UTMs:', utms);
         }
+      } else {
+        console.log('Lead already exists, skipping insert.');
       }
     }
-    
-    // Return the campaign's WhatsApp number for redirection
+
     return { targetPhone: campaign.whatsapp_number };
   } catch (error) {
     console.error('Error tracking redirect:', error);
-    // Return a default phone number in case of error
     return { targetPhone: '5585998372658' };
   }
 };

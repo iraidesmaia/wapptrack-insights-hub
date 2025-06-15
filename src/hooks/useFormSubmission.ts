@@ -1,4 +1,3 @@
-
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -6,13 +5,13 @@ import { sendToEvolutionAPI } from '@/services/evolutionApiService';
 import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
+import { collectUrlParameters } from '@/lib/dataCollection';
 
 export const useFormSubmission = (
   campaignId: string | null,
   campaign: Campaign | null,
   pixelInitialized: boolean
 ) => {
-  // Initialize enhanced pixel tracking once
   const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
 
   const updateLeadWhatsAppStatus = async (leadId: string, delivered: boolean) => {
@@ -115,11 +114,27 @@ export const useFormSubmission = (
       }
     }
 
+    // Coleta UTMs atuais da URL
+    const utms = collectUrlParameters();
+    console.log('🌐 UTMs obtidos da URL:', utms);
+
     // Traditional flow (fallback)
     console.log('📱 Using traditional WhatsApp redirect...');
     
     // Track the redirect in our system
-    const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
+    const result = await trackRedirect(
+      campaignId, 
+      phone, 
+      name, 
+      campaign?.event_type,
+      {
+        utm_source: utms.utm_source,
+        utm_medium: utms.utm_medium,
+        utm_campaign: utms.utm_campaign,
+        utm_content: utms.utm_content,
+        utm_term: utms.utm_term
+      }
+    );
     
     // Get target WhatsApp number
     const targetPhone = result.targetPhone || campaign?.whatsapp_number;
