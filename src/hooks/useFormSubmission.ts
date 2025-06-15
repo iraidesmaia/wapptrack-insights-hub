@@ -12,6 +12,9 @@ export const useFormSubmission = (
   campaign: Campaign | null,
   pixelInitialized: boolean
 ) => {
+  // Initialize enhanced pixel tracking once
+  const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
+
   const updateLeadWhatsAppStatus = async (leadId: string, delivered: boolean) => {
     try {
       const status: Lead['status'] = delivered ? 'lead' : 'to_recover';
@@ -35,11 +38,8 @@ export const useFormSubmission = (
 
     console.log('📝 Processing form submission with enhanced tracking...');
 
-    // Initialize enhanced pixel tracking
-    const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
-
     // Track enhanced lead event BEFORE processing
-    if (campaign) {
+    if (campaign && trackEnhancedLead) {
       try {
         console.log('📊 Tracking enhanced lead event...');
         await trackEnhancedLead({
@@ -146,9 +146,14 @@ export const useFormSubmission = (
     
     try {
       console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
-      console.log('✅ WhatsApp redirect successful');
       
+      // Show success message before redirect
+      toast.success('Redirecionando para o WhatsApp...');
+      
+      // Use window.location.href for more reliable redirect
       window.location.href = whatsappUrl;
+      
+      console.log('✅ WhatsApp redirect initiated');
     } catch (error) {
       console.error('❌ Error redirecting to WhatsApp:', error);
       throw new Error('Erro ao redirecionar para WhatsApp');
