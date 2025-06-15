@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 
 /**
@@ -18,6 +17,15 @@ export const trackRedirect = async (
   }
 ): Promise<{targetPhone?: string}> => {
   try {
+    // Log recebendo todos os dados para debug detalhado
+    console.log('➡️ trackRedirect chamado com:', {
+      campaignId,
+      phone,
+      name,
+      eventType,
+      utms
+    });
+
     // Busca a campanha por ID
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -38,6 +46,7 @@ export const trackRedirect = async (
           status: 'new',
           ...utms
         };
+        console.log('📝 Salvando lead no fallback:', leadData);
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -78,6 +87,7 @@ export const trackRedirect = async (
           status: 'new',
           ...utms
         };
+        console.log('📝 Salvando novo lead:', leadData);
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -91,6 +101,12 @@ export const trackRedirect = async (
       } else {
         console.log('Lead already exists, skipping insert.');
       }
+    } else {
+      // Log quando não é lead/contact
+      console.log("🔎 Não é fluxo de lead/contact ou telefone não informado:", {
+        type,
+        phone
+      });
     }
 
     return { targetPhone: campaign.whatsapp_number };

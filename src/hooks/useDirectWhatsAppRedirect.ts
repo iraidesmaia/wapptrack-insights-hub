@@ -1,4 +1,3 @@
-
 import { trackRedirect } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
@@ -29,15 +28,19 @@ export const useDirectWhatsAppRedirect = (
     }
   ) => {
     try {
-      console.log('🔄 Processing direct WhatsApp redirect for campaign:', campaignData.name);
-      
+      console.log('🔄 Processing direct WhatsApp redirect for campaign:', campaignData.name, {
+        phone: options?.phone,
+        name: options?.name,
+        utms: options?.utms
+      });
+
       // Inicializa tracking avançado se necessário
       if (campaignData.event_type && pixelInitialized) {
         try {
           const { trackEnhancedCustomEvent } = useEnhancedPixelTracking(campaignData);
-          
+
           console.log('📊 Tracking enhanced event before redirect:', campaignData.event_type);
-          
+
           await trackEnhancedCustomEvent(campaignData.event_type, {
             redirect_type: 'direct_whatsapp',
             campaign_name: campaignData.name
@@ -47,8 +50,9 @@ export const useDirectWhatsAppRedirect = (
           console.warn('⚠️ Enhanced tracking failed, continuing with redirect:', trackingError);
         }
       }
-      
+
       // Track o redirecionamento no sistema, salvando telefone/nome/utms, se houver
+      // --> Logs detalhados já adicionados em trackingService
       const result = await trackRedirect(
         campaignId!, // id da campanha
         options?.phone || 'Redirecionamento Direto', // telefone real ou nome padrão
@@ -56,27 +60,27 @@ export const useDirectWhatsAppRedirect = (
         campaignData.event_type,
         options?.utms // pode vir undefined
       );
-      
+
       // Pega o número de destino do WhatsApp
       const targetPhone = result.targetPhone || campaignData.whatsapp_number;
-      
+
       if (!targetPhone) {
         console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
         toast.error('Número de WhatsApp não configurado para esta campanha');
         throw new Error('Número de WhatsApp não configurado');
       }
-      
+
       // Monta a URL do WhatsApp com mensagem personalizada
       let whatsappUrl = `https://wa.me/${targetPhone}`;
-      
+
       if (campaignData.custom_message) {
         const encodedMessage = encodeURIComponent(campaignData.custom_message);
         whatsappUrl += `?text=${encodedMessage}`;
       }
-      
+
       // Redireciona para o WhatsApp com fallback
       console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
-      
+
       try {
         toast.success('Redirecionando para o WhatsApp...');
         window.location.href = whatsappUrl;
@@ -85,7 +89,7 @@ export const useDirectWhatsAppRedirect = (
         console.error('🔄 Error with redirect, trying fallback:', error);
         window.location.href = whatsappUrl;
       }
-      
+
     } catch (err) {
       console.error('❌ Error in direct WhatsApp redirect:', err);
       toast.error('Erro ao processar redirecionamento direto');
