@@ -75,7 +75,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="85"
+                placeholder=""
                 value={phone}
                 onChange={handlePhoneChange}
                 className="pl-12"
