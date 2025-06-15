@@ -11,6 +11,14 @@ import CampaignForm from '@/components/campaigns/CampaignForm';
 import CampaignTable from '@/components/campaigns/CampaignTable';
 import CampaignFilters from '@/components/campaigns/CampaignFilters';
 
+const getDefaultUtmVariables = () => ({
+  utm_source: "{{site_source_name}}",
+  utm_medium: "{{adset.name}}",
+  utm_campaign: "{{campaign.name}}",
+  utm_content: "{{ad.name}}",
+  utm_term: "{{placement}}",
+});
+
 const Campaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,12 +68,13 @@ const Campaigns = () => {
   // Atualiza os UTMs conforme a campanha selecionada
   useEffect(() => {
     if (selectedCampaign) {
+      // Use valores guardados OU os padrões caso vazio
       setCustomUtms({
-        utm_source: selectedCampaign.utm_source || "",
-        utm_medium: selectedCampaign.utm_medium || "",
-        utm_campaign: selectedCampaign.utm_campaign || "",
-        utm_content: selectedCampaign.utm_content || "",
-        utm_term: selectedCampaign.utm_term || "",
+        utm_source: selectedCampaign.utm_source || "{{site_source_name}}",
+        utm_medium: selectedCampaign.utm_medium || "{{adset.name}}",
+        utm_campaign: selectedCampaign.utm_campaign || "{{campaign.name}}",
+        utm_content: selectedCampaign.utm_content || "{{ad.name}}",
+        utm_term: selectedCampaign.utm_term || "{{placement}}",
       });
     }
   }, [selectedCampaign]);
@@ -126,6 +135,7 @@ const Campaigns = () => {
       data_processing_options_country: 0,
       data_processing_options_state: 0
     });
+    setCustomUtms(getDefaultUtmVariables());
     setDialogMode('add');
     setIsDialogOpen(true);
   };
