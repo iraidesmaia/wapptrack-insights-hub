@@ -236,8 +236,8 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         }
       }
       
-      // Track the redirect in our system (sem telefone para redirecionamento direto)
-      const result = await trackRedirect(campaignId!, '', '', campaignData.event_type);
+      // Track the redirect in our system (para redirecionamento direto, apenas registrar o evento)
+      const result = await trackRedirect(campaignId!, 'Redirecionamento Direto', 'Visitante', campaignData.event_type);
       
       // Get target WhatsApp number
       const targetPhone = result.targetPhone || campaignData.whatsapp_number;
@@ -256,14 +256,27 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
         whatsappUrl += `?text=${encodedMessage}`;
       }
       
-      // Redirecionar para o WhatsApp
+      // Redirecionar para o WhatsApp com fallback
       console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-      window.open(whatsappUrl, '_blank');
       
-      // Opcional: fechar a janela atual após um pequeno delay
-      setTimeout(() => {
-        window.close();
-      }, 1000);
+      try {
+        // Tentar abrir em nova aba primeiro
+        const newWindow = window.open(whatsappUrl, '_blank');
+        
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+          // Se popup foi bloqueado, usar location.href como fallback
+          console.log('Popup blocked, using location.href fallback');
+          window.location.href = whatsappUrl;
+        } else {
+          console.log('WhatsApp opened in new tab successfully');
+          // Opcional: mostrar mensagem de sucesso
+          toast.success('Redirecionando para o WhatsApp...');
+        }
+      } catch (error) {
+        // Fallback final
+        console.log('Error with window.open, using location.href:', error);
+        window.location.href = whatsappUrl;
+      }
       
     } catch (err) {
       console.error('Error in direct WhatsApp redirect:', err);

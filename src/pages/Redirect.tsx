@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ const Redirect = () => {
   const [loading, setLoading] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const redirectExecuted = useRef(false);
 
   const {
     campaign,
@@ -28,8 +29,13 @@ const Redirect = () => {
   } = useCampaignData(campaignId, debug);
 
   useEffect(() => {
-    // Handle direct WhatsApp redirect - só quando a campanha for carregada e for redirecionamento direto
-    if (campaign && campaign.redirect_type === 'whatsapp' && !isLoading && !showLoadingScreen) {
+    // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada
+    if (campaign && 
+        campaign.redirect_type === 'whatsapp' && 
+        !isLoading && 
+        !redirectExecuted.current) {
+      
+      redirectExecuted.current = true;
       console.log('Starting direct WhatsApp redirect for campaign:', campaign.name);
       setShowLoadingScreen(true);
       
@@ -48,10 +54,11 @@ const Redirect = () => {
         } catch (err) {
           console.error('Error in direct redirect:', err);
           setShowLoadingScreen(false);
+          redirectExecuted.current = false;
         }
       }, 3000);
     }
-  }, [campaign, isLoading, handleDirectWhatsAppRedirect, showLoadingScreen]);
+  }, [campaign, isLoading, handleDirectWhatsAppRedirect]);
 
   const onFormSubmit = async (phone: string, name: string) => {
     setLoading(true);
