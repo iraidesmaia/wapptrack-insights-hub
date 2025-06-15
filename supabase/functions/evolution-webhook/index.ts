@@ -66,8 +66,8 @@ serve(async (req) => {
       const isFromMe = message.key?.fromMe
       
       if (remoteJid) {
-        const realPhoneNumber = remoteJid.replace('@s.whatsapp.net', '')
-        console.log(`🔍 Processing message from: ${realPhoneNumber}, fromMe: ${isFromMe}`)
+        const phoneNumber = remoteJid.replace('@s.whatsapp.net', '')
+        console.log(`🔍 Processing message from: ${phoneNumber}, fromMe: ${isFromMe}`)
         
         const messageContent = message.message?.conversation || 
                              message.message?.extendedTextMessage?.text || 
@@ -84,7 +84,6 @@ serve(async (req) => {
         ];
         
         console.log(`📱 Phone variations for search: ${JSON.stringify(phoneVariations)}`);
-        console.log(`📲 Real phone number from Evolution: ${realPhoneNumber}`);
         
         let matchedLeads = null;
 
@@ -121,29 +120,6 @@ serve(async (req) => {
             
             // Processar cada lead encontrado
             const updatePromises = matchedLeads.map(async (lead) => {
-              // 📲 NOVO: Verificar se o número real é diferente do salvo
-              if (lead.phone !== realPhoneNumber) {
-                console.log(`📞 PHONE UPDATE NEEDED: Lead ${lead.name}`);
-                console.log(`   - Stored phone: ${lead.phone}`);
-                console.log(`   - Real phone from Evolution: ${realPhoneNumber}`);
-                
-                // Atualizar o número do lead com o número real da Evolution
-                const { error: phoneUpdateError } = await supabase
-                  .from('leads')
-                  .update({ phone: realPhoneNumber })
-                  .eq('id', lead.id);
-
-                if (phoneUpdateError) {
-                  console.error(`❌ Error updating phone for lead ${lead.id}:`, phoneUpdateError);
-                } else {
-                  console.log(`✅ Successfully updated phone for lead ${lead.name}: ${lead.phone} → ${realPhoneNumber}`);
-                  // Atualizar o lead local para usar o número atualizado
-                  lead.phone = realPhoneNumber;
-                }
-              } else {
-                console.log(`📞 Phone number matches, no update needed for lead ${lead.name}: ${lead.phone}`);
-              }
-
               // Buscar palavras-chave personalizadas da campanha
               let conversionKeywords = DEFAULT_CONVERSION_KEYWORDS;
               let cancellationKeywords = DEFAULT_CANCELLATION_KEYWORDS;
@@ -223,29 +199,6 @@ serve(async (req) => {
             
             // Atualizar todos os leads encontrados, mas APENAS SE NÃO TIVEREM MENSAGEM AINDA
             const updatePromises = matchedLeads.map(async (lead) => {
-              // 📲 NOVO: Verificar se o número real é diferente do salvo
-              if (lead.phone !== realPhoneNumber) {
-                console.log(`📞 PHONE UPDATE NEEDED: Lead ${lead.name}`);
-                console.log(`   - Stored phone: ${lead.phone}`);
-                console.log(`   - Real phone from Evolution: ${realPhoneNumber}`);
-                
-                // Atualizar o número do lead com o número real da Evolution
-                const { error: phoneUpdateError } = await supabase
-                  .from('leads')
-                  .update({ phone: realPhoneNumber })
-                  .eq('id', lead.id);
-
-                if (phoneUpdateError) {
-                  console.error(`❌ Error updating phone for lead ${lead.id}:`, phoneUpdateError);
-                } else {
-                  console.log(`✅ Successfully updated phone for lead ${lead.name}: ${lead.phone} → ${realPhoneNumber}`);
-                  // Atualizar o lead local para usar o número atualizado
-                  lead.phone = realPhoneNumber;
-                }
-              } else {
-                console.log(`📞 Phone number matches, no update needed for lead ${lead.name}: ${lead.phone}`);
-              }
-
               // ✅ VERIFICAR SE O LEAD JÁ TEM UMA MENSAGEM SALVA
               if (lead.last_message && lead.last_message.trim() !== '') {
                 console.log(`⏭️ Skipping lead ${lead.name} (${lead.phone}) - already has message: "${lead.last_message}"`);
@@ -283,9 +236,9 @@ serve(async (req) => {
             console.log(`⏭️ Skipped ${skippedUpdates.length} leads that already had messages`);
           }
         } else {
-          console.error(`❌ No lead found for phone: ${realPhoneNumber}`);
+          console.error(`❌ No lead found for phone: ${phoneNumber}`);
           console.log('🔍 Debug info:');
-          console.log('- Original phone from webhook:', realPhoneNumber);
+          console.log('- Original phone from webhook:', phoneNumber);
           console.log('- Variations tried:', phoneVariations);
           
           // Buscar alguns leads para comparação

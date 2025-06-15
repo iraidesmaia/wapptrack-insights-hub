@@ -62,13 +62,6 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
 
   const createSaleFromLead = async (lead: Lead) => {
     try {
-      console.log('🎯 createSaleFromLead - Iniciando criação de venda para lead:', {
-        leadId: lead.id,
-        leadName: lead.name,
-        campaign: lead.campaign,
-        status: lead.status
-      });
-
       const newSale = await addSale({
         value: 0,
         date: new Date().toISOString(),
@@ -79,22 +72,11 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
         notes: `Venda criada automaticamente quando lead foi convertido`
       });
       
-      console.log('✅ createSaleFromLead - Venda criada com sucesso:', newSale);
+      console.log('Venda criada automaticamente:', newSale);
       toast.success('Lead convertido! Uma nova venda foi criada automaticamente.');
-      
-      return newSale;
     } catch (error) {
-      console.error('❌ createSaleFromLead - Erro detalhado ao criar venda automática:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
-        leadData: {
-          id: lead.id,
-          name: lead.name,
-          campaign: lead.campaign
-        }
-      });
-      toast.error('Lead atualizado, mas houve erro ao criar a venda automática. Verifique o console para mais detalhes.');
-      throw error;
+      console.error('Erro ao criar venda automática:', error);
+      toast.error('Lead atualizado, mas houve erro ao criar a venda automática');
     }
   };
 
@@ -113,13 +95,6 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       let updatedLead: Lead;
       const wasConverted = currentLead.status === 'converted';
 
-      console.log('💾 handleSaveLead - Dados do lead:', {
-        mode: dialogMode,
-        leadId: currentLead.id,
-        currentStatus: currentLead.status,
-        wasConverted
-      });
-
       let processedPhone = processBrazilianPhone(currentLead.phone);
       
       // Aplicar correção automática se necessário
@@ -133,57 +108,32 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       const leadToSave = { ...currentLead, phone: processedPhone };
 
       if (dialogMode === 'add') {
-        console.log('➕ handleSaveLead - Adicionando novo lead...');
         const newLead = await addLead(leadToSave as Omit<Lead, 'id' | 'created_at'>);
         setLeads([newLead, ...leads]);
         updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');
-
-        // Verificar se novo lead já foi criado como convertido
-        if (wasConverted) {
-          console.log('🎯 handleSaveLead - Novo lead criado como convertido, criando venda...');
-          try {
-            await createSaleFromLead(updatedLead);
-          } catch (saleError) {
-            console.error('❌ handleSaveLead - Erro ao criar venda para novo lead convertido:', saleError);
-          }
-        }
       } else {
-        if (!currentLead.id) {
-          console.error('❌ handleSaveLead - ID do lead não encontrado para edição');
-          return;
-        }
+        if (!currentLead.id) return;
         
         const originalLead = leads.find(lead => lead.id === currentLead.id);
         const statusChangedToConverted = originalLead?.status !== 'converted' && currentLead.status === 'converted';
-        
-        console.log('📝 handleSaveLead - Editando lead existente:', {
-          leadId: currentLead.id,
-          originalStatus: originalLead?.status,
-          newStatus: currentLead.status,
-          statusChangedToConverted
-        });
         
         updatedLead = await updateLead(currentLead.id, leadToSave);
         setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
         toast.success('Lead atualizado com sucesso');
         
-        // Verificar se o status mudou para convertido
         if (statusChangedToConverted) {
-          console.log('🎯 handleSaveLead - Status mudou para convertido, criando venda...');
-          try {
-            await createSaleFromLead(updatedLead);
-          } catch (saleError) {
-            console.error('❌ handleSaveLead - Erro ao criar venda após conversão:', saleError);
-          }
-        } else {
-          console.log('⏭️ handleSaveLead - Status não mudou para convertido, pulando criação de venda');
+          await createSaleFromLead(updatedLead);
         }
+      }
+
+      if (dialogMode === 'add' && wasConverted) {
+        await createSaleFromLead(updatedLead);
       }
       
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('❌ handleSaveLead - Erro geral ao salvar lead:', error);
+      console.error('Error saving lead:', error);
       toast.error('Erro ao salvar lead');
     }
   };

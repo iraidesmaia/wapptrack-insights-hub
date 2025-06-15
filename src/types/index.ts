@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -23,41 +22,37 @@ export interface Lead {
   whatsapp_delivery_attempts?: number;
   last_whatsapp_attempt?: string;
   last_message?: string;
-  lead_score?: number;
 }
 
 export interface Campaign {
   id: string;
+  created_at: string;
   name: string;
-  pixel_id?: string;
-  facebook_access_token?: string;
-  whatsapp_number?: string;
-  event_type?: 'contact' | 'lead' | 'page_view' | 'sale';
-  custom_message?: string;
-  company_title?: string;
-  company_subtitle?: string;
-  logo_url?: string;
-  redirect_type?: 'whatsapp' | 'form';
+  start_date?: string;
+  end_date?: string;
+  status?: string;
+  budget?: number;
+  objective?: string;
+  target_audience?: string;
+  content?: string;
+  results?: string;
+  active?: boolean;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
-  active?: boolean;
-  created_at?: string;
-  pixel_integration_type?: 'direct' | 'form';
+  pixel_id?: string;
+  pixel_integration_type?: string;
+  whatsapp_number?: string;
+  event_type?: string;
+  custom_message?: string;
+  company_title?: string;
+  company_subtitle?: string;
+  logo_url?: string;
+  redirect_type?: string;
   conversion_keywords?: string[];
   cancellation_keywords?: string[];
-  conversion_api_enabled?: boolean;
-  test_event_code?: string;
-  advanced_matching_enabled?: boolean;
-  custom_audience_pixel_id?: string;
-  server_side_api_enabled?: boolean;
-  tracking_domain?: string;
-  external_id?: string;
-  data_processing_options?: string[];
-  data_processing_options_country?: number;
-  data_processing_options_state?: number;
 }
 
 export interface Sale {
