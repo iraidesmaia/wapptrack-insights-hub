@@ -36,8 +36,9 @@ export const trackRedirect = async (
     // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
-      
-      if (phone) {
+      // Aqui, mantém lead genérico só se NÃO for para redirecionamento "whatsapp"
+      // (protege legado, mas evita lead duplo)
+      if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
         const leadData: any = {
           name: name || 'Lead via Tracking',
@@ -57,14 +58,21 @@ export const trackRedirect = async (
         } else {
           console.log('Created lead with default campaign and UTMs:', utms);
         }
-        
-        // WhatsApp fallback
-        return { targetPhone: '5585998372658' };
       }
+      // WhatsApp fallback: retorna só o número
       return { targetPhone: '5585998372658' };
     }
 
     const type = eventType || campaign.event_type || 'lead';
+
+    // ⭐️ NOVO: Se campanha é redirect_type: 'whatsapp', NÃO salva lead aqui!
+    if (campaign.redirect_type === 'whatsapp') {
+      console.log(`🚦 Campanha de redirecionamento WhatsApp – Não criar lead no frontend!`, {
+        id: campaign.id,
+        name: campaign.name,
+      });
+      return { targetPhone: campaign.whatsapp_number };
+    }
 
     if ((type === 'lead' || type === 'contact') && phone) {
       // Checa lead duplicado pelo telefone
