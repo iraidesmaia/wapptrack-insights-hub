@@ -5,6 +5,22 @@ import { initFacebookPixel, trackPageView } from '@/lib/fbPixel';
 import { useMaximumTracking } from './useMaximumTracking';
 import { supabase } from '@/integrations/supabase/client';
 
+// Facebook Advanced Matching user data interface
+interface FacebookUserData {
+  em?: string[];      // hashed email
+  ph?: string[];      // hashed phone
+  fn?: string[];      // hashed first name
+  ln?: string[];      // hashed last name
+  ct?: string[];      // hashed city
+  st?: string[];      // hashed state
+  zp?: string[];      // hashed zip
+  country?: string[]; // hashed country
+  client_ip_address?: string;
+  client_user_agent?: string;
+  fbc?: string;       // Facebook click ID
+  fbp?: string;       // Facebook browser ID
+}
+
 export const useEnhancedPixelTracking = (
   campaign: Campaign | null,
   debug: boolean = false
@@ -80,18 +96,18 @@ export const useEnhancedPixelTracking = (
         lead_email: leadData.email
       });
 
-      // Add advanced matching data
-      enrichedData.user_data = {
+      // Create properly typed advanced matching data
+      const advancedMatchingData: FacebookUserData = {
         ...enrichedData.user_data,
-        em: leadData.email ? [await hashData(leadData.email)] : undefined,
-        ph: leadData.phone ? [await hashData(normalizePhone(leadData.phone))] : undefined,
-        fn: firstName ? [await hashData(firstName)] : undefined,
-        ln: lastName ? [await hashData(lastName)] : undefined,
+        ...(leadData.email && { em: [await hashData(leadData.email)] }),
+        ...(leadData.phone && { ph: [await hashData(normalizePhone(leadData.phone))] }),
+        ...(firstName && { fn: [await hashData(firstName)] }),
+        ...(lastName && { ln: [await hashData(lastName)] })
       };
 
       console.log('🎯 Tracking enhanced Lead with advanced matching:', {
         parametersCount: Object.keys(enrichedData.custom_data).length,
-        userDataCount: Object.keys(enrichedData.user_data).length,
+        userDataCount: Object.keys(advancedMatchingData).length,
         hasAdvancedMatching: !!(leadData.email || leadData.phone)
       });
 
@@ -100,7 +116,10 @@ export const useEnhancedPixelTracking = (
 
       // Send via Conversions API for server-side tracking
       if (campaign.conversion_api_enabled) {
-        await sendServerSideEvent('Lead', enrichedData);
+        await sendServerSideEvent('Lead', {
+          ...enrichedData,
+          user_data: advancedMatchingData
+        });
       }
 
     } catch (error) {
