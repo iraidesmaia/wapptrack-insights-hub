@@ -16,6 +16,11 @@ export interface Campaign {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  active?: boolean;
+  created_at?: string;
+  pixel_integration_type?: string;
+  conversion_keywords?: string[];
+  cancellation_keywords?: string[];
 }
 
 export interface CompanyBranding {
