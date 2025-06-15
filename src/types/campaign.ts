@@ -1,4 +1,5 @@
 
+
 export interface Campaign {
   id: string;
   name: string;
@@ -28,3 +29,4 @@ export interface CompanyBranding {
   title: string;
   subtitle: string;
 }
+
