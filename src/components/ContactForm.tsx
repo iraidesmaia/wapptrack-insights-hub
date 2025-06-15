@@ -69,18 +69,47 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
           <div className="space-y-2">
             <Label htmlFor="phone">Seu WhatsApp*</Label>
             <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
+              {/* 
+                O container a seguir mantém o "+55" visível, 
+                e o input oculta números fora do espaço disponível, 
+                mostrando apenas o conteúdo digitado após o "+55"
+              */}
+              <span
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none select-none"
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  zIndex: 2,
+                  background: 'transparent',
+                  userSelect: 'none',
+                }}
+              >
                 +55
-              </div>
+              </span>
               <Input
                 id="phone"
                 type="tel"
+                autoComplete="off"
+                inputMode="numeric"
+                pattern="[0-9 ()-]*"
                 placeholder="(85) 99999-9999 ou (85) 9999-9999"
                 value={phone}
                 onChange={handlePhoneChange}
-                className="pl-12"
                 maxLength={16}
                 required
+                className="pl-12 pr-2 w-full block overflow-hidden text-ellipsis whitespace-nowrap bg-transparent"
+                style={{
+                  textIndent: 0,
+                  // Faz com que só os dígitos depois do +55 fiquem visíveis
+                  // O padding-left deixa espaço exato para o +55 e um espaço visual
+                  paddingLeft: '2.5rem',
+                  // Esconde qualquer número que passe do campo
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  // Garante que o texto nunca sai do input
+                  whiteSpace: 'nowrap',
+                  zIndex: 1,
+                }}
               />
             </div>
             <p className="text-xs text-muted-foreground">
