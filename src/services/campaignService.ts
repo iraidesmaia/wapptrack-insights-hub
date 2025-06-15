@@ -20,6 +20,7 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
       utm_content: campaign.utm_content,
       utm_term: campaign.utm_term,
       pixel_id: campaign.pixel_id,
+      facebook_access_token: campaign.facebook_access_token,
       whatsapp_number: campaign.whatsapp_number,
       event_type: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: campaign.active,
@@ -51,6 +52,7 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
         utm_content: campaign.utm_content,
         utm_term: campaign.utm_term,
         pixel_id: campaign.pixel_id,
+        facebook_access_token: campaign.facebook_access_token,
         whatsapp_number: campaign.whatsapp_number,
         event_type: campaign.event_type,
         active: campaign.active,
@@ -77,6 +79,7 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
       utm_content: data.utm_content,
       utm_term: data.utm_term,
       pixel_id: data.pixel_id,
+      facebook_access_token: data.facebook_access_token,
       whatsapp_number: data.whatsapp_number,
       event_type: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
@@ -106,6 +109,7 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.utm_content !== undefined) updateData.utm_content = campaign.utm_content;
     if (campaign.utm_term !== undefined) updateData.utm_term = campaign.utm_term;
     if (campaign.pixel_id !== undefined) updateData.pixel_id = campaign.pixel_id;
+    if (campaign.facebook_access_token !== undefined) updateData.facebook_access_token = campaign.facebook_access_token;
     if (campaign.whatsapp_number !== undefined) updateData.whatsapp_number = campaign.whatsapp_number;
     if (campaign.event_type !== undefined) updateData.event_type = campaign.event_type;
     if (campaign.active !== undefined) updateData.active = campaign.active;
@@ -136,6 +140,7 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
       utm_content: data.utm_content,
       utm_term: data.utm_term,
       pixel_id: data.pixel_id,
+      facebook_access_token: data.facebook_access_token,
       whatsapp_number: data.whatsapp_number,
       event_type: data.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
       active: data.active,
