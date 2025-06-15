@@ -98,7 +98,12 @@ export const useEnhancedPixelTracking = (
 
       // Create properly typed advanced matching data
       const advancedMatchingData: FacebookUserData = {
-        ...enrichedData.user_data,
+        // Include existing Facebook data
+        fbc: enrichedData.user_data.fbc,
+        fbp: enrichedData.user_data.fbp,
+        client_ip_address: enrichedData.user_data.client_ip_address,
+        client_user_agent: enrichedData.user_data.client_user_agent,
+        // Add lead-specific hashed data
         ...(leadData.email && { em: [await hashData(leadData.email)] }),
         ...(leadData.phone && { ph: [await hashData(normalizePhone(leadData.phone))] }),
         ...(firstName && { fn: [await hashData(firstName)] }),
