@@ -10,6 +10,11 @@ export interface Campaign {
   company_subtitle?: string;
   logo_url?: string;
   redirect_type?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
 }
 
 export interface CompanyBranding {

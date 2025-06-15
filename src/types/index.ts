@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name?: string;
@@ -22,6 +23,7 @@ export interface Lead {
   whatsapp_delivery_attempts?: number;
   last_whatsapp_attempt?: string;
   last_message?: string;
+  lead_score?: number;
 }
 
 export interface Campaign {

@@ -106,8 +106,8 @@ export const getAttributionReport = async (
         attribution.conversions++;
       }
       
-      // Use a default score if not available
-      const leadScore = lead.lead_score || 50;
+      // Use a default score if not available - safely access lead_score
+      const leadScore = (lead as any).lead_score || 50;
       attribution.total_score += leadScore;
     });
 
@@ -248,7 +248,7 @@ export const getCampaignPerformanceDetails = async (
       const lostLeads = filteredLeads.filter(l => l.status === 'lost').length;
       
       const avgLeadScore = totalLeads > 0 
-        ? filteredLeads.reduce((sum, lead) => sum + (lead.lead_score || 50), 0) / totalLeads 
+        ? filteredLeads.reduce((sum, lead) => sum + ((lead as any).lead_score || 50), 0) / totalLeads 
         : 0;
       
       const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;

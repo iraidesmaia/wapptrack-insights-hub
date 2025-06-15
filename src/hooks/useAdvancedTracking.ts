@@ -26,6 +26,7 @@ interface CustomData {
   content_ids?: string[];
   campaign_id?: string;
   lead_id?: string;
+  source_url?: string;
 }
 
 interface ConversionsAPIResponse {
@@ -124,7 +125,8 @@ export const useAdvancedTracking = () => {
         ...customData,
         campaign_id: campaign.id,
         content_name: campaign.name,
-        content_category: campaign.utm_medium || 'marketing'
+        content_category: campaign.utm_medium || 'marketing',
+        source_url: window.location.href
       };
 
       console.log('Sending Conversion Event:', {

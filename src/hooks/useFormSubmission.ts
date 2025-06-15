@@ -1,4 +1,3 @@
-
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { trackEventByType } from '@/lib/fbPixel';
 import { useAdvancedTracking } from './useAdvancedTracking';
@@ -124,7 +123,7 @@ export const useFormSubmission = (
             phone,
             email
           },
-          result.leadId // If trackRedirect returns the lead ID
+          undefined // leadId not available from trackRedirect result
         );
         
         console.log('Advanced tracking results:', {
