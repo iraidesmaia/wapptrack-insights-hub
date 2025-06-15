@@ -218,28 +218,6 @@ const Campaigns = () => {
           </div>
         </div>
 
-        {/* AVISO SOBRE O LINK LIMPO E OS UTMS DINÂMICOS */}
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-md text-sm flex flex-col gap-2">
-          <span className="font-semibold">Como funciona o rastreamento?</span>
-          <span>
-            <strong>O link gerado abaixo NÃO possui parâmetros UTM fixos:</strong><br />
-            <span>
-              Simplesmente use a URL limpa de rastreamento da campanha (<b>sem UTMs manualmente</b>) em suas campanhas.<br />
-              <b>As plataformas de anúncios (Facebook Ads, Google Ads, TikTok, etc) adicionam automaticamente UTMs e outros parâmetros (<i>fbclid</i>, <i>gclid</i>, <i>ttclid</i>) ao link no momento do clique!</b>
-            </span><br />
-            <span>
-              <b>Nosso sistema captura automaticamente TODOS os UTMs e IDs das plataformas enviados no clique real do anúncio.</b><br />
-              <span className="text-green-700">
-                Assim, você sempre terá a origem real do lead (campanha, anúncio, palavra-chave) para cada conversão.
-              </span>
-            </span>
-            <br />
-            <span className="text-xs text-blue-800">
-              Caso precise fazer um teste avançado com UTMs customizados, clique em &quot;Gerar link com UTMs customizados&quot; ao lado de cada campanha.
-            </span>
-          </span>
-        </div>
-
         {/* BLOCO PARA VISUALIZAR LINK LIMPO DA CAMPANHA SELECIONADA */}
         {selectedCampaign && (
           <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
