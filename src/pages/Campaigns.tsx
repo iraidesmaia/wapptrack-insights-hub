@@ -47,15 +47,6 @@ const Campaigns = () => {
   });
   const [baseUrl, setBaseUrl] = useState('https://seusite.com');
   const [isGlobalKeywordsOpen, setIsGlobalKeywordsOpen] = useState(false);
-  const [customUtms, setCustomUtms] = useState({
-    utm_source: "",
-    utm_medium: "",
-    utm_campaign: "",
-    utm_content: "",
-    utm_term: "",
-  });
-  const [showCustomUtm, setShowCustomUtm] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -173,23 +164,16 @@ const Campaigns = () => {
       });
   };
 
-  // Função para gerar URL LIMPA (sem UTMs)
   const getTrackingUrl = (campaign: Campaign) => {
+    // Gera todos os UTMs no link automaticamente:
+    // utm_source: "campanha_web", utm_medium: "digital", utm_campaign: nome da campanha (slug), utm_content: "link", utm_term: "padrao"
     const currentUrl = window.location.origin;
-    return `${currentUrl}/ir?id=${campaign.id}`;
-  };
-
-  // Função para gerar URL com UTMs customizados (para testes, opcional)
-  const getCustomUtmTrackingUrl = (campaign: Campaign, utms: Partial<Record<string, string>>) => {
-    const currentUrl = window.location.origin;
-    const params = new URLSearchParams();
-    params.append("id", campaign.id);
-    if (utms.utm_source) params.append("utm_source", utms.utm_source);
-    if (utms.utm_medium) params.append("utm_medium", utms.utm_medium);
-    if (utms.utm_campaign) params.append("utm_campaign", utms.utm_campaign);
-    if (utms.utm_content) params.append("utm_content", utms.utm_content);
-    if (utms.utm_term) params.append("utm_term", utms.utm_term);
-    return `${currentUrl}/ir?${params.toString()}`;
+    const utm_source = "campanha_web";
+    const utm_medium = "digital";
+    const utm_campaign = (campaign.name || '').replace(/\s+/g, '-').toLowerCase();
+    const utm_content = "link";
+    const utm_term = "padrao";
+    return `${currentUrl}/ir?id=${campaign.id}&utm_source=${utm_source}&utm_medium=${utm_medium}&utm_campaign=${utm_campaign}&utm_content=${utm_content}&utm_term=${utm_term}`;
   };
 
   const handleCopyTrackingUrl = (campaign: Campaign) => {
@@ -218,100 +202,17 @@ const Campaigns = () => {
           </div>
         </div>
 
-        {/* AVISO SOBRE O LINK LIMPO E OS UTMS DINÂMICOS */}
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-md text-sm flex flex-col gap-2">
-          <span className="font-semibold">Como funciona o rastreamento?</span>
-          <span>
-            <strong>O link gerado abaixo NÃO possui parâmetros UTM fixos:</strong><br />
-            <span>
-              Simplesmente use a URL limpa de rastreamento da campanha (<b>sem UTMs manualmente</b>) em suas campanhas.<br />
-              <b>As plataformas de anúncios (Facebook Ads, Google Ads, TikTok, etc) adicionam automaticamente UTMs e outros parâmetros (<i>fbclid</i>, <i>gclid</i>, <i>ttclid</i>) ao link no momento do clique!</b>
-            </span><br />
-            <span>
-              <b>Nosso sistema captura automaticamente TODOS os UTMs e IDs das plataformas enviados no clique real do anúncio.</b><br />
-              <span className="text-green-700">
-                Assim, você sempre terá a origem real do lead (campanha, anúncio, palavra-chave) para cada conversão.
-              </span>
-            </span>
-            <br />
-            <span className="text-xs text-blue-800">
-              Caso precise fazer um teste avançado com UTMs customizados, clique em &quot;Gerar link com UTMs customizados&quot; ao lado de cada campanha.
-            </span>
-          </span>
-        </div>
-
-        {/* BLOCO PARA VISUALIZAR LINK LIMPO DA CAMPANHA SELECIONADA */}
-        {selectedCampaign && (
-          <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
-            <span className="font-semibold">Link de rastreamento limpo:</span>
-            <div className="flex gap-2 mt-1">
-              <input
-                className="w-full px-2 py-1 border rounded bg-gray-100 text-sm"
-                readOnly
-                value={getTrackingUrl(selectedCampaign)}
-              />
-              <Button variant="outline" onClick={() => handleCopyTrackingUrl(selectedCampaign)}>
-                Copiar
-              </Button>
-            </div>
-            <Button
-              size="sm"
-              className="mt-2"
-              variant="secondary"
-              onClick={() => setShowCustomUtm((v) => !v)}
-            >
-              {showCustomUtm ? "Fechar UTMs customizados" : "Gerar link com UTMs customizados"}
-            </Button>
-            {showCustomUtm && (
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input className="border px-2 py-1 rounded" placeholder="utm_source"
-                  value={customUtms.utm_source}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_source: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_medium"
-                  value={customUtms.utm_medium}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_medium: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_campaign"
-                  value={customUtms.utm_campaign}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_campaign: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_content"
-                  value={customUtms.utm_content}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_content: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_term"
-                  value={customUtms.utm_term}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_term: e.target.value })}
-                />
-                <Button
-                  className="col-span-1 md:col-span-2"
-                  variant="outline"
-                  onClick={() => copyToClipboard(getCustomUtmTrackingUrl(selectedCampaign, customUtms), "Link com UTMs copiado")}
-                >
-                  Copiar link com UTMs
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Filtros */}
         <CampaignFilters 
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
         />
 
-        {/* Tabela de campanhas (ao clicar seleciona para exibir link limpo) */}
         <CampaignTable
           campaigns={filteredCampaigns}
           isLoading={isLoading}
           onEdit={handleOpenEditDialog}
           onDelete={handleDeleteCampaign}
-          onCopyTrackingUrl={campaign => {
-            setSelectedCampaign(campaign); // Selecionar para ver o link limpo acima
-            handleCopyTrackingUrl(campaign);
-          }}
+          onCopyTrackingUrl={handleCopyTrackingUrl}
         />
 
         <CampaignForm
