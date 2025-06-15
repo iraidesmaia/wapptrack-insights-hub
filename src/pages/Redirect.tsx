@@ -13,13 +13,11 @@ const Redirect = () => {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('id');
   const debug = searchParams.get('debug') === 'true';
-
+  
   const [loading, setLoading] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [manualFallback, setManualFallback] = useState(false);
-
-  const alreadyRedirected = useRef(false);
+  const redirectExecuted = useRef(false);
 
   const {
     campaign,
@@ -30,50 +28,37 @@ const Redirect = () => {
     handleDirectWhatsAppRedirect
   } = useCampaignData(campaignId, debug);
 
-  const performWhatsAppRedirect = () => {
-    if (!campaign?.whatsapp_number) {
-      setShowLoadingScreen(false);
-      setManualFallback(true);
-      console.warn('WhatsApp não configurado para a campanha');
-      return;
-    }
-    let whatsappUrl = `https://wa.me/${campaign.whatsapp_number}`;
-    if (campaign.custom_message) {
-      whatsappUrl += `?text=${encodeURIComponent(campaign.custom_message)}`;
-    }
-    window.location.href = whatsappUrl;
-  };
-
   useEffect(() => {
-    // Só rodar para campanhas que são redirect_type "whatsapp"
-    if (campaign?.redirect_type === 'whatsapp' && !isLoading && !alreadyRedirected.current) {
-      alreadyRedirected.current = true;
+    // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada
+    if (campaign && 
+        campaign.redirect_type === 'whatsapp' && 
+        !isLoading && 
+        !redirectExecuted.current) {
+      
+      redirectExecuted.current = true;
+      console.log('Starting direct WhatsApp redirect for campaign:', campaign.name);
       setShowLoadingScreen(true);
-      setManualFallback(false);
-
+      
+      // Start loading animation
       let progress = 0;
       const interval = setInterval(() => {
-        progress += 100 / 30;
+        progress += 100 / 30; // 30 frames over 3 seconds
         setLoadingProgress(Math.min(progress, 100));
       }, 100);
 
-      setTimeout(() => {
+      // Redirect after 3 seconds
+      setTimeout(async () => {
         clearInterval(interval);
         try {
-          performWhatsAppRedirect();
+          await handleDirectWhatsAppRedirect(campaign);
         } catch (err) {
+          console.error('Error in direct redirect:', err);
           setShowLoadingScreen(false);
-          setManualFallback(true);
-          console.error('Erro no redirecionamento:', err);
+          redirectExecuted.current = false;
         }
       }, 3000);
-
-      setTimeout(() => {
-        setShowLoadingScreen(false);
-        setManualFallback(true);
-      }, 6000);
     }
-  }, [campaign, isLoading]);
+  }, [campaign, isLoading, handleDirectWhatsAppRedirect]);
 
   const onFormSubmit = async (phone: string, name: string) => {
     setLoading(true);
@@ -86,6 +71,7 @@ const Redirect = () => {
     }
   };
 
+  // Function to toggle debug mode
   const handleToggleDebug = () => {
     togglePixelDebug(!debug);
     const newUrl = new URL(window.location.href);
@@ -98,7 +84,11 @@ const Redirect = () => {
     window.location.reload();
   };
 
-  // 1. Erro da campanha
+  // Show loading screen for direct WhatsApp redirect
+  if (showLoadingScreen && campaign?.redirect_type === 'whatsapp') {
+    return <LoadingScreen progress={loadingProgress} />;
+  }
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -118,54 +108,29 @@ const Redirect = () => {
     );
   }
 
-  // 2. Loading inicial enquanto busca a campanha (não mostrar nada do formulário nem branding!)
+  // Se ainda está carregando a campanha, mostrar loading
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <LoadingScreen progress={loadingProgress || 10} />
+        <div className="w-full max-w-md">
+          <BrandingSection
+            isLoading={true}
+            logo={companyBranding.logo}
+            title={companyBranding.title}
+            subtitle={companyBranding.subtitle}
+            campaignName=""
+          />
+        </div>
       </div>
     );
   }
 
-  // 3. Redirecionamento WhatsApp automático (carregando ou fallback manual)
-  if (campaign?.redirect_type === 'whatsapp') {
-    if (showLoadingScreen) {
-      return <LoadingScreen progress={loadingProgress} />;
-    }
-    if (manualFallback) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Não foi possível redirecionar automaticamente</CardTitle>
-              <CardDescription>
-                Clique no botão abaixo para ser atendido no WhatsApp.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                className="w-full mb-2"
-                onClick={performWhatsAppRedirect}
-              >
-                Ir para o WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => window.location.href = '/'}
-              >
-                Voltar ao início
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-    // Caso campanha WhatsApp, se não está em loading/loadingScreen/fallback, não renderizar nada (evita formulário blinkar)
+  // Se é redirecionamento direto e já está processando, não mostrar o formulário
+  if (campaign?.redirect_type === 'whatsapp' && showLoadingScreen) {
     return null;
   }
 
-  // 4. Fluxo padrão de formulário (apenas para redirect_type !== 'whatsapp')
+  // Mostrar formulário para campanhas de formulário ou se não há redirecionamento direto
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
@@ -176,6 +141,8 @@ const Redirect = () => {
           subtitle={companyBranding.subtitle}
           campaignName={campaign?.name}
         />
+
+        {/* Hidden debug information */}
         <div style={{ display: 'none' }}>
           <div className="mt-2">
             <button 
@@ -186,6 +153,7 @@ const Redirect = () => {
             </button>
           </div>
         </div>
+        
         <ContactForm onSubmit={onFormSubmit} loading={loading} />
       </div>
     </div>
