@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/campaignService';
 import { Campaign } from '@/types';
-import { buildUtmUrl, generateTrackingUrl } from '@/lib/utils';
 import { Plus, Tags } from 'lucide-react';
 import { toast } from "sonner";
 import GlobalKeywordsSettings from '@/components/campaigns/GlobalKeywordsSettings';
@@ -54,10 +55,18 @@ const Campaigns = () => {
     utm_content: "",
     utm_term: "",
   });
-  const [showCustomUtm, setShowCustomUtm] = useState(false);
+  // Mantém sempre aberto a seção UTMs customizadas
+  const [showCustomUtm, setShowCustomUtm] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
-  // Atualiza os UTMs conforme a campanha selecionada
+  // Seleciona automaticamente a primeira campanha assim que campanhas carregarem
+  useEffect(() => {
+    if (campaigns.length > 0 && !selectedCampaign) {
+      setSelectedCampaign(campaigns[0]);
+    }
+  }, [campaigns, selectedCampaign]);
+
+  // Sempre que seleciona uma campanha, preenche UTMs
   useEffect(() => {
     if (selectedCampaign) {
       setCustomUtms({
@@ -138,7 +147,6 @@ const Campaigns = () => {
 
   const handleSaveCampaign = async () => {
     try {
-      // Validate required fields
       if (!currentCampaign.name) {
         toast.error('O nome da campanha é obrigatório');
         return;
@@ -154,7 +162,6 @@ const Campaigns = () => {
         setCampaigns(campaigns.map(campaign => campaign.id === updatedCampaign.id ? updatedCampaign : campaign));
         toast.success('Campanha atualizada com sucesso');
       }
-      
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error saving campaign:', error);
@@ -186,13 +193,11 @@ const Campaigns = () => {
       });
   };
 
-  // Função para gerar URL LIMPA (sem UTMs)
   const getTrackingUrl = (campaign: Campaign) => {
     const currentUrl = window.location.origin;
     return `${currentUrl}/ir?id=${campaign.id}`;
   };
 
-  // Função para gerar URL com UTMs customizados (para testes, opcional)
   const getCustomUtmTrackingUrl = (campaign: Campaign, utms: Partial<Record<string, string>>) => {
     const currentUrl = window.location.origin;
     const params = new URLSearchParams();
@@ -209,6 +214,7 @@ const Campaigns = () => {
     copyToClipboard(getTrackingUrl(campaign), 'URL de rastreamento copiada');
   };
 
+  // --- RENDER ---
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -230,62 +236,91 @@ const Campaigns = () => {
             </Button>
           </div>
         </div>
-
-        {/* BLOCO PARA VISUALIZAR LINK LIMPO DA CAMPANHA SELECIONADA */}
-        {selectedCampaign && (
-          <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
-            <span className="font-semibold">Link de rastreamento limpo:</span>
-            <div className="flex gap-2 mt-1">
-              <input
-                className="w-full px-2 py-1 border rounded bg-gray-100 text-sm"
-                readOnly
-                value={getTrackingUrl(selectedCampaign)}
-              />
-              <Button variant="outline" onClick={() => handleCopyTrackingUrl(selectedCampaign)}>
-                Copiar
-              </Button>
+        
+        {/* BLOCO PARA VISUALIZAR LINK LIMPO E UTMs - SEMPRE VISÍVEL */}
+        <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-4 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* Dropdown de seleção de campanha */}
+            <div className="flex-1">
+              <label className="block text-xs font-medium mb-1">Selecionar campanha:</label>
+              <Select
+                value={selectedCampaign?.id || ""}
+                onValueChange={id => {
+                  const c = campaigns.find(c => c.id === id);
+                  setSelectedCampaign(c || null);
+                }}
+                disabled={campaigns.length === 0}
+              >
+                <SelectTrigger className="w-full sm:w-72">
+                  <SelectValue placeholder="Selecione uma campanha..." />
+                </SelectTrigger>
+                <SelectContent className="z-[60] bg-white">
+                  {campaigns.map(c => (
+                    <SelectItem value={c.id} key={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Button
-              size="sm"
-              className="mt-2"
-              variant="secondary"
-              onClick={() => setShowCustomUtm((v) => !v)}
-            >
-              {showCustomUtm ? "Fechar UTMs customizados" : "Gerar link com UTMs customizados"}
-            </Button>
-            {showCustomUtm && (
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input className="border px-2 py-1 rounded" placeholder="utm_source"
-                  value={customUtms.utm_source}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_source: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_medium"
-                  value={customUtms.utm_medium}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_medium: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_campaign"
-                  value={customUtms.utm_campaign}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_campaign: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_content"
-                  value={customUtms.utm_content}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_content: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_term"
-                  value={customUtms.utm_term}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_term: e.target.value })}
+            {/* Link limpo + copiar */}
+            <div className="flex-1">
+              <span className="font-semibold">Link de rastreamento limpo:</span>
+              <div className="flex gap-2 mt-1">
+                <input
+                  className="w-full px-2 py-1 border rounded bg-gray-100 text-sm"
+                  readOnly
+                  value={selectedCampaign ? getTrackingUrl(selectedCampaign) : ""}
                 />
                 <Button
-                  className="col-span-1 md:col-span-2"
                   variant="outline"
-                  onClick={() => copyToClipboard(getCustomUtmTrackingUrl(selectedCampaign, customUtms), "Link com UTMs copiado")}
+                  disabled={!selectedCampaign}
+                  onClick={() => selectedCampaign && handleCopyTrackingUrl(selectedCampaign)}
                 >
-                  Copiar link com UTMs
+                  Copiar
                 </Button>
               </div>
-            )}
+            </div>
           </div>
-        )}
+          {/* UTMs customizadas: sempre visível */}
+          <div className="mt-4">
+            <span className="block font-medium mb-2">Gerar link com UTMs customizados:</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <input className="border px-2 py-1 rounded" placeholder="utm_source"
+                value={customUtms.utm_source}
+                onChange={e => setCustomUtms({ ...customUtms, utm_source: e.target.value })}
+              />
+              <input className="border px-2 py-1 rounded" placeholder="utm_medium"
+                value={customUtms.utm_medium}
+                onChange={e => setCustomUtms({ ...customUtms, utm_medium: e.target.value })}
+              />
+              <input className="border px-2 py-1 rounded" placeholder="utm_campaign"
+                value={customUtms.utm_campaign}
+                onChange={e => setCustomUtms({ ...customUtms, utm_campaign: e.target.value })}
+              />
+              <input className="border px-2 py-1 rounded" placeholder="utm_content"
+                value={customUtms.utm_content}
+                onChange={e => setCustomUtms({ ...customUtms, utm_content: e.target.value })}
+              />
+              <input className="border px-2 py-1 rounded" placeholder="utm_term"
+                value={customUtms.utm_term}
+                onChange={e => setCustomUtms({ ...customUtms, utm_term: e.target.value })}
+              />
+              <Button
+                className="col-span-1 md:col-span-2"
+                variant="outline"
+                onClick={() => {
+                  if (selectedCampaign) {
+                    copyToClipboard(getCustomUtmTrackingUrl(selectedCampaign, customUtms), "Link com UTMs copiado");
+                  }
+                }}
+                disabled={!selectedCampaign}
+              >
+                Copiar link com UTMs
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* Filtros */}
         <CampaignFilters 
