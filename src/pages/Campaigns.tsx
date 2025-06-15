@@ -164,9 +164,15 @@ const Campaigns = () => {
       });
   };
 
+  // Função para gerar URL LIMPA (sem UTMs)
   const getTrackingUrl = (campaign: Campaign) => {
-    // Gera todos os UTMs no link automaticamente:
-    // utm_source: "campanha_web", utm_medium: "digital", utm_campaign: nome da campanha (slug), utm_content: "link", utm_term: "padrao"
+    // Gera apenas o link base para a campanha, sem parâmetros UTM fixos.
+    const currentUrl = window.location.origin;
+    return `${currentUrl}/ir?id=${campaign.id}`;
+  };
+
+  // (Opcional) Função para gerar link COM UTMs fixos, caso queira deixar para teste. Pode remover se não desejar disponibilizar.
+  const getTrackingUrlWithUTMs = (campaign: Campaign) => {
     const currentUrl = window.location.origin;
     const utm_source = "campanha_web";
     const utm_medium = "digital";
@@ -202,6 +208,40 @@ const Campaigns = () => {
           </div>
         </div>
 
+        {/* AVISO SOBRE O LINK LIMPO E OS UTMS DINÂMICOS */}
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 p-4 rounded-md text-sm flex flex-col gap-2">
+          <span className="font-semibold">Como funciona o rastreamento?</span>
+          <span>
+            O link de rastreamento gerado abaixo NÃO possui UTMs fixos: <br />
+            <strong>As plataformas de anúncio (Facebook, Google, TikTok) vão adicionar UTMs automaticamente no clique do anúncio.</strong> <br />
+            O sistema irá capturar e salvar automaticamente qualquer dado UTM/Tracking enviado. <br />
+            Não é necessário incluir parâmetros no link para atribuição funcionar — apenas coloque esse link no anúncio ou campanha da ferramenta.
+          </span>
+        </div>
+
+        {/* Você pode colocar aqui um bloco mostrando o link LIMPO da campanha selecionada ou de cada uma na tabela */}
+        {/* Exemplo de onde exibir o link limpo para a campanha selecionada  */}
+        {/* 
+        <div className="mt-4">
+          <div>
+            <span className="font-semibold">Link de rastreamento (usar no anúncio):</span>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                readOnly
+                value={getTrackingUrl(campanhaSelecionada)}
+                className="w-full"
+              />
+              <Button
+                variant="outline"
+                onClick={() => copyToClipboard(getTrackingUrl(campanhaSelecionada), 'URL de rastreamento copiada')}
+              >
+                Copiar
+              </Button>
+            </div>
+          </div>
+        </div>
+        */}
+        
         <CampaignFilters 
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
