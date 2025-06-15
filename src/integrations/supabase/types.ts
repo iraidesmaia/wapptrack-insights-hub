@@ -23,6 +23,7 @@ export type Database = {
           evolution_api_key: string | null
           evolution_base_url: string | null
           evolution_instance_name: string | null
+          facebook_access_token: string | null
           id: string
           logo_url: string | null
           name: string
@@ -50,6 +51,7 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_base_url?: string | null
           evolution_instance_name?: string | null
+          facebook_access_token?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -77,6 +79,7 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_base_url?: string | null
           evolution_instance_name?: string | null
+          facebook_access_token?: string | null
           id?: string
           logo_url?: string | null
           name?: string
