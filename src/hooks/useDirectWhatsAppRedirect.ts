@@ -12,13 +12,14 @@ export const useDirectWhatsAppRedirect = (
     try {
       console.log('🔄 Processing direct WhatsApp redirect for campaign:', campaignData.name);
       
-      // Initialize tracking only if needed
-      if (campaignData.event_type && pixelInitialized) {
+      // Track with enhanced pixel tracking
+      const { trackEnhancedCustomEvent } = useEnhancedPixelTracking(campaignData);
+      
+      // Track enhanced event before redirect
+      if (campaignData.event_type) {
+        console.log('📊 Tracking enhanced event before redirect:', campaignData.event_type);
+        
         try {
-          const { trackEnhancedCustomEvent } = useEnhancedPixelTracking(campaignData);
-          
-          console.log('📊 Tracking enhanced event before redirect:', campaignData.event_type);
-          
           await trackEnhancedCustomEvent(campaignData.event_type, {
             redirect_type: 'direct_whatsapp',
             campaign_name: campaignData.name
@@ -53,21 +54,25 @@ export const useDirectWhatsAppRedirect = (
       console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
       
       try {
-        // Show loading message
-        toast.success('Redirecionando para o WhatsApp...');
+        // Try to open in new tab first
+        const newWindow = window.open(whatsappUrl, '_blank');
         
-        // Use window.location.href for more reliable redirect
-        window.location.href = whatsappUrl;
-        
-        console.log('✅ WhatsApp redirect initiated successfully');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+          // If popup was blocked, use location.href as fallback
+          console.log('🔄 Popup blocked, using location.href fallback');
+          window.location.href = whatsappUrl;
+        } else {
+          console.log('✅ WhatsApp opened in new tab successfully');
+          toast.success('Redirecionando para o WhatsApp...');
+        }
       } catch (error) {
-        console.error('🔄 Error with redirect, trying fallback:', error);
+        // Final fallback
+        console.log('🔄 Error with window.open, using location.href:', error);
         window.location.href = whatsappUrl;
       }
       
     } catch (err) {
       console.error('❌ Error in direct WhatsApp redirect:', err);
-      toast.error('Erro ao processar redirecionamento direto');
       throw new Error('Erro ao processar redirecionamento direto');
     }
   };
