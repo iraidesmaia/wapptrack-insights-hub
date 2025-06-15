@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -24,6 +23,11 @@ export interface Lead {
   last_whatsapp_attempt?: string;
   last_message?: string;
   lead_score?: number;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
 }
 
 export interface Campaign {

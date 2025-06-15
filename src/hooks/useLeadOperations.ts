@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Lead, Campaign } from '@/types';
 import { addLead, updateLead, deleteLead, addSale } from '@/services/dataService';
@@ -16,7 +15,12 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
     status: 'new',
     notes: '',
     first_contact_date: '',
-    last_contact_date: ''
+    last_contact_date: '',
+    utm_source: '',
+    utm_medium: '',
+    utm_campaign: '',
+    utm_content: '',
+    utm_term: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -42,7 +46,12 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       status: 'new',
       notes: '',
       first_contact_date: '',
-      last_contact_date: ''
+      last_contact_date: '',
+      utm_source: '',
+      utm_medium: '',
+      utm_campaign: '',
+      utm_content: '',
+      utm_term: ''
     });
     setDialogMode('add');
     setIsDialogOpen(true);
@@ -55,7 +64,15 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       displayPhone = formatBrazilianPhone(phoneWithoutCountryCode);
     }
     
-    setCurrentLead({ ...lead, phone: displayPhone });
+    setCurrentLead({
+      ...lead,
+      phone: displayPhone,
+      utm_source: lead.utm_source || '',
+      utm_medium: lead.utm_medium || '',
+      utm_campaign: lead.utm_campaign || '',
+      utm_content: lead.utm_content || '',
+      utm_term: lead.utm_term || ''
+    });
     setDialogMode('edit');
     setIsDialogOpen(true);
   };

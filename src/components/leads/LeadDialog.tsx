@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Lead, Campaign } from '@/types';
 import { Button } from "@/components/ui/button";
@@ -40,8 +39,8 @@ const LeadDialog: React.FC<LeadDialogProps> = ({
             {mode === 'add' ? 'Adicionar Novo Lead' : 'Editar Lead'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'add' 
-              ? 'Preencha os detalhes para adicionar um novo lead.' 
+            {mode === 'add'
+              ? 'Preencha os detalhes para adicionar um novo lead.'
               : 'Atualize os detalhes do lead.'}
           </DialogDescription>
         </DialogHeader>
@@ -156,6 +155,50 @@ const LeadDialog: React.FC<LeadDialogProps> = ({
               placeholder="Observações sobre o lead"
             />
           </div>
+          {/* Se existirem dados UTM, mostrar seção */}
+          {(currentLead.utm_source ||
+            currentLead.utm_medium ||
+            currentLead.utm_campaign ||
+            currentLead.utm_content ||
+            currentLead.utm_term) && (
+            <div className="grid gap-2 border-t pt-4">
+              <div>
+                <Label className="font-bold">Dados UTM (origem do lead)</Label>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {currentLead.utm_source && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">utm_source</Label>
+                    <Input value={currentLead.utm_source} readOnly className="bg-muted/50" />
+                  </div>
+                )}
+                {currentLead.utm_medium && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">utm_medium</Label>
+                    <Input value={currentLead.utm_medium} readOnly className="bg-muted/50" />
+                  </div>
+                )}
+                {currentLead.utm_campaign && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">utm_campaign</Label>
+                    <Input value={currentLead.utm_campaign} readOnly className="bg-muted/50" />
+                  </div>
+                )}
+                {currentLead.utm_content && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">utm_content</Label>
+                    <Input value={currentLead.utm_content} readOnly className="bg-muted/50" />
+                  </div>
+                )}
+                {currentLead.utm_term && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">utm_term</Label>
+                    <Input value={currentLead.utm_term} readOnly className="bg-muted/50" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
