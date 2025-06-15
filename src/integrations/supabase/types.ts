@@ -215,6 +215,11 @@ export type Database = {
           notes: string | null
           phone: string
           status: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           whatsapp_delivery_attempts: number | null
         }
         Insert: {
@@ -233,6 +238,11 @@ export type Database = {
           notes?: string | null
           phone: string
           status?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           whatsapp_delivery_attempts?: number | null
         }
         Update: {
@@ -251,6 +261,11 @@ export type Database = {
           notes?: string | null
           phone?: string
           status?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           whatsapp_delivery_attempts?: number | null
         }
         Relationships: [

@@ -183,7 +183,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome da Campanha (utm_campaign)*</Label>
+              <Label htmlFor="name">Nome da Campanha*</Label>
               <Input
                 id="name"
                 name="name"
@@ -192,6 +192,9 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 placeholder="Ex: Instagram - Stories Junho"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Este nome serve apenas como identificação interna da campanha.
+              </p>
             </div>
 
             <div className="flex items-center space-x-2 pt-4 border-t">
@@ -205,32 +208,39 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
           </TabsContent>
 
           <TabsContent value="utm" className="space-y-4">
-            {/* UTM e Personalização */}
+            {/* UTM e Tracking - somente origem e termo */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">UTM e Personalização</h3>
+              <h3 className="text-lg font-semibold border-b pb-2">UTM & Tracking</h3>
               
               <div className="grid gap-2">
-                <Label htmlFor="utm_medium">Meio (utm_medium)</Label>
+                <Label htmlFor="utm_source">Origem (utm_source)</Label>
                 <Input
-                  id="utm_medium"
-                  name="utm_medium"
-                  value={campaign.utm_medium || ''}
+                  id="utm_source"
+                  name="utm_source"
+                  value={campaign.utm_source || ''}
                   onChange={handleInputChange}
-                  placeholder="Ex: social"
+                  placeholder="Ex: facebook, google, instagram"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="utm_content">Conteúdo (utm_content)</Label>
+                <Label htmlFor="utm_term">Palavra-chave (utm_term)</Label>
                 <Input
-                  id="utm_content"
-                  name="utm_content"
-                  value={campaign.utm_content || ''}
+                  id="utm_term"
+                  name="utm_term"
+                  value={campaign.utm_term || ''}
                   onChange={handleInputChange}
-                  placeholder="Ex: banner_top"
+                  placeholder="Opcional: Ex: promoção, oferta"
                 />
               </div>
+            </div>
+          </TabsContent>
 
+          <TabsContent value="integration" className="space-y-4">
+            {/* Integração e Link */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
+              
               <div className="grid gap-2">
                 <Label htmlFor="custom_message">Mensagem personalizada</Label>
                 <Textarea
@@ -263,13 +273,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="integration" className="space-y-4">
-            {/* Integração e Link */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
               
               <div className="grid gap-2">
                 <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
