@@ -4,7 +4,7 @@ import StatCard from '@/components/StatCard';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
-import FunnelChart from '@/components/charts/FunnelChart';
+import { FunnelChart } from '@/components/charts/FunnelChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData, getFunnelPerformance } from '@/services/dataService';
