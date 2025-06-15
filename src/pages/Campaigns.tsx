@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
-import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/dataService';
-import { Campaign } from '@/types';
+import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/campaignService';
+import { Campaign } from '@/types/campaign';
 import { buildUtmUrl, generateTrackingUrl } from '@/lib/utils';
 import { Plus, Tags } from 'lucide-react';
 import { toast } from "sonner";

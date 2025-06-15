@@ -5,12 +5,12 @@ export interface Campaign {
   pixel_id?: string;
   facebook_access_token?: string;
   whatsapp_number?: string;
-  event_type?: string;
+  event_type?: 'contact' | 'lead' | 'page_view' | 'sale';
   custom_message?: string;
   company_title?: string;
   company_subtitle?: string;
   logo_url?: string;
-  redirect_type?: string;
+  redirect_type?: 'whatsapp' | 'form';
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -18,7 +18,7 @@ export interface Campaign {
   utm_term?: string;
   active?: boolean;
   created_at?: string;
-  pixel_integration_type?: string;
+  pixel_integration_type?: 'direct' | 'form';
   conversion_keywords?: string[];
   cancellation_keywords?: string[];
   conversion_api_enabled?: boolean;

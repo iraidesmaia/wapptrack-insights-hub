@@ -1,4 +1,5 @@
-import { Campaign } from "../types";
+
+import { Campaign } from "../types/campaign";
 import { supabase } from "../integrations/supabase/client";
 
 export const getCampaigns = async (): Promise<Campaign[]> => {
