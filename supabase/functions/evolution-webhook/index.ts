@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -72,7 +71,10 @@ serve(async (req) => {
         const messageContent = message.message?.conversation || 
                              message.message?.extendedTextMessage?.text || 
                              'Mensagem recebida'
-        
+
+        // Aqui vamos tentar recuperar o nome do contato (pushName)
+        const contactName = message.pushName || "Lead Via WhatsApp"
+
         console.log(`📝 Message content: ${messageContent}`)
         
         // Criar as duas variações específicas para DDD 85
@@ -283,17 +285,41 @@ serve(async (req) => {
             console.log(`⏭️ Skipped ${skippedUpdates.length} leads that already had messages`);
           }
         } else {
+          // Nenhum lead encontrado -- NOVA LÓGICA PARA FLUXO DIRETO (salvar lead recebido via mensagem)
           console.error(`❌ No lead found for phone: ${realPhoneNumber}`);
           console.log('🔍 Debug info:');
           console.log('- Original phone from webhook:', realPhoneNumber);
           console.log('- Variations tried:', phoneVariations);
-          
-          // Buscar alguns leads para comparação
+
+          // Só cria se NÃO for mensagem do comercial (i.e., do cliente)
+          if (!isFromMe) {
+            console.log('🆕 Criando novo lead via contato direto do WhatsApp (sem formulário)...');
+            const leadData = {
+              name: contactName,
+              phone: realPhoneNumber,
+              campaign: "Fluxo Direto WhatsApp",
+              status: "lead",
+              last_message: messageContent,
+              last_contact_date: new Date().toISOString()
+            };
+            const { data: newLead, error: insertError } = await supabase
+              .from('leads')
+              .insert(leadData)
+              .select()
+              .single();
+            if (insertError) {
+              console.error('❌ Erro ao criar lead via contato direto:', insertError);
+            } else {
+              console.log(`✅ Lead criado via fluxo direto do WhatsApp:`, newLead);
+            }
+          }
+
+          // ... mantém trecho de debug (exemplo e logs dos leads amostra) ...
           const { data: sampleLeads, error: sampleError } = await supabase
             .from('leads')
             .select('phone, name')
             .limit(5);
-            
+
           if (!sampleError && sampleLeads && sampleLeads.length > 0) {
             console.log('📋 Sample leads in database:', sampleLeads);
           }
