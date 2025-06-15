@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Campaign } from '@/types';
+import { Campaign } from '@/types/campaign';
 import AdvancedTrackingSettings from './AdvancedTrackingSettings';
 
 interface CampaignFormProps {
@@ -190,7 +189,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <Input
                 id="name"
                 name="name"
-                value={campaign.name}
+                value={campaign.name || ''}
                 onChange={handleInputChange}
                 placeholder="Ex: Instagram - Stories Junho"
                 required
@@ -200,7 +199,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             <div className="flex items-center space-x-2 pt-4 border-t">
               <Switch
                 id="active"
-                checked={campaign.active}
+                checked={campaign.active || false}
                 onCheckedChange={handleSwitchChange}
               />
               <Label htmlFor="active">Campanha Ativa</Label>
@@ -217,7 +216,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="utm_medium"
                   name="utm_medium"
-                  value={campaign.utm_medium}
+                  value={campaign.utm_medium || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: social"
                 />
@@ -228,7 +227,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="utm_content"
                   name="utm_content"
-                  value={campaign.utm_content}
+                  value={campaign.utm_content || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: banner_top"
                 />
@@ -279,7 +278,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="whatsapp_number"
                   name="whatsapp_number"
-                  value={campaign.whatsapp_number}
+                  value={campaign.whatsapp_number || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 5511999887766"
                 />
@@ -306,7 +305,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="pixel_id"
                   name="pixel_id"
-                  value={campaign.pixel_id}
+                  value={campaign.pixel_id || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 123456789012345"
                 />

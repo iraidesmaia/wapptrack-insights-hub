@@ -51,29 +51,41 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
 
 export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>): Promise<Campaign> => {
   try {
+    const insertData: any = {
+      name: campaign.name,
+      utm_source: campaign.utm_source,
+      utm_medium: campaign.utm_medium,
+      utm_campaign: campaign.utm_campaign,
+      utm_content: campaign.utm_content,
+      utm_term: campaign.utm_term,
+      pixel_id: campaign.pixel_id,
+      facebook_access_token: campaign.facebook_access_token,
+      whatsapp_number: campaign.whatsapp_number,
+      event_type: campaign.event_type,
+      active: campaign.active,
+      custom_message: campaign.custom_message,
+      company_title: campaign.company_title,
+      company_subtitle: campaign.company_subtitle,
+      logo_url: campaign.logo_url,
+      redirect_type: campaign.redirect_type || 'whatsapp',
+      pixel_integration_type: campaign.pixel_integration_type || 'direct',
+      conversion_keywords: campaign.conversion_keywords || [],
+      cancellation_keywords: campaign.cancellation_keywords || [],
+      conversion_api_enabled: campaign.conversion_api_enabled || false,
+      advanced_matching_enabled: campaign.advanced_matching_enabled || false,
+      server_side_api_enabled: campaign.server_side_api_enabled || false,
+      test_event_code: campaign.test_event_code,
+      custom_audience_pixel_id: campaign.custom_audience_pixel_id,
+      tracking_domain: campaign.tracking_domain,
+      external_id: campaign.external_id,
+      data_processing_options: campaign.data_processing_options || [],
+      data_processing_options_country: campaign.data_processing_options_country || 0,
+      data_processing_options_state: campaign.data_processing_options_state || 0
+    };
+
     const { data, error } = await supabase
       .from('campaigns')
-      .insert({
-        name: campaign.name,
-        utm_source: campaign.utm_source,
-        utm_medium: campaign.utm_medium,
-        utm_campaign: campaign.utm_campaign,
-        utm_content: campaign.utm_content,
-        utm_term: campaign.utm_term,
-        pixel_id: campaign.pixel_id,
-        facebook_access_token: campaign.facebook_access_token,
-        whatsapp_number: campaign.whatsapp_number,
-        event_type: campaign.event_type,
-        active: campaign.active,
-        custom_message: campaign.custom_message,
-        company_title: campaign.company_title,
-        company_subtitle: campaign.company_subtitle,
-        logo_url: campaign.logo_url,
-        redirect_type: campaign.redirect_type || 'whatsapp',
-        pixel_integration_type: campaign.pixel_integration_type || 'direct',
-        conversion_keywords: campaign.conversion_keywords || [],
-        cancellation_keywords: campaign.cancellation_keywords || []
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -121,7 +133,9 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>)
 export const updateCampaign = async (id: string, campaign: Partial<Campaign>): Promise<Campaign> => {
   try {
     const updateData: any = {};
-    if (campaign.name) updateData.name = campaign.name;
+    
+    // Only include defined values
+    if (campaign.name !== undefined) updateData.name = campaign.name;
     if (campaign.utm_source !== undefined) updateData.utm_source = campaign.utm_source;
     if (campaign.utm_medium !== undefined) updateData.utm_medium = campaign.utm_medium;
     if (campaign.utm_campaign !== undefined) updateData.utm_campaign = campaign.utm_campaign;
@@ -140,6 +154,16 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     if (campaign.pixel_integration_type !== undefined) updateData.pixel_integration_type = campaign.pixel_integration_type;
     if (campaign.conversion_keywords !== undefined) updateData.conversion_keywords = campaign.conversion_keywords;
     if (campaign.cancellation_keywords !== undefined) updateData.cancellation_keywords = campaign.cancellation_keywords;
+    if (campaign.conversion_api_enabled !== undefined) updateData.conversion_api_enabled = campaign.conversion_api_enabled;
+    if (campaign.advanced_matching_enabled !== undefined) updateData.advanced_matching_enabled = campaign.advanced_matching_enabled;
+    if (campaign.server_side_api_enabled !== undefined) updateData.server_side_api_enabled = campaign.server_side_api_enabled;
+    if (campaign.test_event_code !== undefined) updateData.test_event_code = campaign.test_event_code;
+    if (campaign.custom_audience_pixel_id !== undefined) updateData.custom_audience_pixel_id = campaign.custom_audience_pixel_id;
+    if (campaign.tracking_domain !== undefined) updateData.tracking_domain = campaign.tracking_domain;
+    if (campaign.external_id !== undefined) updateData.external_id = campaign.external_id;
+    if (campaign.data_processing_options !== undefined) updateData.data_processing_options = campaign.data_processing_options;
+    if (campaign.data_processing_options_country !== undefined) updateData.data_processing_options_country = campaign.data_processing_options_country;
+    if (campaign.data_processing_options_state !== undefined) updateData.data_processing_options_state = campaign.data_processing_options_state;
 
     const { data, error } = await supabase
       .from('campaigns')
