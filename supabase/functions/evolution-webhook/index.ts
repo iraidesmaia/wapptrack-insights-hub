@@ -293,6 +293,43 @@ serve(async (req) => {
 
           // Só cria se NÃO for mensagem do comercial (i.e., do cliente)
           if (!isFromMe) {
+            // TENTATIVA: buscar dados no pending_leads
+            let utmsFromPending: any = {};
+            try {
+              const { data: pendingLead, error: pendingError } = await supabase
+                .from('pending_leads')
+                .select('*')
+                .eq('phone', realPhoneNumber)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (pendingLead) {
+                console.log(`🔗 UTMs recuperadas do pending_leads:`, pendingLead);
+
+                utmsFromPending = {
+                  utm_source: pendingLead.utm_source,
+                  utm_medium: pendingLead.utm_medium,
+                  utm_campaign: pendingLead.utm_campaign,
+                  utm_content: pendingLead.utm_content,
+                  utm_term: pendingLead.utm_term
+                };
+
+                // Marcar pending_lead como usada/consumida OU apagar
+                const { error: delError } = await supabase
+                  .from('pending_leads')
+                  .delete()
+                  .eq('id', pendingLead.id);
+
+                if (delError) {
+                  console.error('Erro ao remover pending_lead consumida:', delError);
+                }
+              }
+            } catch (utmsErr) {
+              console.error('Erro ao tentar buscar utms do pending_leads:', utmsErr);
+            }
+
             console.log('🆕 Criando novo lead via contato direto do WhatsApp (sem formulário)...');
             const leadData = {
               name: contactName,
@@ -300,7 +337,8 @@ serve(async (req) => {
               campaign: "Fluxo Direto WhatsApp",
               status: "lead",
               last_message: messageContent,
-              last_contact_date: new Date().toISOString()
+              last_contact_date: new Date().toISOString(),
+              ...utmsFromPending
             };
             const { data: newLead, error: insertError } = await supabase
               .from('leads')
@@ -314,7 +352,6 @@ serve(async (req) => {
             }
           }
 
-          // ... mantém trecho de debug (exemplo e logs dos leads amostra) ...
           const { data: sampleLeads, error: sampleError } = await supabase
             .from('leads')
             .select('phone, name')

@@ -71,6 +71,42 @@ export const trackRedirect = async (
         id: campaign.id,
         name: campaign.name,
       });
+      // NOVO: Salvar em pending_leads para futuras mensagens do WhatsApp bot
+      if (phone && phone !== 'Redirecionamento Direto') {
+        try {
+          const pendingData = {
+            name: name || 'Visitante',
+            phone,
+            campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            utm_source: utms?.utm_source || null,
+            utm_medium: utms?.utm_medium || null,
+            utm_campaign: utms?.utm_campaign || null,
+            utm_content: utms?.utm_content || null,
+            utm_term: utms?.utm_term || null,
+            status: 'pending'
+          };
+          // impede duplicidade por telefone pendente
+          const { error: delError } = await supabase
+            .from('pending_leads')
+            .delete()
+            .eq('phone', phone)
+            .eq('status', 'pending');
+          if (delError) console.warn("Falha ao limpar pending previous:", delError);
+
+          const { error: pendingLeadError } = await supabase
+            .from('pending_leads')
+            .insert(pendingData);
+          if (pendingLeadError) {
+            console.error('Erro ao criar pending_lead:', pendingLeadError);
+          } else {
+            console.log('💾 pending_lead salva com UTMs:', pendingData);
+          }
+        } catch (pendingSaveErr) {
+          console.error("Erro ao gravar pending_lead:", pendingSaveErr);
+        }
+      }
+
       return { targetPhone: campaign.whatsapp_number };
     }
 
