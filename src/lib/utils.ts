@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, formatDistanceToNow } from "date-fns"
@@ -79,22 +78,15 @@ export function parseQueryParams(url: string): Record<string, string> {
 // Build a UTM URL
 export function buildUtmUrl(
   baseUrl: string, 
-  source?: string, 
-  medium?: string, 
-  campaign?: string, 
-  content?: string, 
-  term?: string
+  campaign: { name: string, id: string }
 ): string {
-  const params = new URLSearchParams()
-  
-  if (source) params.append('utm_source', source)
-  if (medium) params.append('utm_medium', medium)
-  if (campaign) params.append('utm_campaign', campaign)
-  if (content) params.append('utm_content', content)
-  if (term) params.append('utm_term', term)
-  
-  const queryString = params.toString()
-  return queryString ? `${baseUrl}?${queryString}` : baseUrl
+  const params = new URLSearchParams();
+  params.append('utm_source', 'campanha_web');
+  params.append('utm_medium', 'digital');
+  params.append('utm_campaign', (campaign.name || '').replace(/\s+/g, '-').toLowerCase());
+  params.append('utm_content', 'link');
+  params.append('utm_term', 'padrao');
+  return `${baseUrl}/ir?id=${campaign.id}&${params.toString()}`;
 }
 
 // Phone number mask formatter - updated for Brazilian phones with country code

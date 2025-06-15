@@ -110,9 +110,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="basic">Básico</TabsTrigger>
-            <TabsTrigger value="utm">UTM & Tracking</TabsTrigger>
             <TabsTrigger value="integration">Integração</TabsTrigger>
           </TabsList>
           
@@ -207,37 +206,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             </div>
           </TabsContent>
 
-          <TabsContent value="utm" className="space-y-4">
-            {/* UTM e Tracking - somente origem e termo */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">UTM & Tracking</h3>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="utm_source">Origem (utm_source)</Label>
-                <Input
-                  id="utm_source"
-                  name="utm_source"
-                  value={campaign.utm_source || ''}
-                  onChange={handleInputChange}
-                  placeholder="Ex: facebook, google, instagram"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="utm_term">Palavra-chave (utm_term)</Label>
-                <Input
-                  id="utm_term"
-                  name="utm_term"
-                  value={campaign.utm_term || ''}
-                  onChange={handleInputChange}
-                  placeholder="Opcional: Ex: promoção, oferta"
-                />
-              </div>
-            </div>
-          </TabsContent>
-
+          {/* Integração e Link */}
           <TabsContent value="integration" className="space-y-4">
-            {/* Integração e Link */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">Integração e Link</h3>
               

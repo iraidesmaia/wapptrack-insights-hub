@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -166,8 +165,15 @@ const Campaigns = () => {
   };
 
   const getTrackingUrl = (campaign: Campaign) => {
+    // Gera todos os UTMs no link automaticamente:
+    // utm_source: "campanha_web", utm_medium: "digital", utm_campaign: nome da campanha (slug), utm_content: "link", utm_term: "padrao"
     const currentUrl = window.location.origin;
-    return `${currentUrl}/ir?id=${campaign.id}`;
+    const utm_source = "campanha_web";
+    const utm_medium = "digital";
+    const utm_campaign = (campaign.name || '').replace(/\s+/g, '-').toLowerCase();
+    const utm_content = "link";
+    const utm_term = "padrao";
+    return `${currentUrl}/ir?id=${campaign.id}&utm_source=${utm_source}&utm_medium=${utm_medium}&utm_campaign=${utm_campaign}&utm_content=${utm_content}&utm_term=${utm_term}`;
   };
 
   const handleCopyTrackingUrl = (campaign: Campaign) => {
