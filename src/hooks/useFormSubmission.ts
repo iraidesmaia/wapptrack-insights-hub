@@ -1,19 +1,17 @@
+
 import { trackRedirect, updateLead } from '@/services/dataService';
-import { trackEventByType } from '@/lib/fbPixel';
-import { useAdvancedTracking } from './useAdvancedTracking';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
 import { sendToEvolutionAPI } from '@/services/evolutionApiService';
 import { Lead } from '@/types';
-import { Campaign } from '@/types/campaign';
+import { Campaign } from '@/types';
+import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 
 export const useFormSubmission = (
   campaignId: string | null,
   campaign: Campaign | null,
   pixelInitialized: boolean
 ) => {
-  const { trackLeadWithConversions } = useAdvancedTracking();
-
   const updateLeadWhatsAppStatus = async (leadId: string, delivered: boolean) => {
     try {
       const status: Lead['status'] = delivered ? 'lead' : 'to_recover';
@@ -24,9 +22,9 @@ export const useFormSubmission = (
       };
       
       await updateLead(leadId, updateData);
-      console.log(`Lead status updated to: ${status}`);
+      console.log(`✅ Lead status updated to: ${status}`);
     } catch (error) {
-      console.error('Error updating lead WhatsApp status:', error);
+      console.error('❌ Error updating lead WhatsApp status:', error);
     }
   };
 
@@ -35,7 +33,28 @@ export const useFormSubmission = (
       throw new Error('ID da campanha não encontrado');
     }
 
-    // Enviar dados via webhook externo se configurado
+    console.log('📝 Processing form submission with enhanced tracking...');
+
+    // Initialize enhanced pixel tracking
+    const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
+
+    // Track enhanced lead event BEFORE processing
+    if (campaign) {
+      try {
+        console.log('📊 Tracking enhanced lead event...');
+        await trackEnhancedLead({
+          name,
+          phone,
+          email,
+          value: 100 // Default lead value
+        });
+        console.log('✅ Enhanced lead tracking completed');
+      } catch (trackingError) {
+        console.warn('⚠️ Enhanced lead tracking failed, continuing with form processing:', trackingError);
+      }
+    }
+
+    // Send data via external webhook if configured
     try {
       const webhookConfig = localStorage.getItem('webhook_config');
       if (webhookConfig) {
@@ -52,26 +71,15 @@ export const useFormSubmission = (
           };
           
           await sendWebhookData(config.webhook_url, webhookData);
-          console.log('Dados enviados via webhook externo com sucesso');
+          console.log('✅ Data sent via external webhook successfully');
         }
       }
     } catch (error) {
-      console.error('Erro ao enviar dados via webhook externo:', error);
-      // Não interromper o fluxo se o webhook externo falhar
+      console.error('❌ Error sending data via external webhook:', error);
+      // Don't interrupt the flow if external webhook fails
     }
 
-    // Track the event before processing (client-side pixel)
-    if (campaign && campaign.event_type && pixelInitialized) {
-      console.log('Tracking event before processing:', campaign.event_type);
-      const success = trackEventByType(campaign.event_type);
-      if (success) {
-        console.log('Event tracked successfully');
-      } else {
-        console.warn('Failed to track event:', campaign.event_type);
-      }
-    }
-
-    // Verificar se Evolution API está configurada
+    // Check if Evolution API is configured
     const evolutionConfigStr = localStorage.getItem('evolution_config');
     
     if (evolutionConfigStr) {
@@ -79,9 +87,9 @@ export const useFormSubmission = (
         const evolutionConfig = JSON.parse(evolutionConfigStr);
         
         if (evolutionConfig.evolution_api_key && evolutionConfig.evolution_instance_name) {
-          console.log('Using Evolution API for lead processing...');
+          console.log('🤖 Using Evolution API for lead processing...');
           
-          // Enviar via Evolution API
+          // Send via Evolution API
           const result = await sendToEvolutionAPI({
             campaignId,
             campaignName: campaign?.name || 'Default Campaign',
@@ -92,62 +100,32 @@ export const useFormSubmission = (
 
           if (result.success) {
             toast.success('Mensagem enviada! Aguarde a confirmação de entrega.');
-            console.log('Lead sent to Evolution API successfully');
+            console.log('✅ Lead sent to Evolution API successfully');
             
-            // Redirecionar para uma página de confirmação ou aguardar webhook
+            // Redirect to a confirmation page or wait for webhook
             return;
           } else {
             throw new Error(result.error || 'Erro ao enviar via Evolution API');
           }
         }
       } catch (error) {
-        console.error('Error with Evolution API:', error);
+        console.error('❌ Error with Evolution API:', error);
         toast.error('Erro ao processar via Evolution API. Tentando método alternativo...');
-        // Continuar com o fluxo tradicional
+        // Continue with traditional flow
       }
     }
 
-    // Fluxo tradicional (fallback)
-    console.log('Using traditional WhatsApp redirect...');
+    // Traditional flow (fallback)
+    console.log('📱 Using traditional WhatsApp redirect...');
     
     // Track the redirect in our system
     const result = await trackRedirect(campaignId, phone, name, campaign?.event_type);
-    
-    // 🆕 ADVANCED TRACKING: Send conversion event via Conversions API
-    if (campaign) {
-      try {
-        const { score, conversionResult } = await trackLeadWithConversions(
-          campaign,
-          {
-            name,
-            phone,
-            email
-          },
-          undefined // leadId not available from trackRedirect result
-        );
-        
-        console.log('Advanced tracking results:', {
-          leadScore: score,
-          conversionsSent: conversionResult.success,
-          eventsReceived: conversionResult.events_received
-        });
-
-        if (conversionResult.success) {
-          toast.success(`Lead processado com sucesso! Score: ${score}`);
-        } else {
-          console.warn('Conversions API failed:', conversionResult.error);
-        }
-      } catch (trackingError) {
-        console.error('Advanced tracking error:', trackingError);
-        // Don't block the main flow if advanced tracking fails
-      }
-    }
     
     // Get target WhatsApp number
     const targetPhone = result.targetPhone || campaign?.whatsapp_number;
     
     if (!targetPhone) {
-      console.warn('Número de WhatsApp não configurado para esta campanha');
+      console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
       toast.error('Número de WhatsApp não configurado para esta campanha');
       throw new Error('Número de WhatsApp não configurado');
     }
@@ -167,12 +145,12 @@ export const useFormSubmission = (
     }
     
     try {
-      console.log('Redirecting to WhatsApp with URL:', whatsappUrl);
-      console.log('WhatsApp redirect successful');
+      console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
+      console.log('✅ WhatsApp redirect successful');
       
       window.location.href = whatsappUrl;
     } catch (error) {
-      console.error('Error redirecting to WhatsApp:', error);
+      console.error('❌ Error redirecting to WhatsApp:', error);
       throw new Error('Erro ao redirecionar para WhatsApp');
     }
   };

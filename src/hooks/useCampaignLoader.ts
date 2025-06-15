@@ -1,15 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import { getCampaigns } from '@/services/dataService';
-import { initFacebookPixel, trackPageView } from '@/lib/fbPixel';
 import { toast } from 'sonner';
-import { Campaign } from '@/types/campaign';
+import { Campaign } from '@/types';
+import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 
 export const useCampaignLoader = (campaignId: string | null, debug: boolean) => {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pixelInitialized, setPixelInitialized] = useState(false);
   const [error, setError] = useState('');
+
+  // Use enhanced pixel tracking
+  const {
+    trackEnhancedPageView,
+    logTrackingSummary,
+    isReady: trackingReady
+  } = useEnhancedPixelTracking(campaign, debug);
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
@@ -24,34 +30,13 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
         const targetCampaign = campaigns.find(c => c.id === campaignId);
         
         if (targetCampaign) {
-          console.log('Campaign loaded:', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
+          console.log('📋 Campaign loaded:', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
           setCampaign(targetCampaign);
-          
-          // Initialize Facebook Pixel if there's a pixel ID
-          if (targetCampaign.pixel_id) {
-            const cleanPixelId = targetCampaign.pixel_id.trim();
-            if (cleanPixelId) {
-              const initialized = initFacebookPixel(cleanPixelId, debug);
-              setPixelInitialized(initialized);
-              
-              if (initialized) {
-                trackPageView();
-                console.log('Pixel initialized with ID:', cleanPixelId);
-                console.log('Campaign event type:', targetCampaign.event_type);
-              } else {
-                console.warn('Failed to initialize Facebook Pixel with ID:', cleanPixelId);
-              }
-            } else {
-              console.warn('Empty Pixel ID after trimming for campaign:', targetCampaign.name);
-            }
-          } else {
-            console.log('No Pixel ID found for campaign:', targetCampaign.name);
-          }
         } else {
           toast.warning('Campanha não encontrada. O contato será registrado em uma campanha padrão.');
         }
       } catch (err) {
-        console.error('Error loading campaign:', err);
+        console.error('❌ Error loading campaign:', err);
         toast.warning('Erro ao carregar detalhes da campanha, mas você ainda pode continuar.');
       } finally {
         setIsLoading(false);
@@ -59,12 +44,25 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
     };
 
     loadCampaignDetails();
-  }, [campaignId, debug]);
+  }, [campaignId]);
+
+  // Enhanced page view tracking when campaign and tracking are ready
+  useEffect(() => {
+    if (campaign && trackingReady && !isLoading) {
+      console.log('🚀 Executing enhanced page view tracking...');
+      trackEnhancedPageView();
+      
+      // Log comprehensive tracking summary
+      setTimeout(() => {
+        logTrackingSummary();
+      }, 1000);
+    }
+  }, [campaign, trackingReady, isLoading]);
 
   return {
     campaign,
     isLoading,
-    pixelInitialized,
-    error
+    error,
+    pixelInitialized: !!campaign?.pixel_id && trackingReady
   };
 };
