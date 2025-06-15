@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { Plus, Trash2, Edit } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -33,27 +33,80 @@ const Sales = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [salesData, leadsData, campaignsData] = await Promise.all([
-          getSales(),
-          getLeads(),
-          getCampaigns()
-        ]);
-        setSales(salesData);
-        setLeads(leadsData);
-        setCampaigns(campaignsData);
-      } catch (error) {
-        console.error('Error fetching sales data:', error);
-        toast.error('Erro ao carregar vendas');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      console.log('📊 Sales - Iniciando busca de dados...');
+      
+      const [salesData, leadsData, campaignsData] = await Promise.all([
+        getSales(),
+        getLeads(),
+        getCampaigns()
+      ]);
+      
+      console.log('📊 Sales - Dados carregados:', {
+        salesCount: salesData.length,
+        leadsCount: leadsData.length,
+        campaignsCount: campaignsData.length
+      });
+      
+      setSales(salesData);
+      setLeads(leadsData);
+      setCampaigns(campaignsData);
+    } catch (error) {
+      console.error('❌ Sales - Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar vendas');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
+
+    // Configurar escuta em tempo real para mudanças na tabela de vendas
+    console.log('🎧 Sales - Configurando escuta em tempo real para vendas...');
+    const channel = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'sales'
+        },
+        (payload) => {
+          console.log('📡 Sales - Mudança detectada na tabela sales:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('➕ Sales - Nova venda adicionada:', payload.new);
+            const newSale = payload.new as Sale;
+            setSales(prev => [newSale, ...prev]);
+            toast.success(`Nova venda criada: ${newSale.lead_name} - ${formatCurrency(newSale.value)}`);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            console.log('📝 Sales - Venda atualizada:', payload.new);
+            const updatedSale = payload.new as Sale;
+            setSales(prev => prev.map(sale => 
+              sale.id === updatedSale.id ? updatedSale : sale
+            ));
+            toast.info(`Venda atualizada: ${updatedSale.lead_name}`);
+          }
+          else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Sales - Venda removida:', payload.old);
+            const deletedSale = payload.old as Sale;
+            setSales(prev => prev.filter(sale => sale.id !== deletedSale.id));
+            toast.info(`Venda removida: ${deletedSale.lead_name}`);
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: remover a escuta quando o componente for desmontado
+    return () => {
+      console.log('🔌 Sales - Removendo escuta em tempo real...');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filteredSales = sales.filter((sale) => {
@@ -368,4 +421,3 @@ const Sales = () => {
 };
 
 export default Sales;
-
