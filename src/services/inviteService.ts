@@ -25,8 +25,15 @@ export const inviteService = {
 
     return invitedUsers.map(user => ({
       ...user,
-      permissions: permissions?.filter(p => p.invited_user_id === user.id) || []
-    }));
+      permissions: (permissions?.filter(p => p.invited_user_id === user.id) || []).map(p => ({
+        id: p.id,
+        invited_user_id: p.invited_user_id!,
+        section: p.section as UserPermission['section'],
+        can_view: p.can_view || false,
+        can_edit: p.can_edit || false,
+        created_at: p.created_at!
+      }))
+    } as InvitedUserWithPermissions));
   },
 
   // Criar um novo convite
