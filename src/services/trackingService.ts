@@ -75,8 +75,28 @@ export const trackRedirect = async (
       // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
       if (phone && phone !== 'Redirecionamento Direto') {
         try {
+          // 🔒 GARANTIR QUE O NOME DO FORMULÁRIO SEJA PRESERVADO
+          // Verificar se já existe um pending_lead para este telefone
+          const { data: existingPending } = await supabase
+            .from('pending_leads')
+            .select('name, phone')
+            .eq('phone', phone)
+            .eq('status', 'pending')
+            .limit(1);
+
+          // Se já existe um pending lead e tem nome do formulário, preservar o nome original
+          const finalName = (existingPending && existingPending.length > 0 && existingPending[0].name && existingPending[0].name !== 'Visitante') 
+            ? existingPending[0].name 
+            : (name || 'Visitante');
+
+          console.log('🔒 Nome que será usado (preservando formulário):', {
+            nomeExistente: existingPending?.[0]?.name,
+            nomeNovo: name,
+            nomeFinal: finalName
+          });
+
           const pendingData = {
-            name: name || 'Visitante',
+            name: finalName,
             phone,
             campaign_id: campaign.id,
             campaign_name: campaign.name,
@@ -104,7 +124,7 @@ export const trackRedirect = async (
           if (pendingLeadError) {
             console.error('Erro ao criar pending_lead:', pendingLeadError);
           } else {
-            console.log('✅ pending_lead salva com UTMs corretos:', pendingData);
+            console.log('✅ pending_lead salva com UTMs corretos e nome preservado:', pendingData);
           }
         } catch (pendingSaveErr) {
           console.error("Erro ao gravar pending_lead:", pendingSaveErr);
@@ -121,7 +141,7 @@ export const trackRedirect = async (
       // Checa lead duplicado pelo telefone
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
-        .select('id')
+        .select('id, name')
         .eq('phone', phone)
         .limit(1);
 
@@ -150,7 +170,14 @@ export const trackRedirect = async (
           console.log('✅ Lead criado com status NEW e UTMs:', utms);
         }
       } else {
-        console.log('📞 Lead já existe, não duplicando:', existingLead[0].id);
+        console.log('📞 Lead já existe, preservando nome original:', {
+          leadId: existingLead[0].id,
+          nomeExistente: existingLead[0].name,
+          nomeNovo: name
+        });
+        
+        // 🔒 NÃO ATUALIZAR O NOME se já existe um lead - preservar o primeiro nome do formulário
+        console.log('🔒 Nome do formulário preservado - lead não duplicado');
       }
     } else {
       console.log("🔎 Não é fluxo de lead/contact ou telefone não informado:", {

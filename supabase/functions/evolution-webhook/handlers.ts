@@ -1,285 +1,241 @@
 
-// Handler functions for the evolution-webhook edge function
-import { detectKeywords, getMessageContent, getContactName } from "./helpers.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
-export async function processComercialMessage(args: any): Promise<void> {
-  const { supabase, message, realPhoneNumber, matchedLeads, messageContent } = args;
-  
-  console.log('📤 processComercialMessage - Mensagem comercial enviada para:', realPhoneNumber);
-  console.log('📤 Conteúdo da mensagem:', messageContent);
-  
-  try {
-    // Atualizar tentativas de entrega para todos os leads correspondentes
-    for (const lead of matchedLeads) {
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({
-          whatsapp_delivery_attempts: (lead.whatsapp_delivery_attempts || 0) + 1,
-          last_whatsapp_attempt: new Date().toISOString(),
-          last_contact_date: new Date().toISOString()
-        })
-        .eq('id', lead.id);
-
-      if (updateError) {
-        console.error('❌ Erro ao atualizar tentativas de entrega:', updateError);
-      } else {
-        console.log('✅ Tentativas de entrega atualizadas para lead:', lead.name);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Erro no processComercialMessage:', error);
-  }
+interface WebhookData {
+  event: string;
+  instance: string;
+  data: {
+    key: {
+      remoteJid: string;
+      fromMe: boolean;
+      id: string;
+    };
+    pushName?: string;
+    status: string;
+    message?: {
+      conversation?: string;
+      extendedTextMessage?: {
+        text: string;
+      };
+    };
+    messageType: string;
+    messageTimestamp: number;
+  };
 }
 
-export async function processClientMessage(args: any): Promise<void> {
-  const { supabase, message, realPhoneNumber, matchedLeads, messageContent } = args;
-  
-  console.log('📥 processClientMessage - Mensagem recebida de:', realPhoneNumber);
-  console.log('📥 Conteúdo da mensagem:', messageContent);
-  console.log('📥 Leads correspondentes:', matchedLeads.length);
+export const handlePendingLeadConversion = async (supabase: any, phone: string, messageText: string, messageId: string, status: string, contactName?: string) => {
+  console.log(`🔄 handlePendingLeadConversion - Verificando pending_lead para: ${phone}`);
   
   try {
-    // Processar cada lead correspondente
-    for (const lead of matchedLeads) {
-      console.log('🔍 Processando lead:', lead.name, '- Status atual:', lead.status);
-      
-      // Salvar a última mensagem no lead
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({
-          last_message: messageContent,
-          last_contact_date: new Date().toISOString(),
-          evolution_message_id: message.key?.id || null,
-          evolution_status: message.status || null
-        })
-        .eq('id', lead.id);
-
-      if (updateError) {
-        console.error('❌ Erro ao atualizar mensagem do lead:', updateError);
-        continue;
-      }
-
-      console.log('✅ Mensagem salva para lead:', lead.name);
-
-      // Verificar palavras-chave de conversão
-      const conversionKeywords = lead.campaigns?.conversion_keywords || [];
-      const cancellationKeywords = lead.campaigns?.cancellation_keywords || [];
-      
-      console.log('🔑 Palavras de conversão:', conversionKeywords);
-      console.log('🔑 Palavras de cancelamento:', cancellationKeywords);
-
-      let newStatus = lead.status;
-      
-      // Verificar se contém palavras de conversão
-      if (conversionKeywords.length > 0 && detectKeywords(messageContent, conversionKeywords)) {
-        console.log('🎯 Palavras de conversão detectadas!');
-        newStatus = 'converted';
-        
-        // Criar venda automaticamente
-        try {
-          const { error: saleError } = await supabase
-            .from('sales')
-            .insert({
-              value: 0, // Valor padrão, pode ser atualizado posteriormente
-              date: new Date().toISOString(),
-              lead_id: lead.id,
-              lead_name: lead.name,
-              campaign: lead.campaign,
-              product: '',
-              notes: `Venda criada automaticamente pela detecção de palavra-chave: "${messageContent.substring(0, 100)}"`
-            });
-
-          if (saleError) {
-            console.error('❌ Erro ao criar venda automática:', saleError);
-          } else {
-            console.log('💰 Venda criada automaticamente para:', lead.name);
-          }
-        } catch (saleCreationError) {
-          console.error('❌ Erro na criação de venda:', saleCreationError);
-        }
-      }
-      // Verificar se contém palavras de cancelamento
-      else if (cancellationKeywords.length > 0 && detectKeywords(messageContent, cancellationKeywords)) {
-        console.log('❌ Palavras de cancelamento detectadas!');
-        newStatus = 'cancelled';
-      }
-      // ⭐️ NOVA LÓGICA: Se status for 'new' (formulário), atualizar para 'lead'
-      else if (lead.status === 'new') {
-        console.log('📝 Lead de formulário enviou primeira mensagem, atualizando para LEAD');
-        newStatus = 'lead';
-      }
-
-      // Atualizar status se necessário
-      if (newStatus !== lead.status) {
-        const { error: statusError } = await supabase
-          .from('leads')
-          .update({
-            status: newStatus,
-            last_contact_date: new Date().toISOString()
-          })
-          .eq('id', lead.id);
-
-        if (statusError) {
-          console.error('❌ Erro ao atualizar status do lead:', statusError);
-        } else {
-          console.log(`✅ Status do lead ${lead.name} atualizado: ${lead.status} → ${newStatus}`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Erro no processClientMessage:', error);
-  }
-}
-
-export async function handleDirectLead(args: any): Promise<void> {
-  const { supabase, message, realPhoneNumber } = args;
-  
-  console.log('🆕 handleDirectLead - Novo contato direto de:', realPhoneNumber);
-  
-  // Não processar mensagens de grupo
-  if (realPhoneNumber.includes('@g.us')) {
-    console.log('👥 Mensagem de grupo ignorada:', realPhoneNumber);
-    return;
-  }
-  
-  try {
-    const messageContent = getMessageContent(message);
-    const contactName = getContactName(message);
-    
-    console.log('📝 Nome do contato:', contactName);
-    console.log('📝 Mensagem:', messageContent);
-    
-    // ⭐️ NOVA LÓGICA: Primeiro verificar se existe pending_lead para converter COM UTMs
+    // Buscar pending_lead para este telefone
     const { data: pendingLeads, error: pendingError } = await supabase
       .from('pending_leads')
       .select('*')
-      .eq('phone', realPhoneNumber)
-      .eq('status', 'pending');
+      .eq('phone', phone)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (pendingError) {
       console.error('❌ Erro ao buscar pending_leads:', pendingError);
-    } else if (pendingLeads && pendingLeads.length > 0) {
-      console.log('🔄 Convertendo pending_lead para lead definitivo COM UTMs:', pendingLeads[0]);
-      
-      const pendingLead = pendingLeads[0];
-      
-      // Criar lead definitivo com status 'lead' PRESERVANDO os UTMs corretos
-      const { data: newLead, error: createError } = await supabase
-        .from('leads')
-        .insert({
-          name: pendingLead.name,
-          phone: pendingLead.phone,
-          campaign: pendingLead.campaign_name || 'WhatsApp Direto',
-          campaign_id: pendingLead.campaign_id,
-          status: 'lead', // ⭐️ Status direto como 'lead'
-          last_message: messageContent,
-          first_contact_date: new Date().toISOString(),
-          last_contact_date: new Date().toISOString(),
-          evolution_message_id: message.key?.id || null,
-          evolution_status: message.status || null,
-          notes: `Lead convertido de pending_lead`,
-          // ⭐️ PRESERVAR UTMs corretos do pending_lead
-          utm_source: pendingLead.utm_source,
-          utm_medium: pendingLead.utm_medium,
-          utm_campaign: pendingLead.utm_campaign,
-          utm_content: pendingLead.utm_content,
-          utm_term: pendingLead.utm_term
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('❌ Erro ao criar lead definitivo:', createError);
-      } else {
-        console.log('✅ Lead definitivo criado COM UTMs preservados:', {
-          name: newLead.name,
-          utm_source: newLead.utm_source,
-          utm_medium: newLead.utm_medium,
-          utm_campaign: newLead.utm_campaign,
-          utm_content: newLead.utm_content,
-          utm_term: newLead.utm_term
-        });
-        
-        // Deletar pending_lead
-        const { error: deleteError } = await supabase
-          .from('pending_leads')
-          .delete()
-          .eq('id', pendingLead.id);
-
-        if (deleteError) {
-          console.error('❌ Erro ao deletar pending_lead:', deleteError);
-        } else {
-          console.log('🗑️ Pending_lead removido com sucesso');
-        }
-      }
       return;
     }
-    
-    // Verificar se já existe um lead com esse telefone
-    const { data: existingLeads, error: searchError } = await supabase
+
+    if (!pendingLeads || pendingLeads.length === 0) {
+      console.log('❌ Nenhum pending_lead encontrado para:', phone);
+      return;
+    }
+
+    const pendingLead = pendingLeads[0];
+    console.log('✅ Pending lead encontrado:', {
+      id: pendingLead.id,
+      name: pendingLead.name,
+      campaign_name: pendingLead.campaign_name,
+      utms: {
+        utm_source: pendingLead.utm_source,
+        utm_medium: pendingLead.utm_medium,
+        utm_campaign: pendingLead.utm_campaign,
+        utm_content: pendingLead.utm_content,
+        utm_term: pendingLead.utm_term
+      }
+    });
+
+    // 🔒 PRESERVAR SEMPRE O NOME DO FORMULÁRIO (pending_lead.name)
+    // Se o pending_lead tem um nome válido (não é "Visitante"), usar sempre esse nome
+    // Caso contrário, usar o nome do contato do WhatsApp como fallback
+    const finalName = (pendingLead.name && pendingLead.name !== 'Visitante') 
+      ? pendingLead.name 
+      : (contactName || 'Lead via WhatsApp');
+
+    console.log('🔒 Nome que será usado no lead final (preservando formulário):', {
+      nomePendingLead: pendingLead.name,
+      nomeContato: contactName,
+      nomeFinal: finalName
+    });
+
+    // Verificar se já existe um lead para este telefone
+    const { data: existingLead, error: leadCheckError } = await supabase
       .from('leads')
-      .select('id, name, status')
-      .eq('phone', realPhoneNumber)
+      .select('*')
+      .eq('phone', phone)
       .limit(1);
 
-    if (searchError) {
-      console.error('❌ Erro ao buscar leads existentes:', searchError);
+    if (leadCheckError) {
+      console.error('❌ Erro ao verificar lead existente:', leadCheckError);
       return;
     }
 
-    if (existingLeads && existingLeads.length > 0) {
-      console.log('📞 Lead já existe, atualizando mensagem:', existingLeads[0].name);
+    if (existingLead && existingLead.length > 0) {
+      console.log('📝 Lead existente encontrado, atualizando mensagem e preservando nome original...');
       
-      // Atualizar a última mensagem do lead existente
+      // 🔒 ATUALIZAR APENAS A MENSAGEM - PRESERVAR O NOME ORIGINAL DO LEAD
       const { error: updateError } = await supabase
         .from('leads')
         .update({
-          last_message: messageContent,
+          last_message: messageText,
           last_contact_date: new Date().toISOString(),
-          evolution_message_id: message.key?.id || null,
-          evolution_status: message.status || null
+          evolution_message_id: messageId,
+          evolution_status: status,
+          // NÃO atualizar o nome - preservar o nome original do formulário
         })
-        .eq('id', existingLeads[0].id);
+        .eq('id', existingLead[0].id);
 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead existente:', updateError);
       } else {
-        console.log('✅ Lead existente atualizado com nova mensagem');
+        console.log('✅ Lead existente atualizado com nova mensagem, nome preservado:', {
+          leadId: existingLead[0].id,
+          nomePreservado: existingLead[0].name,
+          novaMensagem: messageText
+        });
       }
+    } else {
+      console.log('🆕 Criando novo lead a partir do pending_lead...');
+      
+      // Criar novo lead com os dados do pending_lead e UTMs corretos
+      const newLeadData = {
+        name: finalName, // 🔒 Nome do formulário preservado
+        phone: phone,
+        campaign: pendingLead.campaign_name || 'WhatsApp',
+        campaign_id: pendingLead.campaign_id,
+        status: 'lead',
+        last_message: messageText,
+        first_contact_date: new Date().toISOString(),
+        last_contact_date: new Date().toISOString(),
+        evolution_message_id: messageId,
+        evolution_status: status,
+        notes: 'Lead criado automaticamente via WhatsApp a partir de formulário',
+        // 🎯 TRANSFERIR UTMs do pending_lead para o lead final
+        utm_source: pendingLead.utm_source,
+        utm_medium: pendingLead.utm_medium,
+        utm_campaign: pendingLead.utm_campaign,
+        utm_content: pendingLead.utm_content,
+        utm_term: pendingLead.utm_term
+      };
+
+      console.log('💾 Dados do novo lead (com UTMs do pending_lead):', newLeadData);
+
+      const { error: insertError } = await supabase
+        .from('leads')
+        .insert(newLeadData);
+
+      if (insertError) {
+        console.error('❌ Erro ao criar novo lead:', insertError);
+      } else {
+        console.log('✅ Novo lead criado com sucesso com UTMs preservados do formulário!');
+      }
+    }
+
+    // Marcar pending_lead como processado
+    const { error: updatePendingError } = await supabase
+      .from('pending_leads')
+      .update({ status: 'converted' })
+      .eq('id', pendingLead.id);
+
+    if (updatePendingError) {
+      console.error('❌ Erro ao marcar pending_lead como convertido:', updatePendingError);
+    } else {
+      console.log('✅ Pending lead marcado como convertido');
+    }
+
+  } catch (error) {
+    console.error('❌ Erro geral em handlePendingLeadConversion:', error);
+  }
+};
+
+export const handleDirectLead = async (supabase: any, phone: string, messageText: string, messageId: string, status: string, contactName?: string) => {
+  console.log(`🆕 handleDirectLead - Novo contato direto de: ${phone}`);
+  
+  try {
+    // Verificar se já existe um lead para este telefone
+    const { data: existingLead, error: leadCheckError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('phone', phone)
+      .limit(1);
+
+    if (leadCheckError) {
+      console.error('❌ Erro ao verificar lead existente:', leadCheckError);
       return;
     }
 
-    // ⭐️ MODIFICAÇÃO: Criar novo lead direto com status 'lead' (não 'new')
-    const newLead = {
-      name: contactName,
-      phone: realPhoneNumber,
-      campaign: 'WhatsApp Direto',
-      status: 'lead', // ⭐️ Status direto como 'lead'
-      last_message: messageContent,
-      first_contact_date: new Date().toISOString(),
-      last_contact_date: new Date().toISOString(),
-      evolution_message_id: message.key?.id || null,
-      evolution_status: message.status || null,
-      notes: `Lead criado automaticamente via WhatsApp direto`,
-      utm_source: 'whatsapp',
-      utm_medium: 'direct',
-      utm_campaign: 'organic'
-    };
+    if (existingLead && existingLead.length > 0) {
+      console.log('📝 Lead direto existente encontrado, atualizando mensagem e preservando nome original...');
+      
+      // 🔒 ATUALIZAR APENAS A MENSAGEM - PRESERVAR O NOME ORIGINAL DO LEAD
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+          last_message: messageText,
+          last_contact_date: new Date().toISOString(),
+          evolution_message_id: messageId,
+          evolution_status: status,
+          // NÃO atualizar o nome - preservar o nome original
+        })
+        .eq('id', existingLead[0].id);
 
-    console.log('🆕 Criando novo lead direto com status LEAD:', newLead);
-
-    const { data: createdLead, error: insertError } = await supabase
-      .from('leads')
-      .insert(newLead)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('❌ Erro ao criar novo lead direto:', insertError);
+      if (updateError) {
+        console.error('❌ Erro ao atualizar lead direto existente:', updateError);
+      } else {
+        console.log('✅ Lead direto existente atualizado, nome preservado:', {
+          leadId: existingLead[0].id,
+          nomePreservado: existingLead[0].name,
+          novaMensagem: messageText
+        });
+      }
     } else {
-      console.log('✅ Novo lead direto criado com sucesso:', createdLead.name);
+      console.log('🆕 Criando novo lead direto...');
+      
+      // Criar novo lead direto
+      const newLeadData = {
+        name: contactName || 'Lead via WhatsApp',
+        phone: phone,
+        campaign: 'WhatsApp Direto',
+        status: 'lead',
+        last_message: messageText,
+        first_contact_date: new Date().toISOString(),
+        last_contact_date: new Date().toISOString(),
+        evolution_message_id: messageId,
+        evolution_status: status,
+        notes: 'Lead criado automaticamente via WhatsApp direto',
+        utm_source: 'whatsapp',
+        utm_medium: 'direct',
+        utm_campaign: 'organic'
+      };
+
+      console.log('🆕 Criando novo lead direto com status LEAD:', newLeadData);
+
+      const { error: insertError } = await supabase
+        .from('leads')
+        .insert(newLeadData);
+
+      if (insertError) {
+        console.error('❌ Erro ao criar novo lead direto:', insertError);
+      } else {
+        console.log('✅ Novo lead direto criado com sucesso:', contactName || 'Lead via WhatsApp');
+      }
     }
   } catch (error) {
-    console.error('❌ Erro no handleDirectLead:', error);
+    console.error('❌ Erro geral em handleDirectLead:', error);
   }
-}
+};
