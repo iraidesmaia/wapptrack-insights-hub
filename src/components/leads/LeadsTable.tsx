@@ -6,12 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { formatPhoneWithCountryCode } from '@/lib/phoneUtils';
-import { MessageSquare, Edit, Trash2 } from 'lucide-react';
+import { MessageSquare, Eye, Trash2 } from 'lucide-react';
 
 interface LeadsTableProps {
   leads: Lead[];
   isLoading: boolean;
-  onEdit: (lead: Lead) => void;
+  onView: (lead: Lead) => void;
   onDelete: (id: string) => void;
   onOpenWhatsApp: (phone: string) => void;
 }
@@ -19,7 +19,7 @@ interface LeadsTableProps {
 const LeadsTable: React.FC<LeadsTableProps> = ({
   leads,
   isLoading,
-  onEdit,
+  onView,
   onDelete,
   onOpenWhatsApp
 }) => {
@@ -145,10 +145,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => onEdit(lead)}
-                          title="Editar lead"
+                          onClick={() => onView(lead)}
+                          title="Visualizar detalhes"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"

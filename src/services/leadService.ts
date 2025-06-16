@@ -1,3 +1,4 @@
+
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
@@ -15,7 +16,7 @@ export const getLeads = async (): Promise<Lead[]> => {
     
     console.log('📋 leadService.getLeads() - Dados brutos do Supabase:', leads);
     
-    // Map database fields to our Lead interface - INCLUINDO last_message E UTMs
+    // Map database fields to our Lead interface - INCLUINDO novos campos
     const mappedLeads = (leads || []).map(lead => {
       console.log(`🔍 leadService.getLeads() - Mapeando lead ${lead.name}:`, {
         id: lead.id,
@@ -40,7 +41,19 @@ export const getLeads = async (): Promise<Lead[]> => {
         utm_medium: lead.utm_medium || '',
         utm_campaign: lead.utm_campaign || '',
         utm_content: lead.utm_content || '',
-        utm_term: lead.utm_term || ''
+        utm_term: lead.utm_term || '',
+        // Novos campos
+        location: lead.location || '',
+        ip_address: lead.ip_address || '',
+        browser: lead.browser || '',
+        os: lead.os || '',
+        device_type: lead.device_type || '',
+        device_model: lead.device_model || '',
+        tracking_method: lead.tracking_method || 'direct',
+        ad_account: lead.ad_account || '',
+        ad_set_name: lead.ad_set_name || '',
+        ad_name: lead.ad_name || '',
+        initial_message: lead.initial_message || ''
       };
     });
     
@@ -76,7 +89,19 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
         utm_medium: lead.utm_medium || '',
         utm_campaign: lead.utm_campaign || '',
         utm_content: lead.utm_content || '',
-        utm_term: lead.utm_term || ''
+        utm_term: lead.utm_term || '',
+        // Novos campos
+        location: lead.location || '',
+        ip_address: lead.ip_address || '',
+        browser: lead.browser || '',
+        os: lead.os || '',
+        device_type: lead.device_type || '',
+        device_model: lead.device_model || '',
+        tracking_method: lead.tracking_method || 'direct',
+        ad_account: lead.ad_account || '',
+        ad_set_name: lead.ad_set_name || '',
+        ad_name: lead.ad_name || '',
+        initial_message: lead.initial_message || ''
       })
       .select()
       .single();
@@ -99,7 +124,19 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       utm_medium: data.utm_medium || '',
       utm_campaign: data.utm_campaign || '',
       utm_content: data.utm_content || '',
-      utm_term: data.utm_term || ''
+      utm_term: data.utm_term || '',
+      // Novos campos
+      location: data.location || '',
+      ip_address: data.ip_address || '',
+      browser: data.browser || '',
+      os: data.os || '',
+      device_type: data.device_type || '',
+      device_model: data.device_model || '',
+      tracking_method: data.tracking_method || 'direct',
+      ad_account: data.ad_account || '',
+      ad_set_name: data.ad_set_name || '',
+      ad_name: data.ad_name || '',
+      initial_message: data.initial_message || ''
     };
   } catch (error) {
     console.error("Error adding lead:", error);
@@ -116,7 +153,7 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.campaign) updateData.campaign = lead.campaign;
     if (lead.status) updateData.status = lead.status;
     if (lead.custom_fields) updateData.custom_fields = lead.custom_fields;
-    if (lead.notes) updateData.notes = lead.notes;
+    if (lead.notes !== undefined) updateData.notes = lead.notes;
     if (lead.first_contact_date !== undefined) updateData.first_contact_date = lead.first_contact_date;
     if (lead.last_contact_date !== undefined) updateData.last_contact_date = lead.last_contact_date;
     if (lead.last_message !== undefined) updateData.last_message = lead.last_message;
@@ -125,6 +162,18 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.utm_campaign !== undefined) updateData.utm_campaign = lead.utm_campaign;
     if (lead.utm_content !== undefined) updateData.utm_content = lead.utm_content;
     if (lead.utm_term !== undefined) updateData.utm_term = lead.utm_term;
+    // Novos campos
+    if (lead.location !== undefined) updateData.location = lead.location;
+    if (lead.ip_address !== undefined) updateData.ip_address = lead.ip_address;
+    if (lead.browser !== undefined) updateData.browser = lead.browser;
+    if (lead.os !== undefined) updateData.os = lead.os;
+    if (lead.device_type !== undefined) updateData.device_type = lead.device_type;
+    if (lead.device_model !== undefined) updateData.device_model = lead.device_model;
+    if (lead.tracking_method !== undefined) updateData.tracking_method = lead.tracking_method;
+    if (lead.ad_account !== undefined) updateData.ad_account = lead.ad_account;
+    if (lead.ad_set_name !== undefined) updateData.ad_set_name = lead.ad_set_name;
+    if (lead.ad_name !== undefined) updateData.ad_name = lead.ad_name;
+    if (lead.initial_message !== undefined) updateData.initial_message = lead.initial_message;
 
     // Update lead in Supabase
     const { data, error } = await supabase
@@ -152,7 +201,19 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       utm_medium: data.utm_medium || '',
       utm_campaign: data.utm_campaign || '',
       utm_content: data.utm_content || '',
-      utm_term: data.utm_term || ''
+      utm_term: data.utm_term || '',
+      // Novos campos
+      location: data.location || '',
+      ip_address: data.ip_address || '',
+      browser: data.browser || '',
+      os: data.os || '',
+      device_type: data.device_type || '',
+      device_model: data.device_model || '',
+      tracking_method: data.tracking_method || 'direct',
+      ad_account: data.ad_account || '',
+      ad_set_name: data.ad_set_name || '',
+      ad_name: data.ad_name || '',
+      initial_message: data.initial_message || ''
     };
   } catch (error) {
     console.error("Error updating lead:", error);

@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
+import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,14 +22,19 @@ const Leads = () => {
   const {
     isDialogOpen,
     setIsDialogOpen,
+    isDetailDialogOpen,
+    setIsDetailDialogOpen,
     dialogMode,
     currentLead,
+    selectedLead,
     handleInputChange,
     handlePhoneChange,
     handleSelectChange,
     handleOpenAddDialog,
     handleOpenEditDialog,
+    handleOpenViewDialog,
     handleSaveLead,
+    handleSaveFromDetailDialog,
     handleDeleteLead,
     openWhatsApp
   } = useLeadOperations(leads, setLeads);
@@ -218,7 +224,7 @@ const Leads = () => {
         <LeadsTable
           leads={filteredLeads}
           isLoading={isLoading}
-          onEdit={handleOpenEditDialog}
+          onView={handleOpenViewDialog}
           onDelete={handleDeleteLead}
           onOpenWhatsApp={openWhatsApp}
         />
@@ -233,6 +239,14 @@ const Leads = () => {
           onInputChange={handleInputChange}
           onPhoneChange={handlePhoneChange}
           onSelectChange={handleSelectChange}
+        />
+
+        <LeadDetailDialog
+          isOpen={isDetailDialogOpen}
+          onClose={() => setIsDetailDialogOpen(false)}
+          lead={selectedLead}
+          onSave={handleSaveFromDetailDialog}
+          onOpenWhatsApp={openWhatsApp}
         />
       </div>
     </MainLayout>

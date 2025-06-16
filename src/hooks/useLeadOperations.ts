@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Lead, Campaign } from '@/types';
 import { addLead, updateLead, deleteLead, addSale } from '@/services/dataService';
@@ -7,7 +8,9 @@ import { toast } from "sonner";
 
 export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.SetStateAction<Lead[]>>) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [currentLead, setCurrentLead] = useState<Partial<Lead>>({
     name: '',
     phone: '',
@@ -75,6 +78,25 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
     });
     setDialogMode('edit');
     setIsDialogOpen(true);
+  };
+
+  const handleOpenViewDialog = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleSaveFromDetailDialog = async (updatedData: Partial<Lead>) => {
+    if (!selectedLead) return;
+
+    try {
+      const updatedLead = await updateLead(selectedLead.id, updatedData);
+      setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
+      setSelectedLead(updatedLead);
+      toast.success('Lead atualizado com sucesso');
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      toast.error('Erro ao atualizar lead');
+    }
   };
 
   const createSaleFromLead = async (lead: Lead) => {
@@ -228,14 +250,19 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
   return {
     isDialogOpen,
     setIsDialogOpen,
+    isDetailDialogOpen,
+    setIsDetailDialogOpen,
     dialogMode,
     currentLead,
+    selectedLead,
     handleInputChange,
     handlePhoneChange,
     handleSelectChange,
     handleOpenAddDialog,
     handleOpenEditDialog,
+    handleOpenViewDialog,
     handleSaveLead,
+    handleSaveFromDetailDialog,
     handleDeleteLead,
     openWhatsApp
   };

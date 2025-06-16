@@ -28,6 +28,18 @@ export interface Lead {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  // Novos campos adicionados
+  location?: string;
+  ip_address?: string;
+  browser?: string;
+  os?: string;
+  device_type?: string;
+  device_model?: string;
+  tracking_method?: string;
+  ad_account?: string;
+  ad_set_name?: string;
+  ad_name?: string;
+  initial_message?: string;
 }
 
 export interface Campaign {
