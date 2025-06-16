@@ -38,17 +38,25 @@ export const inviteService = {
 
   // Criar um novo convite
   async createInvite(inviteData: InviteFormData): Promise<string> {
+    // Verificar se o usuário está autenticado
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const token = crypto.randomUUID();
     const expiresAt = inviteData.expires_in_days 
       ? new Date(Date.now() + inviteData.expires_in_days * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // Inserir usuário convidado
+    // Inserir usuário convidado com o invited_by
     const { data: invitedUser, error: userError } = await supabase
       .from('invited_users')
       .insert({
         email: inviteData.email,
         invite_token: token,
+        invited_by: user.id,
         expires_at: expiresAt
       })
       .select()
