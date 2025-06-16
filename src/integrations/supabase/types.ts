@@ -287,6 +287,11 @@ export type Database = {
           name: string
           phone: string
           status: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           webhook_data: Json | null
           webhook_sent_at: string | null
         }
@@ -298,6 +303,11 @@ export type Database = {
           name: string
           phone: string
           status?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           webhook_data?: Json | null
           webhook_sent_at?: string | null
         }
@@ -309,6 +319,11 @@ export type Database = {
           name?: string
           phone?: string
           status?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           webhook_data?: Json | null
           webhook_sent_at?: string | null
         }

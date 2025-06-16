@@ -149,7 +149,7 @@ export async function handleDirectLead(args: any): Promise<void> {
     console.log('📝 Nome do contato:', contactName);
     console.log('📝 Mensagem:', messageContent);
     
-    // ⭐️ NOVA LÓGICA: Primeiro verificar se existe pending_lead para converter
+    // ⭐️ NOVA LÓGICA: Primeiro verificar se existe pending_lead para converter COM UTMs
     const { data: pendingLeads, error: pendingError } = await supabase
       .from('pending_leads')
       .select('*')
@@ -159,11 +159,11 @@ export async function handleDirectLead(args: any): Promise<void> {
     if (pendingError) {
       console.error('❌ Erro ao buscar pending_leads:', pendingError);
     } else if (pendingLeads && pendingLeads.length > 0) {
-      console.log('🔄 Convertendo pending_lead para lead definitivo:', pendingLeads[0]);
+      console.log('🔄 Convertendo pending_lead para lead definitivo COM UTMs:', pendingLeads[0]);
       
       const pendingLead = pendingLeads[0];
       
-      // Criar lead definitivo com status 'lead'
+      // Criar lead definitivo com status 'lead' PRESERVANDO os UTMs corretos
       const { data: newLead, error: createError } = await supabase
         .from('leads')
         .insert({
@@ -178,6 +178,7 @@ export async function handleDirectLead(args: any): Promise<void> {
           evolution_message_id: message.key?.id || null,
           evolution_status: message.status || null,
           notes: `Lead convertido de pending_lead`,
+          // ⭐️ PRESERVAR UTMs corretos do pending_lead
           utm_source: pendingLead.utm_source,
           utm_medium: pendingLead.utm_medium,
           utm_campaign: pendingLead.utm_campaign,
@@ -190,7 +191,14 @@ export async function handleDirectLead(args: any): Promise<void> {
       if (createError) {
         console.error('❌ Erro ao criar lead definitivo:', createError);
       } else {
-        console.log('✅ Lead definitivo criado:', newLead.name);
+        console.log('✅ Lead definitivo criado COM UTMs preservados:', {
+          name: newLead.name,
+          utm_source: newLead.utm_source,
+          utm_medium: newLead.utm_medium,
+          utm_campaign: newLead.utm_campaign,
+          utm_content: newLead.utm_content,
+          utm_term: newLead.utm_term
+        });
         
         // Deletar pending_lead
         const { error: deleteError } = await supabase

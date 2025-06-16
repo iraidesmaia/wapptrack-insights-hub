@@ -66,12 +66,13 @@ export const trackRedirect = async (
 
     // ⭐️ MODIFICAÇÃO PRINCIPAL: Diferentes comportamentos por redirect_type
     if (campaign.redirect_type === 'whatsapp') {
-      console.log(`🚦 Campanha de redirecionamento WhatsApp – Salvar em pending_leads!`, {
+      console.log(`🚦 Campanha de redirecionamento WhatsApp – Salvar em pending_leads com UTMs corretos!`, {
         id: campaign.id,
         name: campaign.name,
+        utms
       });
       
-      // Para redirect_type: 'whatsapp', salvar em pending_leads
+      // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
       if (phone && phone !== 'Redirecionamento Direto') {
         try {
           const pendingData = {
@@ -87,6 +88,8 @@ export const trackRedirect = async (
             status: 'pending'
           };
           
+          console.log('💾 Dados que serão salvos em pending_leads:', pendingData);
+          
           // Impede duplicidade por telefone pendente
           const { error: delError } = await supabase
             .from('pending_leads')
@@ -101,7 +104,7 @@ export const trackRedirect = async (
           if (pendingLeadError) {
             console.error('Erro ao criar pending_lead:', pendingLeadError);
           } else {
-            console.log('💾 pending_lead salva com UTMs:', pendingData);
+            console.log('✅ pending_lead salva com UTMs corretos:', pendingData);
           }
         } catch (pendingSaveErr) {
           console.error("Erro ao gravar pending_lead:", pendingSaveErr);
