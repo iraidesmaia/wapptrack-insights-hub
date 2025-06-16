@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
 interface WebhookData {
@@ -337,6 +336,25 @@ export const handleDirectLead = async (params: {
     // 🎯 TENTAR BUSCAR UTMs DE CLICK DIRETO
     const directUtms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
     
+    // 🔍 BUSCAR CAMPANHA BASEADA NOS UTMs ou usar padrão
+    let campaignName = 'WhatsApp Orgânico';
+    let campaignId = null;
+    
+    if (directUtms && directUtms.utm_campaign) {
+      // Tentar encontrar campanha pelo utm_campaign
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('id, name')
+        .eq('utm_campaign', directUtms.utm_campaign)
+        .limit(1);
+      
+      if (campaign && campaign.length > 0) {
+        campaignName = campaign[0].name;
+        campaignId = campaign[0].id;
+        console.log(`📋 Campanha encontrada pelo UTM: ${campaignName}`);
+      }
+    }
+    
     // Verificar se já existe um lead para este telefone
     const { data: existingLead, error: leadCheckError } = await supabase
       .from('leads')
@@ -386,7 +404,6 @@ export const handleDirectLead = async (params: {
       
       // Determinar tipo de lead baseado na presença de UTMs
       const isDirectClick = !!directUtms;
-      const campaignName = isDirectClick ? 'Click Direto' : 'WhatsApp Orgânico';
       const leadUtms = directUtms || {
         utm_source: 'whatsapp',
         utm_medium: isDirectClick ? 'direct' : 'organic',
@@ -397,7 +414,8 @@ export const handleDirectLead = async (params: {
       const newLeadData = {
         name: message.pushName || 'Lead via WhatsApp',
         phone: realPhoneNumber,
-        campaign: campaignName,
+        campaign: campaignName, // 🔧 USA O NOME CORRETO DA CAMPANHA
+        campaign_id: campaignId, // 🔧 USA O ID DA CAMPANHA SE ENCONTRADA
         status: 'lead',
         last_message: messageContent, // 🎯 PRIMEIRA MENSAGEM SALVA
         first_contact_date: new Date().toISOString(),
@@ -412,7 +430,11 @@ export const handleDirectLead = async (params: {
         utm_term: leadUtms.utm_term
       };
 
-      console.log(`🆕 Criando novo lead ${campaignName.toLowerCase()} com primeira mensagem:`, newLeadData);
+      console.log(`🆕 Criando novo lead com campanha correta:`, {
+        campaignName,
+        campaignId,
+        utms: leadUtms
+      });
 
       const { error: insertError } = await supabase
         .from('leads')
@@ -421,7 +443,7 @@ export const handleDirectLead = async (params: {
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
-        console.log(`✅ Novo lead ${campaignName.toLowerCase()} criado com primeira mensagem preservada:`, message.pushName || 'Lead via WhatsApp');
+        console.log(`✅ Novo lead criado com campanha: ${campaignName}`, message.pushName || 'Lead via WhatsApp');
       }
     }
   } catch (error) {
