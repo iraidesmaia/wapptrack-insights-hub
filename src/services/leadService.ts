@@ -1,5 +1,6 @@
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
+import { getDeviceDataByPhone } from "./deviceDataService";
 
 export const getLeads = async (): Promise<Lead[]> => {
   try {
@@ -77,47 +78,87 @@ export const getLeads = async (): Promise<Lead[]> => {
 
 export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Lead> => {
   try {
+    console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone);
+    
+    // 🎯 BUSCAR DADOS DO DISPOSITIVO SALVOS PARA ESTE TELEFONE
+    let deviceData = null;
+    if (lead.phone) {
+      console.log('📱 Buscando dados do dispositivo para telefone:', lead.phone);
+      deviceData = await getDeviceDataByPhone(lead.phone);
+      
+      if (deviceData) {
+        console.log('✅ Dados do dispositivo encontrados:', {
+          device_type: deviceData.device_type,
+          browser: deviceData.browser,
+          location: deviceData.location,
+          ip_address: deviceData.ip_address
+        });
+      } else {
+        console.log('❌ Nenhum dado do dispositivo encontrado para:', lead.phone);
+      }
+    }
+
+    // Preparar dados do lead com informações do dispositivo se disponíveis
+    const leadData = {
+      name: lead.name,
+      phone: lead.phone,
+      campaign: lead.campaign,
+      status: lead.status || 'new',
+      custom_fields: lead.custom_fields || {},
+      notes: lead.notes || '',
+      first_contact_date: lead.first_contact_date || null,
+      last_contact_date: lead.last_contact_date || null,
+      last_message: lead.last_message || null,
+      utm_source: lead.utm_source || '',
+      utm_medium: lead.utm_medium || '',
+      utm_campaign: lead.utm_campaign || '',
+      utm_content: lead.utm_content || '',
+      utm_term: lead.utm_term || '',
+      // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
+      location: deviceData?.location || lead.location || '',
+      ip_address: deviceData?.ip_address || lead.ip_address || '',
+      browser: deviceData?.browser || lead.browser || '',
+      os: deviceData?.os || lead.os || '',
+      device_type: deviceData?.device_type || lead.device_type || '',
+      device_model: deviceData?.device_model || lead.device_model || '',
+      tracking_method: lead.tracking_method || 'direct',
+      ad_account: lead.ad_account || '',
+      ad_set_name: lead.ad_set_name || '',
+      ad_name: lead.ad_name || '',
+      initial_message: lead.initial_message || '',
+      // Campos adicionais de dispositivo
+      country: deviceData?.country || lead.country || '',
+      city: deviceData?.city || lead.city || '',
+      screen_resolution: deviceData?.screen_resolution || lead.screen_resolution || '',
+      timezone: deviceData?.timezone || lead.timezone || '',
+      language: deviceData?.language || lead.language || ''
+    };
+
+    console.log('💾 Dados que serão inseridos no lead (com dados do dispositivo):', {
+      nome: leadData.name,
+      telefone: leadData.phone,
+      device_type: leadData.device_type,
+      browser: leadData.browser,
+      location: leadData.location,
+      ip_address: leadData.ip_address,
+      tem_dados_dispositivo: !!deviceData
+    });
+
     // Insert lead into Supabase
     const { data, error } = await supabase
       .from('leads')
-      .insert({
-        name: lead.name,
-        phone: lead.phone,
-        campaign: lead.campaign,
-        status: lead.status || 'new',
-        custom_fields: lead.custom_fields || {},
-        notes: lead.notes || '',
-        first_contact_date: lead.first_contact_date || null,
-        last_contact_date: lead.last_contact_date || null,
-        last_message: lead.last_message || null,
-        utm_source: lead.utm_source || '',
-        utm_medium: lead.utm_medium || '',
-        utm_campaign: lead.utm_campaign || '',
-        utm_content: lead.utm_content || '',
-        utm_term: lead.utm_term || '',
-        // Novos campos
-        location: lead.location || '',
-        ip_address: lead.ip_address || '',
-        browser: lead.browser || '',
-        os: lead.os || '',
-        device_type: lead.device_type || '',
-        device_model: lead.device_model || '',
-        tracking_method: lead.tracking_method || 'direct',
-        ad_account: lead.ad_account || '',
-        ad_set_name: lead.ad_set_name || '',
-        ad_name: lead.ad_name || '',
-        initial_message: lead.initial_message || '',
-        // Campos adicionais de dispositivo
-        country: lead.country || '',
-        city: lead.city || '',
-        screen_resolution: lead.screen_resolution || '',
-        timezone: lead.timezone || '',
-        language: lead.language || ''
-      })
+      .insert(leadData)
       .select()
       .single();
 
     if (error) throw error;
+
+    console.log('✅ Lead criado com sucesso com dados do dispositivo:', {
+      id: data.id,
+      name: data.name,
+      device_type: data.device_type,
+      location: data.location
+    });
 
     return {
       id: data.id,
