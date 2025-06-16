@@ -1,4 +1,6 @@
 
+import { getDeviceDataByPhone } from './deviceDataHandler.ts';
+
 export const handlePendingLeadConversion = async (supabase: any, phone: string, messageText: string, messageId: string, status: string, contactName?: string) => {
   console.log(`🔄 handlePendingLeadConversion - Verificando pending_lead para: ${phone}`);
   
@@ -36,6 +38,9 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       }
     });
 
+    // 📱 BUSCAR DADOS DO DISPOSITIVO
+    const deviceData = await getDeviceDataByPhone(supabase, phone);
+
     // 🔒 PRESERVAR SEMPRE O NOME DO FORMULÁRIO (pending_lead.name)
     const finalName = (pendingLead.name && pendingLead.name !== 'Visitante') 
       ? pendingLead.name 
@@ -44,7 +49,8 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
     console.log('🔒 Nome que será usado no lead final (preservando formulário):', {
       nomePendingLead: pendingLead.name,
       nomeContato: contactName,
-      nomeFinal: finalName
+      nomeFinal: finalName,
+      temDadosDispositivo: !!deviceData
     });
 
     // Verificar se já existe um lead para este telefone
@@ -62,12 +68,21 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
     if (existingLead && existingLead.length > 0) {
       console.log('📝 Lead existente encontrado, verificando se deve atualizar primeira mensagem...');
       
-      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR
+      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR + ATUALIZAR DADOS DO DISPOSITIVO
       const updateData: any = {
         last_contact_date: new Date().toISOString(),
         evolution_message_id: messageId,
         evolution_status: status,
       };
+      
+      // Adicionar dados do dispositivo se disponíveis
+      if (deviceData) {
+        updateData.custom_fields = {
+          ...existingLead[0].custom_fields,
+          device_info: deviceData
+        };
+        console.log('📱 Adicionando dados do dispositivo ao lead existente');
+      }
       
       // Verificar se já tem mensagem salva
       if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
@@ -85,16 +100,17 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead existente:', updateError);
       } else {
-        console.log('✅ Lead existente atualizado, primeira mensagem preservada:', {
+        console.log('✅ Lead existente atualizado com dados do dispositivo:', {
           leadId: existingLead[0].id,
           nomePreservado: existingLead[0].name,
-          primeiraMensagem: updateData.last_message || existingLead[0].last_message
+          primeiraMensagem: updateData.last_message || existingLead[0].last_message,
+          temDadosDispositivo: !!deviceData
         });
       }
     } else {
-      console.log('🆕 Criando novo lead a partir do pending_lead com primeira mensagem...');
+      console.log('🆕 Criando novo lead a partir do pending_lead com primeira mensagem e dados do dispositivo...');
       
-      // Criar novo lead com os dados do pending_lead e primeira mensagem
+      // Criar novo lead com os dados do pending_lead, primeira mensagem e dados do dispositivo
       const newLeadData = {
         name: finalName, // 🔒 Nome do formulário preservado
         phone: phone,
@@ -112,10 +128,15 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
         utm_medium: pendingLead.utm_medium,
         utm_campaign: pendingLead.utm_campaign,
         utm_content: pendingLead.utm_content,
-        utm_term: pendingLead.utm_term
+        utm_term: pendingLead.utm_term,
+        // 📱 INCLUIR DADOS DO DISPOSITIVO
+        custom_fields: deviceData ? { device_info: deviceData } : null
       };
 
-      console.log('💾 Dados do novo lead (com primeira mensagem e UTMs do pending_lead):', newLeadData);
+      console.log('💾 Dados do novo lead (com primeira mensagem, UTMs e dados do dispositivo):', {
+        ...newLeadData,
+        tem_dados_dispositivo: !!deviceData
+      });
 
       const { error: insertError } = await supabase
         .from('leads')
@@ -124,7 +145,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (insertError) {
         console.error('❌ Erro ao criar novo lead:', insertError);
       } else {
-        console.log('✅ Novo lead criado com primeira mensagem preservada!');
+        console.log('✅ Novo lead criado com primeira mensagem e dados do dispositivo preservados!');
       }
     }
 

@@ -1,363 +1,357 @@
 
 import React, { useState } from 'react';
-import { Lead } from '@/types';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
-import { formatPhoneWithCountryCode } from '@/lib/phoneUtils';
-import { MessageSquare, Edit, Save, X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MessageSquare, Calendar, Phone, Tag, ExternalLink, Edit, Save, X } from 'lucide-react';
+import { Lead } from '@/types';
+import { formatBrazilianPhone } from '@/lib/phoneUtils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import DeviceInfoDisplay from './DeviceInfoDisplay';
 
 interface LeadDetailDialogProps {
+  lead: Lead | null;
   isOpen: boolean;
   onClose: () => void;
-  lead: Lead | null;
-  onSave: (updatedLead: Partial<Lead>) => void;
-  onOpenWhatsApp: (phone: string) => void;
+  onSave: (updatedData: Partial<Lead>) => Promise<void>;
 }
 
-const LeadDetailDialog: React.FC<LeadDetailDialogProps> = ({
-  isOpen,
-  onClose,
-  lead,
-  onSave,
-  onOpenWhatsApp
-}) => {
+const LeadDetailDialog = ({ lead, isOpen, onClose, onSave }: LeadDetailDialogProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
+  const [editData, setEditData] = useState<Partial<Lead>>({});
 
   if (!lead) return null;
 
   const handleEdit = () => {
-    setEditedLead({
+    setEditData({
       name: lead.name,
       status: lead.status,
       notes: lead.notes || '',
-      first_contact_date: lead.first_contact_date || '',
-      last_contact_date: lead.last_contact_date || '',
-      location: lead.location || ''
+      utm_source: lead.utm_source || '',
+      utm_medium: lead.utm_medium || '',
+      utm_campaign: lead.utm_campaign || '',
+      utm_content: lead.utm_content || '',
+      utm_term: lead.utm_term || ''
     });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    onSave({ ...editedLead, id: lead.id });
+  const handleSave = async () => {
+    await onSave(editData);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setEditedLead({});
     setIsEditing(false);
+    setEditData({});
   };
 
-  const getOrigin = () => {
-    if (lead.utm_source?.toLowerCase().includes('facebook')) return 'Facebook Ads';
-    if (lead.utm_source?.toLowerCase().includes('google')) return 'Google Ads';
-    if (lead.utm_source) return lead.utm_source;
-    return 'Direto';
+  const openWhatsApp = () => {
+    const formattedPhone = lead.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${formattedPhone}`, '_blank');
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new':
-        return <Badge variant="default" className="bg-blue-500">Novo</Badge>;
-      case 'contacted':
-        return <Badge variant="default" className="bg-yellow-500">Contactado</Badge>;
-      case 'qualified':
-        return <Badge variant="default" className="bg-accent">Qualificado</Badge>;
-      case 'converted':
-        return <Badge variant="default" className="bg-primary">Convertido</Badge>;
-      case 'lost':
-        return <Badge variant="destructive">Perdido</Badge>;
-      case 'lead':
-        return <Badge variant="default" className="bg-green-500">Lead</Badge>;
-      case 'to_recover':
-        return <Badge variant="default" className="bg-orange-500">A recuperar</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      case 'new': return 'bg-blue-100 text-blue-800';
+      case 'contacted': return 'bg-yellow-100 text-yellow-800';
+      case 'qualified': return 'bg-purple-100 text-purple-800';
+      case 'converted': return 'bg-green-100 text-green-800';
+      case 'lost': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'new': return 'Novo';
+      case 'contacted': return 'Contatado';
+      case 'qualified': return 'Qualificado';
+      case 'converted': return 'Convertido';
+      case 'lost': return 'Perdido';
+      default: return status;
+    }
+  };
+
+  // Extrair dados do dispositivo do custom_fields
+  const deviceInfo = lead.custom_fields?.device_info;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl">Detalhes do Lead</DialogTitle>
-            <div className="flex gap-2">
+          <DialogTitle className="flex items-center justify-between">
+            <span>Detalhes do Lead</span>
+            <div className="flex items-center space-x-2">
               {!isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onOpenWhatsApp(lead.phone)}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEdit}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                </>
+                <Button onClick={handleEdit} variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
               ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
+                <div className="flex space-x-2">
+                  <Button onClick={handleSave} size="sm">
+                    <Save className="w-4 h-4 mr-2" />
                     Salvar
                   </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="grid gap-6">
-          {/* Resumo de Leads */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumo do Lead</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Campanha</Label>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{lead.campaign}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onOpenWhatsApp(lead.phone)}
-                  >
-                    <MessageSquare className="h-4 w-4" />
+                  <Button onClick={handleCancel} variant="outline" size="sm">
+                    <X className="w-4 h-4 mr-2" />
+                    Cancelar
                   </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Telefone</Label>
-                <span className="font-medium">{formatPhoneWithCountryCode(lead.phone)}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Nome</Label>
-                {isEditing ? (
-                  <Input
-                    value={editedLead.name || ''}
-                    onChange={(e) => setEditedLead({...editedLead, name: e.target.value})}
-                  />
-                ) : (
-                  <span className="font-medium">{lead.name}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Localização</Label>
-                {isEditing ? (
-                  <Input
-                    value={editedLead.location || ''}
-                    onChange={(e) => setEditedLead({...editedLead, location: e.target.value})}
-                    placeholder="Ex: São Paulo, SP"
-                  />
-                ) : (
-                  <span>{lead.location || 'Não informado'}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Origem</Label>
-                <span>{getOrigin()}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Etapa da Jornada</Label>
-                {isEditing ? (
-                  <Select 
-                    value={editedLead.status || ''} 
-                    onValueChange={(value) => setEditedLead({...editedLead, status: value as Lead['status']})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">Novo</SelectItem>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="to_recover">A recuperar</SelectItem>
-                      <SelectItem value="contacted">Contactado</SelectItem>
-                      <SelectItem value="qualified">Qualificado</SelectItem>
-                      <SelectItem value="converted">Convertido</SelectItem>
-                      <SelectItem value="lost">Perdido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  getStatusBadge(lead.status)
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Data de Criação</Label>
-                <span>{formatDate(lead.created_at)}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Primeiro Contato</Label>
-                {isEditing ? (
-                  <Input
-                    type="datetime-local"
-                    value={editedLead.first_contact_date ? new Date(editedLead.first_contact_date).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditedLead({...editedLead, first_contact_date: e.target.value})}
-                  />
-                ) : (
-                  <span>{lead.first_contact_date ? formatDate(lead.first_contact_date) : 'Não realizado'}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Último Contato</Label>
-                {isEditing ? (
-                  <Input
-                    type="datetime-local"
-                    value={editedLead.last_contact_date ? new Date(editedLead.last_contact_date).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditedLead({...editedLead, last_contact_date: e.target.value})}
-                  />
-                ) : (
-                  <span>{lead.last_contact_date ? formatDate(lead.last_contact_date) : 'Não realizado'}</span>
-                )}
-              </div>
-
-              {lead.last_message && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Última Mensagem</Label>
-                  <div className="p-3 bg-muted rounded-md">
-                    <span className="text-sm">{lead.last_message}</span>
-                  </div>
-                </div>
               )}
+            </div>
+          </DialogTitle>
+        </DialogHeader>
 
-              {(isEditing || lead.notes) && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Observações</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editedLead.notes || ''}
-                      onChange={(e) => setEditedLead({...editedLead, notes: e.target.value})}
-                      placeholder="Adicione observações sobre o lead..."
-                      rows={3}
-                    />
-                  ) : (
-                    <div className="p-3 bg-muted rounded-md">
-                      <span className="text-sm">{lead.notes || 'Nenhuma observação'}</span>
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="details">Informações Básicas</TabsTrigger>
+            <TabsTrigger value="device">Dispositivo</TabsTrigger>
+            <TabsTrigger value="utm">UTM & Tracking</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Informações Básicas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Informações do Lead</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome</Label>
+                    {isEditing ? (
+                      <Input
+                        id="name"
+                        value={editData.name || ''}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{lead.name}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span className="font-mono text-sm">{formatBrazilianPhone(lead.phone)}</span>
+                      <Button onClick={openWhatsApp} variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    {isEditing ? (
+                      <Select
+                        value={editData.status || lead.status}
+                        onValueChange={(value) => setEditData({ ...editData, status: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">Novo</SelectItem>
+                          <SelectItem value="contacted">Contatado</SelectItem>
+                          <SelectItem value="qualified">Qualificado</SelectItem>
+                          <SelectItem value="converted">Convertido</SelectItem>
+                          <SelectItem value="lost">Perdido</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={getStatusColor(lead.status)}>
+                        {getStatusLabel(lead.status)}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Campanha</Label>
+                    <div className="flex items-center space-x-2">
+                      <Tag className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{lead.campaign}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mensagens e Datas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Histórico de Contato</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {lead.last_message && (
+                    <div className="space-y-2">
+                      <Label>Última Mensagem</Label>
+                      <div className="flex items-start space-x-2">
+                        <MessageSquare className="w-4 h-4 text-gray-500 mt-1" />
+                        <p className="text-sm bg-gray-50 p-2 rounded">{lead.last_message}</p>
+                      </div>
                     </div>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Informações de Rastreamento */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações de Rastreamento</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Método de rastreamento</Label>
-                <span>{lead.tracking_method || 'Direto'}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Conta de anúncio</Label>
-                <span>{lead.utm_source || lead.ad_account || 'Não informado'}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Nome da campanha</Label>
-                <span>{lead.utm_campaign || 'Não informado'}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Nome do conjunto</Label>
-                <span>{lead.utm_content || lead.ad_set_name || 'Não informado'}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Nome do anúncio</Label>
-                <span>{lead.utm_term || lead.ad_name || 'Não informado'}</span>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-muted-foreground">Utm Medium</Label>
-                <span>{lead.utm_medium || 'Não informado'}</span>
-              </div>
-
-              {lead.initial_message && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Mensagem inicial</Label>
-                  <div className="p-3 bg-muted rounded-md">
-                    <span className="text-sm">{lead.initial_message}</span>
+                  <div className="space-y-2">
+                    <Label>Primeiro Contato</Label>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">
+                        {lead.first_contact_date
+                          ? format(new Date(lead.first_contact_date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                          : 'Não disponível'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Informações do Dispositivo */}
-          {(lead.ip_address || lead.browser || lead.os || lead.device_type) && (
+                  <div className="space-y-2">
+                    <Label>Último Contato</Label>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">
+                        {lead.last_contact_date
+                          ? format(new Date(lead.last_contact_date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                          : 'Não disponível'}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Observações */}
             <Card>
               <CardHeader>
-                <CardTitle>Informações do Dispositivo</CardTitle>
+                <CardTitle className="text-lg">Observações</CardTitle>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">IP</Label>
-                  <span className="font-mono text-sm">{lead.ip_address || 'Não capturado'}</span>
-                </div>
+              <CardContent>
+                {isEditing ? (
+                  <Textarea
+                    value={editData.notes || ''}
+                    onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                    placeholder="Adicione suas observações sobre este lead..."
+                    rows={4}
+                  />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{lead.notes || 'Nenhuma observação'}</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Navegador</Label>
-                  <span>{lead.browser || 'Não identificado'}</span>
-                </div>
+          <TabsContent value="device" className="space-y-4">
+            {deviceInfo ? (
+              <DeviceInfoDisplay deviceInfo={deviceInfo} />
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-8">
+                  <p className="text-gray-500">Nenhuma informação de dispositivo disponível para este lead.</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Sistema operacional</Label>
-                  <span>{lead.os || 'Não identificado'}</span>
-                </div>
+          <TabsContent value="utm" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Parâmetros UTM e Tracking</CardTitle>
+                <CardDescription>Informações de origem e campanha do lead</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="utm_source">UTM Source</Label>
+                    {isEditing ? (
+                      <Input
+                        id="utm_source"
+                        value={editData.utm_source || ''}
+                        onChange={(e) => setEditData({ ...editData, utm_source: e.target.value })}
+                        placeholder="facebook, google, etc."
+                      />
+                    ) : (
+                      <p className="text-sm">{lead.utm_source || 'Não disponível'}</p>
+                    )}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Tipo de aparelho</Label>
-                  <span>{lead.device_type || 'Não identificado'}</span>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="utm_medium">UTM Medium</Label>
+                    {isEditing ? (
+                      <Input
+                        id="utm_medium"
+                        value={editData.utm_medium || ''}
+                        onChange={(e) => setEditData({ ...editData, utm_medium: e.target.value })}
+                        placeholder="cpc, social, email, etc."
+                      />
+                    ) : (
+                      <p className="text-sm">{lead.utm_medium || 'Não disponível'}</p>
+                    )}
+                  </div>
 
-                {lead.device_model && (
+                  <div className="space-y-2">
+                    <Label htmlFor="utm_campaign">UTM Campaign</Label>
+                    {isEditing ? (
+                      <Input
+                        id="utm_campaign"
+                        value={editData.utm_campaign || ''}
+                        onChange={(e) => setEditData({ ...editData, utm_campaign: e.target.value })}
+                        placeholder="Nome da campanha"
+                      />
+                    ) : (
+                      <p className="text-sm">{lead.utm_campaign || 'Não disponível'}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="utm_content">UTM Content</Label>
+                    {isEditing ? (
+                      <Input
+                        id="utm_content"
+                        value={editData.utm_content || ''}
+                        onChange={(e) => setEditData({ ...editData, utm_content: e.target.value })}
+                        placeholder="Identificador do conteúdo"
+                      />
+                    ) : (
+                      <p className="text-sm">{lead.utm_content || 'Não disponível'}</p>
+                    )}
+                  </div>
+
                   <div className="space-y-2 md:col-span-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Modelo do aparelho</Label>
-                    <span>{lead.device_model}</span>
+                    <Label htmlFor="utm_term">UTM Term</Label>
+                    {isEditing ? (
+                      <Input
+                        id="utm_term"
+                        value={editData.utm_term || ''}
+                        onChange={(e) => setEditData({ ...editData, utm_term: e.target.value })}
+                        placeholder="Palavras-chave ou termos"
+                      />
+                    ) : (
+                      <p className="text-sm">{lead.utm_term || 'Não disponível'}</p>
+                    )}
+                  </div>
+                </div>
+
+                {lead.evolution_message_id && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="font-medium mb-2">Informações do WhatsApp</h4>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><strong>Message ID:</strong> {lead.evolution_message_id}</p>
+                      <p><strong>Status:</strong> {lead.evolution_status || 'N/A'}</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

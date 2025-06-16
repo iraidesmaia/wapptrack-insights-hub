@@ -1,4 +1,3 @@
-
 // Comprehensive data collection utilities for maximum tracking
 export interface UrlParameters {
   utm_source?: string;
@@ -375,6 +374,67 @@ export const collectGeolocationData = (): Promise<GeolocationData> => {
       { timeout: 5000, enableHighAccuracy: false }
     );
   });
+};
+
+// Nova função para integrar com o sistema de device_data
+export const captureAndSaveDeviceData = async (phone?: string) => {
+  try {
+    console.log('📱 Capturando dados do dispositivo...');
+    
+    // Coletar todos os dados disponíveis
+    const urlParams = collectUrlParameters();
+    const deviceData = collectDeviceData();
+    const sessionData = collectSessionData();
+    const contextData = collectContextData();
+    const facebookData = collectFacebookData();
+    
+    let locationData = {};
+    try {
+      locationData = await collectGeolocationData();
+    } catch (error) {
+      console.warn('Não foi possível obter dados de geolocalização:', error);
+    }
+
+    // Montar objeto completo para salvar
+    const completeDeviceData = {
+      phone,
+      ip_address: 'Detectando...', // Será obtido via API externa
+      user_agent: deviceData.userAgent,
+      browser: deviceData.browserName,
+      os: deviceData.operatingSystem,
+      device_type: deviceData.deviceType,
+      device_model: deviceData.deviceType, // Usar como modelo básico
+      location: locationData.country ? `${locationData.city || 'N/A'}, ${locationData.country}` : 'Não disponível',
+      country: locationData.country || 'Brasil',
+      city: locationData.city || 'Não disponível',
+      referrer: contextData.referrer,
+      screen_resolution: deviceData.screenResolution,
+      timezone: deviceData.timezone,
+      language: deviceData.language,
+      utm_source: urlParams.utm_source,
+      utm_medium: urlParams.utm_medium,
+      utm_campaign: urlParams.utm_campaign,
+      utm_content: urlParams.utm_content,
+      utm_term: urlParams.utm_term
+    };
+
+    console.log('📱 Dados do dispositivo coletados:', completeDeviceData);
+    
+    // Importar dinamicamente o serviço para evitar circular dependency
+    const { saveDeviceData } = await import('@/services/deviceDataService');
+    const result = await saveDeviceData(completeDeviceData);
+    
+    if (result.success) {
+      console.log('✅ Dados do dispositivo salvos com sucesso');
+    } else {
+      console.error('❌ Erro ao salvar dados do dispositivo:', result.error);
+    }
+    
+    return completeDeviceData;
+  } catch (error) {
+    console.error('❌ Erro ao capturar e salvar dados do dispositivo:', error);
+    return null;
+  }
 };
 
 // Utility functions

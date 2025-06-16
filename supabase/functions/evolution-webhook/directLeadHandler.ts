@@ -1,5 +1,6 @@
 
 import { getUtmsFromDirectClick } from './utmHandler.ts';
+import { getDeviceDataByPhone } from './deviceDataHandler.ts';
 
 export const handleDirectLead = async (params: {
   supabase: any;
@@ -17,6 +18,9 @@ export const handleDirectLead = async (params: {
     
     // 🎯 TENTAR BUSCAR UTMs DE CLICK DIRETO
     const directUtms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
+    
+    // 📱 BUSCAR DADOS DO DISPOSITIVO
+    const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
     
     // 🔍 BUSCAR CAMPANHA PELO utm_campaign E USAR O NOME DA CAMPANHA DO BANCO
     let campaignName = 'WhatsApp Orgânico';
@@ -65,12 +69,21 @@ export const handleDirectLead = async (params: {
     if (existingLead && existingLead.length > 0) {
       console.log('📝 Lead direto existente encontrado, verificando se deve salvar primeira mensagem...');
       
-      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR
+      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR + ATUALIZAR DADOS DO DISPOSITIVO
       const updateData: any = {
         last_contact_date: new Date().toISOString(),
         evolution_message_id: message.key?.id,
         evolution_status: message.status,
       };
+      
+      // Adicionar dados do dispositivo se disponíveis
+      if (deviceData) {
+        updateData.custom_fields = {
+          ...existingLead[0].custom_fields,
+          device_info: deviceData
+        };
+        console.log('📱 Adicionando dados do dispositivo ao lead existente');
+      }
       
       // Verificar se já tem mensagem salva
       if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
@@ -88,14 +101,15 @@ export const handleDirectLead = async (params: {
       if (updateError) {
         console.error('❌ Erro ao atualizar lead direto existente:', updateError);
       } else {
-        console.log('✅ Lead direto existente atualizado, primeira mensagem preservada:', {
+        console.log('✅ Lead direto existente atualizado com dados do dispositivo:', {
           leadId: existingLead[0].id,
           nomePreservado: existingLead[0].name,
-          primeiraMensagem: updateData.last_message || existingLead[0].last_message
+          primeiraMensagem: updateData.last_message || existingLead[0].last_message,
+          temDadosDispositivo: !!deviceData
         });
       }
     } else {
-      console.log('🆕 Criando novo lead direto com primeira mensagem...');
+      console.log('🆕 Criando novo lead direto com primeira mensagem e dados do dispositivo...');
       
       // Determinar tipo de lead baseado na presença de UTMs
       const isDirectClick = !!directUtms;
@@ -105,7 +119,7 @@ export const handleDirectLead = async (params: {
         utm_campaign: isDirectClick ? 'direct_click' : 'organic'
       };
       
-      // Criar novo lead direto com primeira mensagem
+      // Criar novo lead direto com primeira mensagem e dados do dispositivo
       const newLeadData = {
         name: message.pushName || 'Lead via WhatsApp',
         phone: realPhoneNumber,
@@ -122,14 +136,17 @@ export const handleDirectLead = async (params: {
         utm_medium: leadUtms.utm_medium,
         utm_campaign: leadUtms.utm_campaign,
         utm_content: leadUtms.utm_content,
-        utm_term: leadUtms.utm_term
+        utm_term: leadUtms.utm_term,
+        // 📱 INCLUIR DADOS DO DISPOSITIVO
+        custom_fields: deviceData ? { device_info: deviceData } : null
       };
 
-      console.log(`🆕 Criando novo lead com campanha do banco:`, {
+      console.log(`🆕 Criando novo lead com campanha do banco e dados do dispositivo:`, {
         utm_campaign_do_meta: directUtms?.utm_campaign,
         nome_campanha_do_banco: campaignName,
         campaign_id: campaignId,
-        utms: leadUtms
+        utms: leadUtms,
+        tem_dados_dispositivo: !!deviceData
       });
 
       const { error: insertError } = await supabase
@@ -139,7 +156,7 @@ export const handleDirectLead = async (params: {
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
-        console.log(`✅ Novo lead criado com campanha do banco: "${campaignName}"`, message.pushName || 'Lead via WhatsApp');
+        console.log(`✅ Novo lead criado com campanha do banco e dados do dispositivo: "${campaignName}"`, message.pushName || 'Lead via WhatsApp');
       }
     }
   } catch (error) {
