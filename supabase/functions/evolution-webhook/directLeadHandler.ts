@@ -3,6 +3,97 @@ import { getUtmsFromDirectClick } from './utmHandler.ts';
 import { getDeviceDataByPhone } from './deviceDataHandler.ts';
 import { createPhoneVariations } from './phoneNormalizer.ts';
 
+// 🎯 NOVA FUNÇÃO PARA ENVIAR EVENTO LEAD PARA FACEBOOK
+const sendFacebookLeadEvent = async (params: {
+  supabase: any;
+  leadData: any;
+  campaignData: any;
+  utms: any;
+  deviceData: any;
+}) => {
+  const { supabase, leadData, campaignData, utms, deviceData } = params;
+  
+  try {
+    // Verificar se a campanha tem Conversions API habilitado
+    if (!campaignData?.conversion_api_enabled || !campaignData?.pixel_id || !campaignData?.facebook_access_token) {
+      console.log('📋 Campanha não tem Conversions API habilitado ou dados do Facebook incompletos');
+      return;
+    }
+
+    console.log('🎯 Enviando evento Lead para Facebook:', {
+      pixel_id: campaignData.pixel_id,
+      campaign_name: campaignData.name,
+      lead_name: leadData.name
+    });
+
+    // Extrair fbclid dos UTMs (pode estar em utm_content ou utm_term)
+    const fbclid = utms?.utm_content?.includes('fbclid') ? 
+      utms.utm_content.split('fbclid=')[1]?.split('&')[0] : 
+      utms?.utm_term?.includes('fbclid') ? 
+      utms.utm_term.split('fbclid=')[1]?.split('&')[0] : null;
+
+    // Extrair gclid dos UTMs
+    const gclid = utms?.utm_content?.includes('gclid') ? 
+      utms.utm_content.split('gclid=')[1]?.split('&')[0] : 
+      utms?.utm_term?.includes('gclid') ? 
+      utms.utm_term.split('gclid=')[1]?.split('&')[0] : null;
+
+    // Preparar dados do usuário para Advanced Matching
+    const userData = {
+      phone: leadData.phone,
+      firstName: leadData.name?.split(' ')[0] || '',
+      lastName: leadData.name?.split(' ').slice(1).join(' ') || '',
+      city: deviceData?.city || '',
+      country: deviceData?.country || 'BR',
+      clientIp: deviceData?.ip_address || '',
+      userAgent: deviceData?.user_agent || '',
+      fbc: fbclid ? `fb.1.${Date.now()}.${fbclid}` : undefined,
+      fbp: undefined // Será gerado pelo Facebook se não disponível
+    };
+
+    // Preparar dados customizados
+    const customData = {
+      content_name: 'Lead WhatsApp Direto',
+      content_category: 'lead',
+      campaign_id: campaignData.id,
+      lead_id: leadData.id,
+      utm_source: utms?.utm_source,
+      utm_medium: utms?.utm_medium,
+      utm_campaign: utms?.utm_campaign,
+      utm_content: utms?.utm_content,
+      utm_term: utms?.utm_term,
+      gclid: gclid,
+      fbclid: fbclid
+    };
+
+    // Chamar a edge function facebook-conversions
+    const { data: fbResponse, error: fbError } = await supabase.functions.invoke('facebook-conversions', {
+      body: {
+        pixelId: campaignData.pixel_id,
+        accessToken: campaignData.facebook_access_token,
+        eventName: 'Lead',
+        userData: userData,
+        customData: customData,
+        testEventCode: campaignData.test_event_code || undefined
+      }
+    });
+
+    if (fbError) {
+      console.error('❌ Erro ao enviar evento Lead para Facebook:', fbError);
+    } else {
+      console.log('✅ Evento Lead enviado para Facebook com sucesso:', {
+        pixel_id: campaignData.pixel_id,
+        events_received: fbResponse?.events_received,
+        fbclid: fbclid,
+        gclid: gclid,
+        lead_name: leadData.name
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro geral ao enviar evento Lead para Facebook:', error);
+  }
+};
+
 export const handleDirectLead = async (params: {
   supabase: any;
   message: any;
@@ -26,27 +117,30 @@ export const handleDirectLead = async (params: {
     // 🔍 BUSCAR CAMPANHA PELO utm_campaign E USAR O NOME DA CAMPANHA DO BANCO
     let campaignName = 'WhatsApp Orgânico';
     let campaignId = null;
+    let campaignData = null;
     
     if (directUtms && directUtms.utm_campaign) {
       console.log(`🔍 Buscando campanha com utm_campaign: ${directUtms.utm_campaign}`);
       
       // Buscar campanha pelo utm_campaign no banco de dados
-      const { data: campaignData, error: campaignError } = await supabase
+      const { data: campaignResult, error: campaignError } = await supabase
         .from('campaigns')
-        .select('id, name, utm_campaign')
+        .select('*')
         .eq('utm_campaign', directUtms.utm_campaign)
         .limit(1);
       
       if (campaignError) {
         console.error('❌ Erro ao buscar campanha:', campaignError);
-      } else if (campaignData && campaignData.length > 0) {
+      } else if (campaignResult && campaignResult.length > 0) {
         // 🎯 USAR O NOME DA CAMPANHA DO BANCO DE DADOS
-        campaignName = campaignData[0].name;
-        campaignId = campaignData[0].id;
+        campaignData = campaignResult[0];
+        campaignName = campaignData.name;
+        campaignId = campaignData.id;
         console.log(`✅ Campanha encontrada no banco:`, {
           utm_campaign: directUtms.utm_campaign,
           campaign_name: campaignName,
-          campaign_id: campaignId
+          campaign_id: campaignId,
+          conversion_api_enabled: campaignData.conversion_api_enabled
         });
       } else {
         console.log(`❌ Nenhuma campanha encontrada com utm_campaign: ${directUtms.utm_campaign}`);
@@ -89,8 +183,10 @@ export const handleDirectLead = async (params: {
       };
       
       // 🚀 SE STATUS FOR 'new' (do formulário), MUDAR PARA 'lead' (confirmado via WhatsApp)
+      let shouldSendFacebookEvent = false;
       if (existingLead[0].status === 'new') {
         updateData.status = 'lead';
+        shouldSendFacebookEvent = true; // 🎯 MARCAR PARA ENVIAR EVENTO FACEBOOK
         console.log('🔄 Atualizando status de "new" para "lead" - lead confirmado via WhatsApp');
       }
       
@@ -134,6 +230,25 @@ export const handleDirectLead = async (params: {
           primeiraMensagem: updateData.last_message || existingLead[0].last_message,
           temDadosDispositivo: !!deviceData
         });
+
+        // 🎯 ENVIAR EVENTO LEAD PARA FACEBOOK SE NECESSÁRIO
+        if (shouldSendFacebookEvent && campaignData) {
+          const leadDataForFb = {
+            ...existingLead[0],
+            ...updateData,
+            id: existingLead[0].id,
+            name: existingLead[0].name,
+            phone: existingLead[0].phone
+          };
+          
+          await sendFacebookLeadEvent({
+            supabase,
+            leadData: leadDataForFb,
+            campaignData,
+            utms: directUtms,
+            deviceData
+          });
+        }
       }
     } else {
       console.log('🆕 Criando novo lead direto (nenhum lead existente encontrado)...');
@@ -187,14 +302,27 @@ export const handleDirectLead = async (params: {
         tem_dados_dispositivo: !!deviceData
       });
 
-      const { error: insertError } = await supabase
+      const { data: insertedLead, error: insertError } = await supabase
         .from('leads')
-        .insert(newLeadData);
+        .insert(newLeadData)
+        .select()
+        .single();
 
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
         console.log(`✅ Novo lead direto criado: "${campaignName}"`, message.pushName || 'Lead via WhatsApp');
+        
+        // 🎯 ENVIAR EVENTO LEAD PARA FACEBOOK PARA NOVO LEAD DIRETO
+        if (campaignData && insertedLead) {
+          await sendFacebookLeadEvent({
+            supabase,
+            leadData: insertedLead,
+            campaignData,
+            utms: directUtms,
+            deviceData
+          });
+        }
       }
     }
   } catch (error) {

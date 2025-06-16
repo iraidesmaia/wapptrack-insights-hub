@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { formatPhoneWithCountryCode } from '@/lib/phoneUtils';
 import { MessageSquare, Eye, Trash2 } from 'lucide-react';
+import UrlParametersDisplay from './UrlParametersDisplay';
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -94,6 +95,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                 <th className="p-4 text-left font-medium">Nome</th>
                 <th className="p-4 text-left font-medium">Telefone</th>
                 <th className="p-4 text-left font-medium">Status</th>
+                <th className="p-4 text-left font-medium">Parâmetros de URL</th>
                 <th className="p-4 text-left font-medium">Última Mensagem</th>
                 <th className="p-4 text-left font-medium">Data Criação</th>
                 <th className="p-4 text-left font-medium">Primeiro Contato</th>
@@ -104,13 +106,13 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="p-4 text-center">
+                  <td colSpan={10} className="p-4 text-center">
                     Carregando leads...
                   </td>
                 </tr>
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-4 text-center">
+                  <td colSpan={10} className="p-4 text-center">
                     Nenhum lead encontrado
                   </td>
                 </tr>
@@ -127,6 +129,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                       <td className="p-4 font-medium">{lead.name}</td>
                       <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
                       <td className="p-4">{getStatusBadge(lead.status)}</td>
+                      <td className="p-4">
+                        <UrlParametersDisplay
+                          utm_source={lead.utm_source}
+                          utm_medium={lead.utm_medium}
+                          utm_campaign={lead.utm_campaign}
+                          utm_content={lead.utm_content}
+                          utm_term={lead.utm_term}
+                        />
+                      </td>
                       <td className="p-4">
                         {renderMessage(lead.last_message, lead.name)}
                       </td>
