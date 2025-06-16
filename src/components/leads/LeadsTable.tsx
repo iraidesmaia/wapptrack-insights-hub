@@ -67,7 +67,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
             <TableHead>Nome</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Última Mensagem</TableHead>
             <TableHead>Data Criação</TableHead>
             <TableHead>Primeiro Contato</TableHead>
             <TableHead>Último Contato</TableHead>
@@ -77,7 +76,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
         <TableBody>
           {leads.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                 Nenhum lead encontrado
               </TableCell>
             </TableRow>
@@ -93,15 +92,6 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   <Badge className={getStatusColor(lead.status)}>
                     {getStatusLabel(lead.status)}
                   </Badge>
-                </TableCell>
-                <TableCell className="max-w-xs">
-                  {lead.last_message ? (
-                    <div className="truncate text-sm text-muted-foreground" title={lead.last_message}>
-                      {lead.last_message}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground italic">Sem mensagem</span>
-                  )}
                 </TableCell>
                 <TableCell className="text-sm">
                   {lead.created_at
