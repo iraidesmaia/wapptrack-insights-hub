@@ -90,9 +90,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
           <table className="w-full">
             <thead>
               <tr className="border-b">
+                <th className="p-4 text-left font-medium">Campanha</th>
                 <th className="p-4 text-left font-medium">Nome</th>
                 <th className="p-4 text-left font-medium">Telefone</th>
-                <th className="p-4 text-left font-medium">Campanha</th>
                 <th className="p-4 text-left font-medium">Status</th>
                 <th className="p-4 text-left font-medium">Última Mensagem</th>
                 <th className="p-4 text-left font-medium">Data Criação</th>
@@ -123,9 +123,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                   
                   return (
                     <tr key={lead.id} className="border-b hover:bg-muted/50">
+                      <td className="p-4 font-medium">{lead.campaign}</td>
                       <td className="p-4 font-medium">{lead.name}</td>
                       <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
-                      <td className="p-4">{lead.campaign}</td>
                       <td className="p-4">{getStatusBadge(lead.status)}</td>
                       <td className="p-4">
                         {renderMessage(lead.last_message, lead.name)}
