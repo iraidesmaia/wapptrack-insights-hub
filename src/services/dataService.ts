@@ -26,7 +26,8 @@ export {
   getDashboardStatsByPeriod,
   getCampaignPerformance,
   getMonthlyStats,
-  getTimelineData
+  getTimelineData,
+  getFunnelPerformance, // Re-export from dashboardService
 } from './dashboardService';
 
 export {

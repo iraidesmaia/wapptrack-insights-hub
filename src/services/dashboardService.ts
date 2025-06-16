@@ -1,4 +1,3 @@
-
 import { DashboardStats, CampaignPerformance, MonthlyStats, TimelineDataPoint, TrendData } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
@@ -363,3 +362,59 @@ export const getCampaignPerformance = async (): Promise<CampaignPerformance[]> =
     return [];
   }
 };
+
+// NOVA FUNÇÃO: retorna dados de funil para cada campanha
+export const getFunnelPerformance = async () => {
+  try {
+    // Buscando campanhas
+    const { data: campaigns, error: campaignsError } = await supabase
+      .from('campaigns')
+      .select('id, name');
+
+    if (campaignsError) throw campaignsError;
+    if (!campaigns) return [];
+
+    // Para cada campanha, buscar contagens das etapas do funil
+    const funis = [];
+    for (const campaign of campaigns) {
+      // Leads totais desta campanha
+      const { count: totalLeads } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign', campaign.name);
+
+      // Leads qualificados (status = contacted, qualified ou converted)
+      const { count: qualifiedLeads } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign', campaign.name)
+        .in('status', ['contacted', 'qualified', 'converted']);
+
+      // Leads convertidos (status = converted OU vendas feitas)
+      const { count: convertedLeads } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign', campaign.name)
+        .eq('status', 'converted');
+      
+      // Vendas relacionadas (opcional: pode substituir convertedLeads por vendas reais)
+      const { count: salesCount } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign', campaign.name);
+
+      funis.push({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        totalLeads: totalLeads || 0,
+        qualifiedLeads: qualifiedLeads || 0,
+        convertedLeads: convertedLeads || 0,
+        sales: salesCount || 0
+      });
+    }
+    return funis;
+  } catch (error) {
+    console.error("Erro buscando funil das campanhas:", error);
+    return [];
+  }
+}
