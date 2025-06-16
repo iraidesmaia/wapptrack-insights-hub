@@ -1,3 +1,4 @@
+
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
@@ -55,7 +56,13 @@ export const getLeads = async (): Promise<Lead[]> => {
         ad_account: leadData.ad_account || '',
         ad_set_name: leadData.ad_set_name || '',
         ad_name: leadData.ad_name || '',
-        initial_message: leadData.initial_message || ''
+        initial_message: leadData.initial_message || '',
+        // Campos adicionais de dispositivo
+        country: leadData.country || '',
+        city: leadData.city || '',
+        screen_resolution: leadData.screen_resolution || '',
+        timezone: leadData.timezone || '',
+        language: leadData.language || ''
       };
     });
     
