@@ -272,26 +272,37 @@ export type Database = {
       }
       leads: {
         Row: {
+          ad_account: string | null
+          ad_name: string | null
+          ad_set_name: string | null
+          browser: string | null
           campaign: string
           campaign_id: string | null
           city: string | null
           country: string | null
           created_at: string | null
           custom_fields: Json | null
+          device_model: string | null
+          device_type: string | null
           evolution_message_id: string | null
           evolution_status: string | null
           first_contact_date: string | null
           id: string
+          initial_message: string | null
+          ip_address: string | null
           language: string | null
           last_contact_date: string | null
           last_message: string | null
           last_whatsapp_attempt: string | null
+          location: string | null
           name: string
           notes: string | null
+          os: string | null
           phone: string
           screen_resolution: string | null
           status: string | null
           timezone: string | null
+          tracking_method: string | null
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -300,26 +311,37 @@ export type Database = {
           whatsapp_delivery_attempts: number | null
         }
         Insert: {
+          ad_account?: string | null
+          ad_name?: string | null
+          ad_set_name?: string | null
+          browser?: string | null
           campaign: string
           campaign_id?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          device_model?: string | null
+          device_type?: string | null
           evolution_message_id?: string | null
           evolution_status?: string | null
           first_contact_date?: string | null
           id?: string
+          initial_message?: string | null
+          ip_address?: string | null
           language?: string | null
           last_contact_date?: string | null
           last_message?: string | null
           last_whatsapp_attempt?: string | null
+          location?: string | null
           name: string
           notes?: string | null
+          os?: string | null
           phone: string
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
+          tracking_method?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -328,26 +350,37 @@ export type Database = {
           whatsapp_delivery_attempts?: number | null
         }
         Update: {
+          ad_account?: string | null
+          ad_name?: string | null
+          ad_set_name?: string | null
+          browser?: string | null
           campaign?: string
           campaign_id?: string | null
           city?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
+          device_model?: string | null
+          device_type?: string | null
           evolution_message_id?: string | null
           evolution_status?: string | null
           first_contact_date?: string | null
           id?: string
+          initial_message?: string | null
+          ip_address?: string | null
           language?: string | null
           last_contact_date?: string | null
           last_message?: string | null
           last_whatsapp_attempt?: string | null
+          location?: string | null
           name?: string
           notes?: string | null
+          os?: string | null
           phone?: string
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
+          tracking_method?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null

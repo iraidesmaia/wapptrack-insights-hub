@@ -1,4 +1,3 @@
-
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
@@ -25,9 +24,6 @@ export const getLeads = async (): Promise<Lead[]> => {
         location: lead.location
       });
       
-      // Cast lead to any to access new fields safely
-      const leadData = lead as any;
-      
       return {
         id: lead.id,
         name: lead.name,
@@ -46,23 +42,23 @@ export const getLeads = async (): Promise<Lead[]> => {
         utm_content: lead.utm_content || '',
         utm_term: lead.utm_term || '',
         // Novos campos com fallback seguro
-        location: leadData.location || '',
-        ip_address: leadData.ip_address || '',
-        browser: leadData.browser || '',
-        os: leadData.os || '',
-        device_type: leadData.device_type || '',
-        device_model: leadData.device_model || '',
-        tracking_method: leadData.tracking_method || 'direct',
-        ad_account: leadData.ad_account || '',
-        ad_set_name: leadData.ad_set_name || '',
-        ad_name: leadData.ad_name || '',
-        initial_message: leadData.initial_message || '',
+        location: lead.location || '',
+        ip_address: lead.ip_address || '',
+        browser: lead.browser || '',
+        os: lead.os || '',
+        device_type: lead.device_type || '',
+        device_model: lead.device_model || '',
+        tracking_method: lead.tracking_method || 'direct',
+        ad_account: lead.ad_account || '',
+        ad_set_name: lead.ad_set_name || '',
+        ad_name: lead.ad_name || '',
+        initial_message: lead.initial_message || '',
         // Campos adicionais de dispositivo
-        country: leadData.country || '',
-        city: leadData.city || '',
-        screen_resolution: leadData.screen_resolution || '',
-        timezone: leadData.timezone || '',
-        language: leadData.language || ''
+        country: lead.country || '',
+        city: lead.city || '',
+        screen_resolution: lead.screen_resolution || '',
+        timezone: lead.timezone || '',
+        language: lead.language || ''
       };
     });
     
@@ -110,15 +106,18 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
         ad_account: lead.ad_account || '',
         ad_set_name: lead.ad_set_name || '',
         ad_name: lead.ad_name || '',
-        initial_message: lead.initial_message || ''
+        initial_message: lead.initial_message || '',
+        // Campos adicionais de dispositivo
+        country: lead.country || '',
+        city: lead.city || '',
+        screen_resolution: lead.screen_resolution || '',
+        timezone: lead.timezone || '',
+        language: lead.language || ''
       })
       .select()
       .single();
 
     if (error) throw error;
-
-    // Cast data to any to access new fields safely
-    const leadData = data as any;
 
     return {
       id: data.id,
@@ -138,17 +137,23 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       utm_content: data.utm_content || '',
       utm_term: data.utm_term || '',
       // Novos campos com fallback seguro
-      location: leadData.location || '',
-      ip_address: leadData.ip_address || '',
-      browser: leadData.browser || '',
-      os: leadData.os || '',
-      device_type: leadData.device_type || '',
-      device_model: leadData.device_model || '',
-      tracking_method: leadData.tracking_method || 'direct',
-      ad_account: leadData.ad_account || '',
-      ad_set_name: leadData.ad_set_name || '',
-      ad_name: leadData.ad_name || '',
-      initial_message: leadData.initial_message || ''
+      location: data.location || '',
+      ip_address: data.ip_address || '',
+      browser: data.browser || '',
+      os: data.os || '',
+      device_type: data.device_type || '',
+      device_model: data.device_model || '',
+      tracking_method: data.tracking_method || 'direct',
+      ad_account: data.ad_account || '',
+      ad_set_name: data.ad_set_name || '',
+      ad_name: data.ad_name || '',
+      initial_message: data.initial_message || '',
+      // Campos adicionais de dispositivo
+      country: data.country || '',
+      city: data.city || '',
+      screen_resolution: data.screen_resolution || '',
+      timezone: data.timezone || '',
+      language: data.language || ''
     };
   } catch (error) {
     console.error("Error adding lead:", error);
@@ -186,6 +191,12 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.ad_set_name !== undefined) updateData.ad_set_name = lead.ad_set_name;
     if (lead.ad_name !== undefined) updateData.ad_name = lead.ad_name;
     if (lead.initial_message !== undefined) updateData.initial_message = lead.initial_message;
+    // Campos adicionais de dispositivo
+    if (lead.country !== undefined) updateData.country = lead.country;
+    if (lead.city !== undefined) updateData.city = lead.city;
+    if (lead.screen_resolution !== undefined) updateData.screen_resolution = lead.screen_resolution;
+    if (lead.timezone !== undefined) updateData.timezone = lead.timezone;
+    if (lead.language !== undefined) updateData.language = lead.language;
 
     // Update lead in Supabase
     const { data, error } = await supabase
@@ -196,9 +207,6 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       .single();
 
     if (error) throw error;
-
-    // Cast data to any to access new fields safely
-    const leadData = data as any;
 
     return {
       id: data.id,
@@ -218,17 +226,23 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       utm_content: data.utm_content || '',
       utm_term: lead.utm_term || '',
       // Novos campos com fallback seguro
-      location: leadData.location || '',
-      ip_address: leadData.ip_address || '',
-      browser: leadData.browser || '',
-      os: leadData.os || '',
-      device_type: leadData.device_type || '',
-      device_model: leadData.device_model || '',
-      tracking_method: leadData.tracking_method || 'direct',
-      ad_account: leadData.ad_account || '',
-      ad_set_name: leadData.ad_set_name || '',
-      ad_name: leadData.ad_name || '',
-      initial_message: leadData.initial_message || ''
+      location: data.location || '',
+      ip_address: data.ip_address || '',
+      browser: data.browser || '',
+      os: data.os || '',
+      device_type: data.device_type || '',
+      device_model: data.device_model || '',
+      tracking_method: data.tracking_method || 'direct',
+      ad_account: data.ad_account || '',
+      ad_set_name: data.ad_set_name || '',
+      ad_name: data.ad_name || '',
+      initial_message: data.initial_message || '',
+      // Campos adicionais de dispositivo
+      country: data.country || '',
+      city: data.city || '',
+      screen_resolution: data.screen_resolution || '',
+      timezone: data.timezone || '',
+      language: data.language || ''
     };
   } catch (error) {
     console.error("Error updating lead:", error);
