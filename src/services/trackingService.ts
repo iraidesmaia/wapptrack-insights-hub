@@ -2,6 +2,52 @@
 import { supabase } from "../integrations/supabase/client";
 
 /**
+ * ✅ NOVA FUNÇÃO PARA SALVAR UTMs DE CLICKS DIRETOS
+ */
+const saveDirectClickUtms = async (
+  phone: string,
+  utms: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+  }
+) => {
+  try {
+    // Só salvar se pelo menos um UTM estiver presente
+    if (!utms.utm_source && !utms.utm_medium && !utms.utm_campaign && !utms.utm_content && !utms.utm_term) {
+      console.log('📋 Nenhum UTM para salvar no click direto');
+      return;
+    }
+
+    const clickData = {
+      phone,
+      utm_source: utms.utm_source || null,
+      utm_medium: utms.utm_medium || null,
+      utm_campaign: utms.utm_campaign || null,
+      utm_content: utms.utm_content || null,
+      utm_term: utms.utm_term || null,
+      created_at: new Date().toISOString()
+    };
+
+    console.log('💾 Salvando UTMs para click direto:', clickData);
+
+    const { error } = await supabase
+      .from('utm_clicks')
+      .insert(clickData);
+
+    if (error) {
+      console.error('❌ Erro ao salvar UTMs de click direto:', error);
+    } else {
+      console.log('✅ UTMs de click direto salvos com sucesso');
+    }
+  } catch (error) {
+    console.error('❌ Erro geral ao salvar UTMs de click direto:', error);
+  }
+};
+
+/**
  * Inclui campos UTM opcionalmente no lead.
  */
 export const trackRedirect = async (
@@ -18,7 +64,6 @@ export const trackRedirect = async (
   }
 ): Promise<{targetPhone?: string}> => {
   try {
-    // Log recebendo todos os dados para debug detalhado
     console.log('➡️ trackRedirect chamado com:', {
       campaignId,
       phone,
@@ -37,6 +82,12 @@ export const trackRedirect = async (
     // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
+      
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      if (phone && phone !== 'Redirecionamento Direto' && utms) {
+        await saveDirectClickUtms(phone, utms);
+      }
+      
       // Fallback: criar lead genérico se não for redirecionamento direto
       if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
@@ -71,6 +122,11 @@ export const trackRedirect = async (
         name: campaign.name,
         utms
       });
+      
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      if (phone && phone !== 'Redirecionamento Direto' && utms) {
+        await saveDirectClickUtms(phone, utms);
+      }
       
       // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
       if (phone && phone !== 'Redirecionamento Direto') {
