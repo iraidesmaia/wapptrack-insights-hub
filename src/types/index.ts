@@ -162,3 +162,6 @@ export interface MonthlyStats {
     revenue: number;
   };
 }
+
+// Adicionar os tipos de permissões
+export * from './permissions';

@@ -5,6 +5,7 @@ import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
+import SharingSettings from '@/components/sharing/SharingSettings';
 import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
@@ -53,6 +54,8 @@ const Settings = () => {
             onSaveEvolutionConfig={saveEvolutionConfig}
             onTestWebhookConnection={testEvolutionConnection}
           />
+
+          <SharingSettings />
 
           <div className="flex justify-end">
             <Button 

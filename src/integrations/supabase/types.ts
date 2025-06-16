@@ -270,6 +270,45 @@ export type Database = {
         }
         Relationships: []
       }
+      invited_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          first_login_at: string | null
+          id: string
+          invite_token: string
+          invited_by: string | null
+          last_login_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          first_login_at?: string | null
+          id?: string
+          invite_token: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          first_login_at?: string | null
+          id?: string
+          invite_token?: string
+          invited_by?: string | null
+          last_login_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           ad_account: string | null
@@ -486,6 +525,41 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_permissions: {
+        Row: {
+          can_edit: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          id: string
+          invited_user_id: string | null
+          section: string
+        }
+        Insert: {
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          invited_user_id?: string | null
+          section: string
+        }
+        Update: {
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          id?: string
+          invited_user_id?: string | null
+          section?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_invited_user_id_fkey"
+            columns: ["invited_user_id"]
+            isOneToOne: false
+            referencedRelation: "invited_users"
             referencedColumns: ["id"]
           },
         ]
