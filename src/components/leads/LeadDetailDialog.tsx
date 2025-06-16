@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -80,8 +79,29 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
     }
   };
 
-  // Extrair dados do dispositivo do custom_fields
-  const deviceInfo = lead.custom_fields?.device_info;
+  // Extrair dados do dispositivo tanto do custom_fields quanto dos novos campos diretos
+  const deviceInfo = lead.custom_fields?.device_info || {
+    ip_address: lead.ip_address,
+    browser: lead.browser,
+    os: lead.os,
+    device_type: lead.device_type,
+    device_model: lead.device_model,
+    location: lead.location,
+    country: lead.country,
+    city: lead.city,
+    screen_resolution: lead.screen_resolution,
+    timezone: lead.timezone,
+    language: lead.language
+  };
+
+  // Verificar se há dados de dispositivo válidos
+  const hasDeviceData = deviceInfo && (
+    deviceInfo.device_type || 
+    deviceInfo.browser || 
+    deviceInfo.os || 
+    deviceInfo.location ||
+    deviceInfo.ip_address
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -249,12 +269,17 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
           </TabsContent>
 
           <TabsContent value="device" className="space-y-4">
-            {deviceInfo ? (
+            {hasDeviceData ? (
               <DeviceInfoDisplay deviceInfo={deviceInfo} />
             ) : (
               <Card>
                 <CardContent className="flex items-center justify-center py-8">
-                  <p className="text-gray-500">Nenhuma informação de dispositivo disponível para este lead.</p>
+                  <div className="text-center space-y-2">
+                    <p className="text-gray-500">Nenhuma informação de dispositivo disponível para este lead.</p>
+                    <p className="text-xs text-gray-400">
+                      Os dados são coletados automaticamente quando o lead interage com o formulário de contato.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}

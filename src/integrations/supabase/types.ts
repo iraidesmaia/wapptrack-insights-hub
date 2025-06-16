@@ -156,6 +156,78 @@ export type Database = {
         }
         Relationships: []
       }
+      device_data: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device_model: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          language: string | null
+          location: string | null
+          os: string | null
+          phone: string
+          referrer: string | null
+          screen_resolution: string | null
+          timezone: string | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          location?: string | null
+          os?: string | null
+          phone: string
+          referrer?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          location?: string | null
+          os?: string | null
+          phone?: string
+          referrer?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           card_positions: Json | null

@@ -1,5 +1,3 @@
-
-
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
@@ -22,8 +20,8 @@ export const getLeads = async (): Promise<Lead[]> => {
       console.log(`🔍 leadService.getLeads() - Mapeando lead ${lead.name}:`, {
         id: lead.id,
         last_message: lead.last_message,
-        last_message_type: typeof lead.last_message,
-        last_message_raw: JSON.stringify(lead.last_message)
+        device_type: lead.device_type,
+        location: lead.location
       });
       
       // Cast lead to any to access new fields safely
@@ -61,10 +59,10 @@ export const getLeads = async (): Promise<Lead[]> => {
       };
     });
     
-    console.log('✅ leadService.getLeads() - Leads mapeados:', mappedLeads.map(lead => ({
+    console.log('✅ leadService.getLeads() - Leads mapeados com dados de dispositivo:', mappedLeads.map(lead => ({
       name: lead.name,
-      last_message: lead.last_message,
-      type: typeof lead.last_message
+      device_type: lead.device_type,
+      location: lead.location
     })));
     
     return mappedLeads;
@@ -211,7 +209,7 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
       utm_medium: data.utm_medium || '',
       utm_campaign: data.utm_campaign || '',
       utm_content: data.utm_content || '',
-      utm_term: data.utm_term || '',
+      utm_term: lead.utm_term || '',
       // Novos campos com fallback seguro
       location: leadData.location || '',
       ip_address: leadData.ip_address || '',
@@ -244,4 +242,3 @@ export const deleteLead = async (id: string): Promise<void> => {
     throw error;
   }
 };
-

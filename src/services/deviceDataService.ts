@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DeviceDataCapture {
@@ -126,28 +125,105 @@ export const captureDeviceData = async (phone?: string): Promise<DeviceDataCaptu
   };
 };
 
-// Salvar dados do dispositivo - por enquanto só retorna sucesso
-// Futuramente isso será integrado quando a tabela device_data for criada
+// Salvar dados do dispositivo no banco de dados
 export const saveDeviceData = async (deviceData: DeviceDataCapture) => {
   try {
-    // Por enquanto apenas logamos os dados - futuramente salvaremos no banco
-    console.log('Dados do dispositivo capturados:', deviceData);
+    console.log('💾 Salvando dados do dispositivo no banco:', deviceData);
+    
+    const { error } = await supabase
+      .from('device_data')
+      .insert({
+        phone: deviceData.phone || null,
+        ip_address: deviceData.ip_address || null,
+        user_agent: deviceData.user_agent || null,
+        browser: deviceData.browser || null,
+        os: deviceData.os || null,
+        device_type: deviceData.device_type || null,
+        device_model: deviceData.device_model || null,
+        location: deviceData.location || null,
+        country: deviceData.country || null,
+        city: deviceData.city || null,
+        referrer: deviceData.referrer || null,
+        screen_resolution: deviceData.screen_resolution || null,
+        timezone: deviceData.timezone || null,
+        language: deviceData.language || null,
+        utm_source: deviceData.utm_source || null,
+        utm_medium: deviceData.utm_medium || null,
+        utm_campaign: deviceData.utm_campaign || null,
+        utm_content: deviceData.utm_content || null,
+        utm_term: deviceData.utm_term || null
+      });
+
+    if (error) {
+      console.error('❌ Erro ao salvar dados do dispositivo:', error);
+      return { success: false, error };
+    }
+
+    console.log('✅ Dados do dispositivo salvos com sucesso no banco');
     return { success: true };
   } catch (error) {
-    console.error('Erro ao processar dados do dispositivo:', error);
+    console.error('❌ Erro geral ao salvar dados do dispositivo:', error);
     return { success: false, error };
   }
 };
 
-// Buscar dados do dispositivo por telefone - por enquanto retorna null
-// Futuramente isso será integrado quando a tabela device_data for criada
+// Buscar dados do dispositivo por telefone
 export const getDeviceDataByPhone = async (phone: string): Promise<DeviceDataCapture | null> => {
   try {
-    // Por enquanto retornamos null - futuramente buscaremos no banco
-    console.log('Buscando dados do dispositivo para telefone:', phone);
+    console.log('🔍 Buscando dados do dispositivo para telefone:', phone);
+    
+    // Buscar dados do dispositivo salvos nas últimas 2 horas
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    
+    const { data, error } = await supabase
+      .from('device_data')
+      .select('*')
+      .eq('phone', phone)
+      .gte('created_at', twoHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('❌ Erro ao buscar dados do dispositivo:', error);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      const deviceInfo = data[0];
+      console.log('✅ Dados do dispositivo encontrados:', {
+        device_type: deviceInfo.device_type,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        location: deviceInfo.location
+      });
+      
+      return {
+        phone: deviceInfo.phone,
+        ip_address: deviceInfo.ip_address,
+        user_agent: deviceInfo.user_agent,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        device_type: deviceInfo.device_type,
+        device_model: deviceInfo.device_model,
+        location: deviceInfo.location,
+        country: deviceInfo.country,
+        city: deviceInfo.city,
+        referrer: deviceInfo.referrer,
+        screen_resolution: deviceInfo.screen_resolution,
+        timezone: deviceInfo.timezone,
+        language: deviceInfo.language,
+        utm_source: deviceInfo.utm_source,
+        utm_medium: deviceInfo.utm_medium,
+        utm_campaign: deviceInfo.utm_campaign,
+        utm_content: deviceInfo.utm_content,
+        utm_term: deviceInfo.utm_term
+      };
+    }
+
+    console.log('❌ Nenhum dado do dispositivo encontrado para:', phone);
     return null;
   } catch (error) {
-    console.error('Erro ao buscar dados do dispositivo:', error);
+    console.error('❌ Erro geral ao buscar dados do dispositivo:', error);
     return null;
   }
 };
