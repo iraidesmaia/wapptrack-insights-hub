@@ -1,13 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import StatCard from '@/components/StatCard';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
-import { FunnelChart } from '@/components/charts/FunnelChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
-import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData, getFunnelPerformance } from '@/services/dataService';
+import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
 import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
@@ -15,7 +15,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
-  const [funnelData, setFunnelData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Initialize date range to last 7 days
@@ -33,16 +32,14 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [dashboardStats, campaignData, timeline, funnels] = await Promise.all([
+      const [dashboardStats, campaignData, timeline] = await Promise.all([
         getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
         getCampaignPerformance(),
-        getTimelineData(dateRange.startDate, dateRange.endDate),
-        getFunnelPerformance(),
+        getTimelineData(dateRange.startDate, dateRange.endDate)
       ]);
       setStats(dashboardStats);
       setCampaignPerformance(campaignData);
       setTimelineData(timeline);
-      setFunnelData(funnels);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -214,29 +211,6 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* DASH DE FUNIL */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-            Funil das Campanhas
-            <span className="inline-block bg-cyan-100 text-cyan-700 rounded px-2 py-0.5 text-xs ml-2">Beta</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {funnelData.map((funnel, idx) => (
-              <div key={funnel.campaignId} className="bg-white border rounded-xl shadow p-4">
-                <FunnelChart
-                  campaignName={funnel.campaignName}
-                  steps={[
-                    { name: "Leads", value: funnel.totalLeads },
-                    { name: "Qualificados", value: funnel.qualifiedLeads },
-                    { name: "Convertidos", value: funnel.convertedLeads },
-                    { name: "Vendas", value: funnel.sales }
-                  ]}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </MainLayout>
   );
