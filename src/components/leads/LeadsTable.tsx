@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { Lead } from '@/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
-import { formatPhoneWithCountryCode } from '@/lib/phoneUtils';
-import { MessageSquare, Eye, Trash2 } from 'lucide-react';
-import UrlParametersDisplay from './UrlParametersDisplay';
+import { Badge } from "@/components/ui/badge";
+import { Eye, Trash2, ExternalLink } from "lucide-react";
+import { Lead } from '@/types';
+import { formatBrazilianPhone } from '@/lib/phoneUtils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -24,161 +24,135 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   onDelete,
   onOpenWhatsApp
 }) => {
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new':
-        return <Badge variant="default" className="bg-blue-500">Novo</Badge>;
-      case 'contacted':
-        return <Badge variant="default" className="bg-yellow-500">Contactado</Badge>;
-      case 'qualified':
-        return <Badge variant="default" className="bg-accent">Qualificado</Badge>;
-      case 'converted':
-        return <Badge variant="default" className="bg-primary">Convertido</Badge>;
-      case 'lost':
-        return <Badge variant="destructive">Perdido</Badge>;
-      case 'lead':
-        return <Badge variant="default" className="bg-green-500">Lead</Badge>;
-      case 'to_recover':
-        return <Badge variant="default" className="bg-orange-500">A recuperar</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      case 'new': return 'bg-blue-100 text-blue-800';
+      case 'lead': return 'bg-yellow-100 text-yellow-800';
+      case 'to_recover': return 'bg-orange-100 text-orange-800';
+      case 'contacted': return 'bg-purple-100 text-purple-800';
+      case 'qualified': return 'bg-indigo-100 text-indigo-800';
+      case 'converted': return 'bg-green-100 text-green-800';
+      case 'lost': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const renderMessage = (message: string | undefined | null, leadName: string) => {
-    console.log(`🔍 Renderizando mensagem para ${leadName}:`, { 
-      message, 
-      type: typeof message,
-      raw: JSON.stringify(message),
-      isNull: message === null,
-      isUndefined: message === undefined,
-      isEmpty: message === '',
-      isStringNull: message === 'null',
-      isStringUndefined: message === 'undefined'
-    });
-    
-    if (!message || message.trim() === '' || message === 'null' || message === 'undefined') {
-      console.log(`❌ Sem mensagem válida para ${leadName}`);
-      return <span className="text-muted-foreground italic">Sem mensagem</span>;
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'new': return 'Novo';
+      case 'lead': return 'Lead';
+      case 'to_recover': return 'A recuperar';
+      case 'contacted': return 'Contatado';
+      case 'qualified': return 'Qualificado';
+      case 'converted': return 'Convertido';
+      case 'lost': return 'Perdido';
+      default: return status;
     }
-    
-    console.log(`✅ Mensagem válida para ${leadName}: "${message}"`);
-    const truncatedMessage = message.length > 50 ? message.substring(0, 50) + '...' : message;
-    
+  };
+
+  if (isLoading) {
     return (
-      <div className="max-w-xs">
-        <span 
-          className="text-sm break-words" 
-          title={message}
-          style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-        >
-          {truncatedMessage}
-        </span>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
-  };
-
-  console.log('📊 LeadsTable recebeu leads:', leads.map(lead => ({
-    name: lead.name,
-    last_message: lead.last_message,
-    type: typeof lead.last_message
-  })));
+  }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="table-wrapper overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="p-4 text-left font-medium">Campanha</th>
-                <th className="p-4 text-left font-medium">Nome</th>
-                <th className="p-4 text-left font-medium">Telefone</th>
-                <th className="p-4 text-left font-medium">Status</th>
-                <th className="p-4 text-left font-medium">Parâmetros de URL</th>
-                <th className="p-4 text-left font-medium">Última Mensagem</th>
-                <th className="p-4 text-left font-medium">Data Criação</th>
-                <th className="p-4 text-left font-medium">Primeiro Contato</th>
-                <th className="p-4 text-left font-medium">Último Contato</th>
-                <th className="p-4 text-right font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={10} className="p-4 text-center">
-                    Carregando leads...
-                  </td>
-                </tr>
-              ) : leads.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="p-4 text-center">
-                    Nenhum lead encontrado
-                  </td>
-                </tr>
-              ) : (
-                leads.map((lead) => {
-                  console.log(`🎯 Renderizando linha para ${lead.name}:`, {
-                    last_message: lead.last_message,
-                    type: typeof lead.last_message
-                  });
-                  
-                  return (
-                    <tr key={lead.id} className="border-b hover:bg-muted/50">
-                      <td className="p-4 font-medium">{lead.campaign}</td>
-                      <td className="p-4 font-medium">{lead.name}</td>
-                      <td className="p-4">{formatPhoneWithCountryCode(lead.phone)}</td>
-                      <td className="p-4">{getStatusBadge(lead.status)}</td>
-                      <td className="p-4">
-                        <UrlParametersDisplay
-                          utm_source={lead.utm_source}
-                          utm_medium={lead.utm_medium}
-                          utm_campaign={lead.utm_campaign}
-                          utm_content={lead.utm_content}
-                          utm_term={lead.utm_term}
-                        />
-                      </td>
-                      <td className="p-4">
-                        {renderMessage(lead.last_message, lead.name)}
-                      </td>
-                      <td className="p-4">{formatDate(lead.created_at)}</td>
-                      <td className="p-4">{lead.first_contact_date ? formatDate(lead.first_contact_date) : '-'}</td>
-                      <td className="p-4">{lead.last_contact_date ? formatDate(lead.last_contact_date) : '-'}</td>
-                      <td className="p-4 text-right whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onOpenWhatsApp(lead.phone)}
-                          title="Abrir WhatsApp"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onView(lead)}
-                          title="Visualizar detalhes"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDelete(lead.id)}
-                          title="Excluir lead"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Campanha</TableHead>
+            <TableHead>Nome</TableHead>
+            <TableHead>Telefone</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Última Mensagem</TableHead>
+            <TableHead>Data Criação</TableHead>
+            <TableHead>Primeiro Contato</TableHead>
+            <TableHead>Último Contato</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leads.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                Nenhum lead encontrado
+              </TableCell>
+            </TableRow>
+          ) : (
+            leads.map((lead) => (
+              <TableRow key={lead.id} className="hover:bg-muted/50">
+                <TableCell className="font-medium">{lead.campaign}</TableCell>
+                <TableCell>{lead.name}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatBrazilianPhone(lead.phone)}
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(lead.status)}>
+                    {getStatusLabel(lead.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="max-w-xs">
+                  {lead.last_message ? (
+                    <div className="truncate text-sm text-muted-foreground" title={lead.last_message}>
+                      {lead.last_message}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Sem mensagem</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {lead.created_at
+                    ? format(new Date(lead.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                    : '-'}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {lead.first_contact_date
+                    ? format(new Date(lead.first_contact_date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                    : '-'}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {lead.last_contact_date
+                    ? format(new Date(lead.last_contact_date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                    : '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenWhatsApp(lead.phone)}
+                      title="Abrir WhatsApp"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onView(lead)}
+                      title="Ver detalhes"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDelete(lead.id)}
+                      title="Excluir lead"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 
