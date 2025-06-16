@@ -388,7 +388,11 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
     const contextData = collectContextData();
     const facebookData = collectFacebookData();
     
-    let locationData = {};
+    let locationData: GeolocationData = {
+      country: 'Brasil',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    
     try {
       locationData = await collectGeolocationData();
     } catch (error) {

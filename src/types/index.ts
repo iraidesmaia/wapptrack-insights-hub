@@ -40,6 +40,9 @@ export interface Lead {
   ad_set_name?: string;
   ad_name?: string;
   initial_message?: string;
+  // Campos Evolution API
+  evolution_message_id?: string;
+  evolution_status?: string;
 }
 
 export interface Campaign {

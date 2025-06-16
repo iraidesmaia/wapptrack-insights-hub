@@ -21,9 +21,10 @@ interface LeadDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedData: Partial<Lead>) => Promise<void>;
+  onOpenWhatsApp: (phone: string) => void;
 }
 
-const LeadDetailDialog = ({ lead, isOpen, onClose, onSave }: LeadDetailDialogProps) => {
+const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: LeadDetailDialogProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Lead>>({});
 
@@ -54,8 +55,7 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave }: LeadDetailDialogPro
   };
 
   const openWhatsApp = () => {
-    const formattedPhone = lead.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/${formattedPhone}`, '_blank');
+    onOpenWhatsApp(lead.phone);
   };
 
   const getStatusColor = (status: string) => {
@@ -155,7 +155,7 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave }: LeadDetailDialogPro
                     {isEditing ? (
                       <Select
                         value={editData.status || lead.status}
-                        onValueChange={(value) => setEditData({ ...editData, status: value })}
+                        onValueChange={(value: Lead['status']) => setEditData({ ...editData, status: value })}
                       >
                         <SelectTrigger>
                           <SelectValue />
