@@ -336,23 +336,36 @@ export const handleDirectLead = async (params: {
     // 🎯 TENTAR BUSCAR UTMs DE CLICK DIRETO
     const directUtms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
     
-    // 🔍 BUSCAR CAMPANHA BASEADA NOS UTMs ou usar padrão
+    // 🔍 BUSCAR CAMPANHA PELO utm_campaign E USAR O NOME DA CAMPANHA DO BANCO
     let campaignName = 'WhatsApp Orgânico';
     let campaignId = null;
     
     if (directUtms && directUtms.utm_campaign) {
-      // Tentar encontrar campanha pelo utm_campaign
-      const { data: campaign } = await supabase
+      console.log(`🔍 Buscando campanha com utm_campaign: ${directUtms.utm_campaign}`);
+      
+      // Buscar campanha pelo utm_campaign no banco de dados
+      const { data: campaignData, error: campaignError } = await supabase
         .from('campaigns')
-        .select('id, name')
+        .select('id, name, utm_campaign')
         .eq('utm_campaign', directUtms.utm_campaign)
         .limit(1);
       
-      if (campaign && campaign.length > 0) {
-        campaignName = campaign[0].name;
-        campaignId = campaign[0].id;
-        console.log(`📋 Campanha encontrada pelo UTM: ${campaignName}`);
+      if (campaignError) {
+        console.error('❌ Erro ao buscar campanha:', campaignError);
+      } else if (campaignData && campaignData.length > 0) {
+        // 🎯 USAR O NOME DA CAMPANHA DO BANCO DE DADOS
+        campaignName = campaignData[0].name;
+        campaignId = campaignData[0].id;
+        console.log(`✅ Campanha encontrada no banco:`, {
+          utm_campaign: directUtms.utm_campaign,
+          campaign_name: campaignName,
+          campaign_id: campaignId
+        });
+      } else {
+        console.log(`❌ Nenhuma campanha encontrada com utm_campaign: ${directUtms.utm_campaign}`);
       }
+    } else {
+      console.log('📋 Nenhum utm_campaign encontrado, usando campanha padrão');
     }
     
     // Verificar se já existe um lead para este telefone
@@ -414,8 +427,8 @@ export const handleDirectLead = async (params: {
       const newLeadData = {
         name: message.pushName || 'Lead via WhatsApp',
         phone: realPhoneNumber,
-        campaign: campaignName, // 🔧 USA O NOME CORRETO DA CAMPANHA
-        campaign_id: campaignId, // 🔧 USA O ID DA CAMPANHA SE ENCONTRADA
+        campaign: campaignName, // 🎯 NOME DA CAMPANHA DO BANCO DE DADOS
+        campaign_id: campaignId, // 🎯 ID DA CAMPANHA DO BANCO DE DADOS
         status: 'lead',
         last_message: messageContent, // 🎯 PRIMEIRA MENSAGEM SALVA
         first_contact_date: new Date().toISOString(),
@@ -430,9 +443,10 @@ export const handleDirectLead = async (params: {
         utm_term: leadUtms.utm_term
       };
 
-      console.log(`🆕 Criando novo lead com campanha correta:`, {
-        campaignName,
-        campaignId,
+      console.log(`🆕 Criando novo lead com campanha do banco:`, {
+        utm_campaign_do_meta: directUtms?.utm_campaign,
+        nome_campanha_do_banco: campaignName,
+        campaign_id: campaignId,
         utms: leadUtms
       });
 
@@ -443,7 +457,7 @@ export const handleDirectLead = async (params: {
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
-        console.log(`✅ Novo lead criado com campanha: ${campaignName}`, message.pushName || 'Lead via WhatsApp');
+        console.log(`✅ Novo lead criado com campanha do banco: "${campaignName}"`, message.pushName || 'Lead via WhatsApp');
       }
     }
   } catch (error) {
