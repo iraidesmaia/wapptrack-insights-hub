@@ -23,7 +23,7 @@ interface WebhookData {
   };
 }
 
-// ✅ ADICIONAR FUNÇÃO PARA PROCESSAR MENSAGENS DE CLIENTE
+// ✅ FUNÇÃO ATUALIZADA PARA PROCESSAR MENSAGENS DE CLIENTE (SEM ATUALIZAR last_message)
 export const processClientMessage = async (params: {
   supabase: any;
   message: any;
@@ -45,13 +45,12 @@ export const processClientMessage = async (params: {
     message.pushName
   );
   
-  // Atualizar leads existentes com a nova mensagem
+  // Atualizar leads existentes APENAS com data de contato (preservar primeira mensagem)
   for (const lead of matchedLeads) {
     try {
       const { error: updateError } = await supabase
         .from('leads')
         .update({
-          last_message: messageContent,
           last_contact_date: new Date().toISOString(),
           evolution_message_id: message.key?.id,
           evolution_status: message.status,
@@ -61,7 +60,7 @@ export const processClientMessage = async (params: {
       if (updateError) {
         console.error(`❌ Error updating lead ${lead.id}:`, updateError);
       } else {
-        console.log(`✅ Updated lead ${lead.id} with new message`);
+        console.log(`✅ Updated lead ${lead.id} contact date (preserving first message)`);
       }
     } catch (error) {
       console.error(`❌ Error processing lead ${lead.id}:`, error);
@@ -69,7 +68,7 @@ export const processClientMessage = async (params: {
   }
 };
 
-// ✅ ADICIONAR FUNÇÃO PARA PROCESSAR MENSAGENS COMERCIAIS
+// ✅ FUNÇÃO ATUALIZADA PARA PROCESSAR MENSAGENS COMERCIAIS (SEM ATUALIZAR last_message)
 export const processComercialMessage = async (params: {
   supabase: any;
   message: any;
@@ -108,12 +107,11 @@ export const processComercialMessage = async (params: {
       }
     }
     
-    // Atualizar lead com nova mensagem e status
+    // Atualizar lead APENAS com data de contato e status (preservar primeira mensagem)
     try {
       const { error: updateError } = await supabase
         .from('leads')
         .update({
-          last_message: messageContent,
           last_contact_date: new Date().toISOString(),
           evolution_message_id: message.key?.id,
           evolution_status: message.status,
@@ -124,7 +122,7 @@ export const processComercialMessage = async (params: {
       if (updateError) {
         console.error(`❌ Error updating lead ${lead.id}:`, updateError);
       } else {
-        console.log(`✅ Updated lead ${lead.id} with status: ${newStatus}`);
+        console.log(`✅ Updated lead ${lead.id} with status: ${newStatus} (preserving first message)`);
       }
     } catch (error) {
       console.error(`❌ Error processing lead ${lead.id}:`, error);
@@ -193,39 +191,48 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
     }
 
     if (existingLead && existingLead.length > 0) {
-      console.log('📝 Lead existente encontrado, atualizando mensagem e preservando nome original...');
+      console.log('📝 Lead existente encontrado, verificando se deve atualizar primeira mensagem...');
       
-      // 🔒 ATUALIZAR APENAS A MENSAGEM - PRESERVAR O NOME ORIGINAL DO LEAD
+      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR
+      const updateData: any = {
+        last_contact_date: new Date().toISOString(),
+        evolution_message_id: messageId,
+        evolution_status: status,
+      };
+      
+      // Verificar se já tem mensagem salva
+      if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
+        updateData.last_message = messageText;
+        console.log('📝 Salvando primeira mensagem do lead existente:', messageText);
+      } else {
+        console.log('📝 Lead já tem primeira mensagem, preservando:', existingLead[0].last_message);
+      }
+
       const { error: updateError } = await supabase
         .from('leads')
-        .update({
-          last_message: messageText,
-          last_contact_date: new Date().toISOString(),
-          evolution_message_id: messageId,
-          evolution_status: status,
-        })
+        .update(updateData)
         .eq('id', existingLead[0].id);
 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead existente:', updateError);
       } else {
-        console.log('✅ Lead existente atualizado com nova mensagem, nome preservado:', {
+        console.log('✅ Lead existente atualizado, primeira mensagem preservada:', {
           leadId: existingLead[0].id,
           nomePreservado: existingLead[0].name,
-          novaMensagem: messageText
+          primeiraMensagem: updateData.last_message || existingLead[0].last_message
         });
       }
     } else {
-      console.log('🆕 Criando novo lead a partir do pending_lead...');
+      console.log('🆕 Criando novo lead a partir do pending_lead com primeira mensagem...');
       
-      // Criar novo lead com os dados do pending_lead e UTMs corretos
+      // Criar novo lead com os dados do pending_lead e primeira mensagem
       const newLeadData = {
         name: finalName, // 🔒 Nome do formulário preservado
         phone: phone,
         campaign: pendingLead.campaign_name || 'WhatsApp',
         campaign_id: pendingLead.campaign_id,
         status: 'lead',
-        last_message: messageText,
+        last_message: messageText, // 🎯 PRIMEIRA MENSAGEM SALVA
         first_contact_date: new Date().toISOString(),
         last_contact_date: new Date().toISOString(),
         evolution_message_id: messageId,
@@ -239,7 +246,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
         utm_term: pendingLead.utm_term
       };
 
-      console.log('💾 Dados do novo lead (com UTMs do pending_lead):', newLeadData);
+      console.log('💾 Dados do novo lead (com primeira mensagem e UTMs do pending_lead):', newLeadData);
 
       const { error: insertError } = await supabase
         .from('leads')
@@ -248,7 +255,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (insertError) {
         console.error('❌ Erro ao criar novo lead:', insertError);
       } else {
-        console.log('✅ Novo lead criado com sucesso com UTMs preservados do formulário!');
+        console.log('✅ Novo lead criado com primeira mensagem preservada!');
       }
     }
 
@@ -343,30 +350,39 @@ export const handleDirectLead = async (params: {
     }
 
     if (existingLead && existingLead.length > 0) {
-      console.log('📝 Lead direto existente encontrado, atualizando mensagem e preservando nome original...');
+      console.log('📝 Lead direto existente encontrado, verificando se deve salvar primeira mensagem...');
       
-      // 🔒 ATUALIZAR APENAS A MENSAGEM - PRESERVAR O NOME ORIGINAL DO LEAD
+      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR
+      const updateData: any = {
+        last_contact_date: new Date().toISOString(),
+        evolution_message_id: message.key?.id,
+        evolution_status: message.status,
+      };
+      
+      // Verificar se já tem mensagem salva
+      if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
+        updateData.last_message = messageContent;
+        console.log('📝 Salvando primeira mensagem do lead direto existente:', messageContent);
+      } else {
+        console.log('📝 Lead direto já tem primeira mensagem, preservando:', existingLead[0].last_message);
+      }
+
       const { error: updateError } = await supabase
         .from('leads')
-        .update({
-          last_message: messageContent,
-          last_contact_date: new Date().toISOString(),
-          evolution_message_id: message.key?.id,
-          evolution_status: message.status,
-        })
+        .update(updateData)
         .eq('id', existingLead[0].id);
 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead direto existente:', updateError);
       } else {
-        console.log('✅ Lead direto existente atualizado, nome preservado:', {
+        console.log('✅ Lead direto existente atualizado, primeira mensagem preservada:', {
           leadId: existingLead[0].id,
           nomePreservado: existingLead[0].name,
-          novaMensagem: messageContent
+          primeiraMensagem: updateData.last_message || existingLead[0].last_message
         });
       }
     } else {
-      console.log('🆕 Criando novo lead direto...');
+      console.log('🆕 Criando novo lead direto com primeira mensagem...');
       
       // Determinar tipo de lead baseado na presença de UTMs
       const isDirectClick = !!directUtms;
@@ -377,13 +393,13 @@ export const handleDirectLead = async (params: {
         utm_campaign: isDirectClick ? 'direct_click' : 'organic'
       };
       
-      // Criar novo lead direto
+      // Criar novo lead direto com primeira mensagem
       const newLeadData = {
         name: message.pushName || 'Lead via WhatsApp',
         phone: realPhoneNumber,
         campaign: campaignName,
         status: 'lead',
-        last_message: messageContent,
+        last_message: messageContent, // 🎯 PRIMEIRA MENSAGEM SALVA
         first_contact_date: new Date().toISOString(),
         last_contact_date: new Date().toISOString(),
         evolution_message_id: message.key?.id,
@@ -396,7 +412,7 @@ export const handleDirectLead = async (params: {
         utm_term: leadUtms.utm_term
       };
 
-      console.log(`🆕 Criando novo lead ${campaignName.toLowerCase()} com UTMs:`, newLeadData);
+      console.log(`🆕 Criando novo lead ${campaignName.toLowerCase()} com primeira mensagem:`, newLeadData);
 
       const { error: insertError } = await supabase
         .from('leads')
@@ -405,7 +421,7 @@ export const handleDirectLead = async (params: {
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
-        console.log(`✅ Novo lead ${campaignName.toLowerCase()} criado com sucesso:`, message.pushName || 'Lead via WhatsApp');
+        console.log(`✅ Novo lead ${campaignName.toLowerCase()} criado com primeira mensagem preservada:`, message.pushName || 'Lead via WhatsApp');
       }
     }
   } catch (error) {
