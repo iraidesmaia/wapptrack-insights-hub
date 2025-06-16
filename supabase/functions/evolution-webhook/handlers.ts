@@ -103,10 +103,10 @@ export async function processClientMessage(args: any): Promise<void> {
         console.log('❌ Palavras de cancelamento detectadas!');
         newStatus = 'cancelled';
       }
-      // Se não estava em conversação, marcar como "contacted"
+      // ⭐️ NOVA LÓGICA: Se status for 'new' (formulário), atualizar para 'lead'
       else if (lead.status === 'new') {
-        console.log('📞 Lead estava novo, marcando como contatado');
-        newStatus = 'contacted';
+        console.log('📝 Lead de formulário enviou primeira mensagem, atualizando para LEAD');
+        newStatus = 'lead';
       }
 
       // Atualizar status se necessário
@@ -149,6 +149,64 @@ export async function handleDirectLead(args: any): Promise<void> {
     console.log('📝 Nome do contato:', contactName);
     console.log('📝 Mensagem:', messageContent);
     
+    // ⭐️ NOVA LÓGICA: Primeiro verificar se existe pending_lead para converter
+    const { data: pendingLeads, error: pendingError } = await supabase
+      .from('pending_leads')
+      .select('*')
+      .eq('phone', realPhoneNumber)
+      .eq('status', 'pending');
+
+    if (pendingError) {
+      console.error('❌ Erro ao buscar pending_leads:', pendingError);
+    } else if (pendingLeads && pendingLeads.length > 0) {
+      console.log('🔄 Convertendo pending_lead para lead definitivo:', pendingLeads[0]);
+      
+      const pendingLead = pendingLeads[0];
+      
+      // Criar lead definitivo com status 'lead'
+      const { data: newLead, error: createError } = await supabase
+        .from('leads')
+        .insert({
+          name: pendingLead.name,
+          phone: pendingLead.phone,
+          campaign: pendingLead.campaign_name || 'WhatsApp Direto',
+          campaign_id: pendingLead.campaign_id,
+          status: 'lead', // ⭐️ Status direto como 'lead'
+          last_message: messageContent,
+          first_contact_date: new Date().toISOString(),
+          last_contact_date: new Date().toISOString(),
+          evolution_message_id: message.key?.id || null,
+          evolution_status: message.status || null,
+          notes: `Lead convertido de pending_lead`,
+          utm_source: pendingLead.utm_source,
+          utm_medium: pendingLead.utm_medium,
+          utm_campaign: pendingLead.utm_campaign,
+          utm_content: pendingLead.utm_content,
+          utm_term: pendingLead.utm_term
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Erro ao criar lead definitivo:', createError);
+      } else {
+        console.log('✅ Lead definitivo criado:', newLead.name);
+        
+        // Deletar pending_lead
+        const { error: deleteError } = await supabase
+          .from('pending_leads')
+          .delete()
+          .eq('id', pendingLead.id);
+
+        if (deleteError) {
+          console.error('❌ Erro ao deletar pending_lead:', deleteError);
+        } else {
+          console.log('🗑️ Pending_lead removido com sucesso');
+        }
+      }
+      return;
+    }
+    
     // Verificar se já existe um lead com esse telefone
     const { data: existingLeads, error: searchError } = await supabase
       .from('leads')
@@ -183,12 +241,12 @@ export async function handleDirectLead(args: any): Promise<void> {
       return;
     }
 
-    // Criar novo lead
+    // ⭐️ MODIFICAÇÃO: Criar novo lead direto com status 'lead' (não 'new')
     const newLead = {
       name: contactName,
       phone: realPhoneNumber,
       campaign: 'WhatsApp Direto',
-      status: 'new',
+      status: 'lead', // ⭐️ Status direto como 'lead'
       last_message: messageContent,
       first_contact_date: new Date().toISOString(),
       last_contact_date: new Date().toISOString(),
@@ -200,7 +258,7 @@ export async function handleDirectLead(args: any): Promise<void> {
       utm_campaign: 'organic'
     };
 
-    console.log('🆕 Criando novo lead:', newLead);
+    console.log('🆕 Criando novo lead direto com status LEAD:', newLead);
 
     const { data: createdLead, error: insertError } = await supabase
       .from('leads')
@@ -209,9 +267,9 @@ export async function handleDirectLead(args: any): Promise<void> {
       .single();
 
     if (insertError) {
-      console.error('❌ Erro ao criar novo lead:', insertError);
+      console.error('❌ Erro ao criar novo lead direto:', insertError);
     } else {
-      console.log('✅ Novo lead criado com sucesso:', createdLead.name);
+      console.log('✅ Novo lead direto criado com sucesso:', createdLead.name);
     }
   } catch (error) {
     console.error('❌ Erro no handleDirectLead:', error);

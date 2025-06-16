@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 
 /**
@@ -36,8 +37,7 @@ export const trackRedirect = async (
     // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
-      // Aqui, mantém lead genérico só se NÃO for para redirecionamento "whatsapp"
-      // (protege legado, mas evita lead duplo)
+      // Fallback: criar lead genérico se não for redirecionamento direto
       if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
         const leadData: any = {
@@ -59,19 +59,19 @@ export const trackRedirect = async (
           console.log('Created lead with default campaign and UTMs:', utms);
         }
       }
-      // WhatsApp fallback: retorna só o número
       return { targetPhone: '5585998372658' };
     }
 
     const type = eventType || campaign.event_type || 'lead';
 
-    // ⭐️ NOVO: Se campanha é redirect_type: 'whatsapp', NÃO salva lead aqui!
+    // ⭐️ MODIFICAÇÃO PRINCIPAL: Diferentes comportamentos por redirect_type
     if (campaign.redirect_type === 'whatsapp') {
-      console.log(`🚦 Campanha de redirecionamento WhatsApp – Não criar lead no frontend!`, {
+      console.log(`🚦 Campanha de redirecionamento WhatsApp – Salvar em pending_leads!`, {
         id: campaign.id,
         name: campaign.name,
       });
-      // NOVO: Salvar em pending_leads para futuras mensagens do WhatsApp bot
+      
+      // Para redirect_type: 'whatsapp', salvar em pending_leads
       if (phone && phone !== 'Redirecionamento Direto') {
         try {
           const pendingData = {
@@ -86,7 +86,8 @@ export const trackRedirect = async (
             utm_term: utms?.utm_term || null,
             status: 'pending'
           };
-          // impede duplicidade por telefone pendente
+          
+          // Impede duplicidade por telefone pendente
           const { error: delError } = await supabase
             .from('pending_leads')
             .delete()
@@ -110,7 +111,10 @@ export const trackRedirect = async (
       return { targetPhone: campaign.whatsapp_number };
     }
 
+    // ⭐️ NOVO: Para campanhas de formulário (ou outras), criar lead imediatamente com status 'new'
     if ((type === 'lead' || type === 'contact') && phone) {
+      console.log('📝 Campanha de formulário - Criar lead imediatamente com status NEW');
+      
       // Checa lead duplicado pelo telefone
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
@@ -128,10 +132,10 @@ export const trackRedirect = async (
           phone,
           campaign: campaign.name,
           campaign_id: campaign.id,
-          status: 'new',
+          status: 'new', // ⭐️ Status inicial como 'new' para formulários
           ...utms
         };
-        console.log('📝 Salvando novo lead:', leadData);
+        console.log('📝 Salvando novo lead com status NEW:', leadData);
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -140,13 +144,12 @@ export const trackRedirect = async (
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('Lead created with UTMs:', utms);
+          console.log('✅ Lead criado com status NEW e UTMs:', utms);
         }
       } else {
-        console.log('Lead already exists, skipping insert.');
+        console.log('📞 Lead já existe, não duplicando:', existingLead[0].id);
       }
     } else {
-      // Log quando não é lead/contact
       console.log("🔎 Não é fluxo de lead/contact ou telefone não informado:", {
         type,
         phone
