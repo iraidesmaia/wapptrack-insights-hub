@@ -140,6 +140,97 @@ export type Database = {
           },
         ]
       }
+      client_evolution_settings: {
+        Row: {
+          client_id: string
+          created_at: string
+          evolution_api_key: string | null
+          evolution_base_url: string | null
+          evolution_instance_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          webhook_callback_url: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          evolution_api_key?: string | null
+          evolution_base_url?: string | null
+          evolution_instance_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          webhook_callback_url?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          evolution_api_key?: string | null
+          evolution_base_url?: string | null
+          evolution_instance_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          webhook_callback_url?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_evolution_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_variables: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          variable_name: string
+          variable_type: string | null
+          variable_value: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          variable_name: string
+          variable_type?: string | null
+          variable_value?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          variable_name?: string
+          variable_type?: string | null
+          variable_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_variables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           active: boolean
