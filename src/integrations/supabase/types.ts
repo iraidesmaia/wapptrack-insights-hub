@@ -228,42 +228,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_credentials: {
-        Row: {
-          api_key: string
-          api_url: string
-          created_at: string
-          id: string
-          instance_name: string | null
-          status: string
-          updated_at: string
-          user_id: string
-          validated_at: string | null
-        }
-        Insert: {
-          api_key: string
-          api_url: string
-          created_at?: string
-          id?: string
-          instance_name?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-          validated_at?: string | null
-        }
-        Update: {
-          api_key?: string
-          api_url?: string
-          created_at?: string
-          id?: string
-          instance_name?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-          validated_at?: string | null
-        }
-        Relationships: []
-      }
       form_submissions: {
         Row: {
           card_positions: Json | null

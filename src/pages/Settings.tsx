@@ -5,7 +5,6 @@ import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import WhatsAppInstanceSettings from '@/components/settings/WhatsAppInstanceSettings';
-import EvolutionCredentialsSettings from '@/components/settings/EvolutionCredentialsSettings';
 import SharingSettings from '@/components/sharing/SharingSettings';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -42,8 +41,6 @@ const Settings = () => {
             theme={formData.theme}
             onThemeChange={handleThemeChange}
           />
-
-          <EvolutionCredentialsSettings />
 
           <WhatsAppInstanceSettings />
 
