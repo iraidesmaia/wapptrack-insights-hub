@@ -16,7 +16,7 @@ export const handleDirectLead = async ({ supabase, message, realPhoneNumber }) =
     const messageId = message.key?.id || '';
     const status = message.status || 'delivered';
 
-    // 🔍 VERIFICAR SE JÁ EXISTE LEAD COM ESTE TELEFONE (usando variações)
+    // 🔍 VERIFICAR SE JÁ EXISTE LEAD COM ESTE TELEFONE (usando variações COMPLETAS)
     console.log('🔍 Verificando se já existe lead para este telefone...');
     const phoneVariations = createPhoneSearchVariations(realPhoneNumber);
     console.log('📞 Variações de telefone para busca:', phoneVariations);
@@ -30,11 +30,12 @@ export const handleDirectLead = async ({ supabase, message, realPhoneNumber }) =
     if (leadCheckError) {
       console.error('❌ Erro ao verificar lead existente:', leadCheckError);
     } else if (existingLead && existingLead.length > 0) {
-      console.log('🔒 Lead existente encontrado, preservando nome original e apenas atualizando mensagem:', {
+      console.log('🔒 Lead existente encontrado, preservando NOME ORIGINAL e apenas atualizando mensagem:', {
         leadId: existingLead[0].id,
-        nomeOriginal: existingLead[0].name,
-        nomeContato: contactName,
-        nomePreservado: existingLead[0].name
+        nomeOriginalPreservado: existingLead[0].name,
+        nomeContatoIgnorado: contactName,
+        telefoneOriginal: existingLead[0].phone,
+        telefoneRecebido: realPhoneNumber
       });
 
       // 📱 BUSCAR DADOS DO DISPOSITIVO
