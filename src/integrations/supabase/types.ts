@@ -597,6 +597,45 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_instances: {
+        Row: {
+          created_at: string
+          id: string
+          instance_name: string
+          instance_token: string | null
+          phone_number: string | null
+          qrcode_base64: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          user_name_wpp: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_name: string
+          instance_token?: string | null
+          phone_number?: string | null
+          qrcode_base64?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_name_wpp?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_name?: string
+          instance_token?: string | null
+          phone_number?: string | null
+          qrcode_base64?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_name_wpp?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
