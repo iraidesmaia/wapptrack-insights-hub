@@ -5,7 +5,6 @@ import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
-import ClientVariables from '@/components/settings/ClientVariables';
 import { useClientSettings } from '@/hooks/useClientSettings';
 import { useClient } from '@/context/ClientContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,7 +41,7 @@ const Settings = () => {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Selecione um cliente para configurar suas variáveis e configurações específicas.
+              Selecione um cliente para configurar suas configurações específicas.
             </AlertDescription>
           </Alert>
         </div>
@@ -79,11 +78,6 @@ const Settings = () => {
             onEvolutionConfigChange={handleEvolutionConfigChange}
             onSaveEvolutionConfig={saveEvolutionConfig}
             onTestWebhookConnection={testEvolutionConnection}
-          />
-
-          <ClientVariables
-            clientId={selectedClient.id}
-            clientName={selectedClient.name}
           />
 
           <div className="flex justify-end">

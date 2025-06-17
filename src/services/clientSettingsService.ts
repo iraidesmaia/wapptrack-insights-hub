@@ -1,6 +1,6 @@
 
 import { supabase } from "../integrations/supabase/client";
-import type { CompanySettings } from '@/types';
+import type { CompanySettings, Theme } from '@/types';
 
 export const getClientSettings = async (clientId: string): Promise<CompanySettings | null> => {
   try {
@@ -11,7 +11,7 @@ export const getClientSettings = async (clientId: string): Promise<CompanySettin
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data as CompanySettings | null;
   } catch (error) {
     console.error("Error fetching client settings:", error);
     return null;
@@ -40,7 +40,7 @@ export const saveClientSettings = async (clientId: string, settings: Omit<Compan
         .single();
 
       if (error) throw error;
-      return data;
+      return data as CompanySettings;
     } else {
       // Criar novo
       const { data, error } = await supabase
@@ -54,7 +54,7 @@ export const saveClientSettings = async (clientId: string, settings: Omit<Compan
         .single();
 
       if (error) throw error;
-      return data;
+      return data as CompanySettings;
     }
   } catch (error) {
     console.error("Error saving client settings:", error);

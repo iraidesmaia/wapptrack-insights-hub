@@ -22,7 +22,7 @@ export const getClientVariables = async (clientId: string): Promise<ClientVariab
       .order('variable_name', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as ClientVariable[];
   } catch (error) {
     console.error("Error fetching client variables:", error);
     return [];
@@ -41,7 +41,7 @@ export const addClientVariable = async (variable: Omit<ClientVariable, 'id' | 'c
       .single();
 
     if (error) throw error;
-    return data;
+    return data as ClientVariable;
   } catch (error) {
     console.error("Error adding client variable:", error);
     throw error;
@@ -64,7 +64,7 @@ export const updateClientVariable = async (id: string, variable: Partial<ClientV
       .single();
 
     if (error) throw error;
-    return data;
+    return data as ClientVariable;
   } catch (error) {
     console.error("Error updating client variable:", error);
     throw error;
