@@ -278,7 +278,7 @@ export type Database = {
           first_login_at: string | null
           id: string
           invite_token: string
-          invited_by: string | null
+          invited_by: string
           last_login_at: string | null
           status: string | null
           updated_at: string | null
@@ -290,7 +290,7 @@ export type Database = {
           first_login_at?: string | null
           id?: string
           invite_token: string
-          invited_by?: string | null
+          invited_by: string
           last_login_at?: string | null
           status?: string | null
           updated_at?: string | null
@@ -302,7 +302,7 @@ export type Database = {
           first_login_at?: string | null
           id?: string
           invite_token?: string
-          invited_by?: string | null
+          invited_by?: string
           last_login_at?: string | null
           status?: string | null
           updated_at?: string | null
@@ -602,7 +602,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_otp_expiry: {
+        Args: Record<PropertyKey, never> | { new_expiry_minutes: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
