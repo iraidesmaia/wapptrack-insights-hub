@@ -10,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -27,11 +28,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state change:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (event === 'SIGNED_IN' && session) {
+          toast.success('Login realizado com sucesso!');
+          navigate('/dashboard');
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          toast.info('Você saiu do sistema');
+          navigate('/login');
+        }
       }
     );
 
@@ -44,18 +55,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const signUp = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Validate email and password
       if (!email || !password) {
         throw new Error('Email e senha são obrigatórios');
       }
       
       if (password.length < 6) {
         throw new Error('Senha deve ter pelo menos 6 caracteres');
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user && !data.session) {
+        toast.success('Conta criada! Verifique seu email para confirmar.');
+      } else if (data.session) {
+        toast.success('Conta criada e login realizado com sucesso!');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar conta';
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<void> => {
+    setLoading(true);
+    try {
+      if (!email || !password) {
+        throw new Error('Email e senha são obrigatórios');
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -64,34 +109,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Se o usuário não existe, tentar criar uma conta
-        if (error.message.includes('Invalid login credentials')) {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/`
-            }
-          });
-
-          if (signUpError) {
-            throw signUpError;
-          }
-
-          if (signUpData.user && !signUpData.session) {
-            toast.info('Verifique seu email para confirmar a conta');
-            return;
-          }
-        } else {
-          throw error;
-        }
+        throw error;
       }
-      
-      toast.success('Login realizado com sucesso!');
-      navigate('/dashboard');
+
+      // Success is handled by the auth state change listener
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao fazer login');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login';
+      toast.error(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -101,8 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/login');
-      toast.info('Você saiu do sistema');
+      // Success is handled by the auth state change listener
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Erro ao sair do sistema');
@@ -115,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session, 
       loading, 
       login, 
+      signUp,
       logout, 
       isAuthenticated: !!session 
     }}>
