@@ -58,11 +58,16 @@ export const useWhatsAppInstance = () => {
 
       console.log('Solicitando QR Code para usuário:', user.id);
 
+      // Usar invoke corretamente com headers de autorização
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
-        body: {
-          user_id: user.id
+        body: { user_id: user.id },
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
+
+      console.log('Resposta da Edge Function:', { data, error });
 
       if (error) {
         console.error('Erro ao solicitar QR Code:', error);
@@ -75,11 +80,12 @@ export const useWhatsAppInstance = () => {
         toast.success('QR Code gerado com sucesso!');
         await loadInstance(); // Recarregar para pegar a nova instância
       } else {
+        console.error('Erro na resposta:', data);
         toast.error(data?.error || 'Erro ao gerar QR Code');
       }
     } catch (error: any) {
       console.error('Erro ao solicitar QR Code:', error);
-      toast.error('Erro ao conectar com o servidor');
+      toast.error('Erro ao conectar com o servidor: ' + error.message);
     } finally {
       setLoading(false);
     }
