@@ -1,3 +1,4 @@
+
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
@@ -7,7 +8,7 @@ export const getLeads = async (): Promise<Lead[]> => {
   try {
     console.log('🔄 leadService.getLeads() - Iniciando busca...');
     
-    // Fetch leads from Supabase
+    // RLS garantirá que apenas leads do usuário logado sejam retornados
     const { data: leads, error } = await supabase
       .from('leads')
       .select('*')
@@ -17,7 +18,7 @@ export const getLeads = async (): Promise<Lead[]> => {
     
     console.log('📋 leadService.getLeads() - Dados brutos do Supabase:', leads);
     
-    // Map database fields to our Lead interface - INCLUINDO novos campos
+    // Map database fields to our Lead interface
     const mappedLeads = (leads || []).map(lead => {
       console.log(`🔍 leadService.getLeads() - Mapeando lead ${lead.name}:`, {
         id: lead.id,
@@ -85,7 +86,7 @@ export const findLeadByPhoneVariations = async (phone: string): Promise<Lead | n
     const phoneVariations = createPhoneSearchVariations(phone);
     console.log('📞 Variações de telefone para busca:', phoneVariations);
     
-    // Buscar lead existente com qualquer variação do telefone
+    // RLS garantirá que apenas leads do usuário logado sejam consultados
     const { data: existingLead, error } = await supabase
       .from('leads')
       .select('*')
@@ -154,7 +155,7 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
   try {
     console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone);
     
-    // 🎯 VERIFICAR SE JÁ EXISTE LEAD COM ESTE TELEFONE
+    // Verificar se já existe lead com este telefone
     const existingLead = await findLeadByPhoneVariations(lead.phone);
     
     if (existingLead) {
@@ -188,7 +189,7 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       return existingLead;
     }
     
-    // 🎯 BUSCAR DADOS DO DISPOSITIVO SALVOS PARA ESTE TELEFONE
+    // Buscar dados do dispositivo salvos para este telefone
     let deviceData = null;
     if (lead.phone) {
       console.log('📱 Buscando dados do dispositivo para telefone:', lead.phone);
@@ -207,6 +208,7 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
     }
 
     // Preparar dados do lead com informações do dispositivo se disponíveis
+    // user_id será automaticamente definido pelo default auth.uid()
     const leadData = {
       name: lead.name,
       phone: lead.phone,
@@ -222,7 +224,7 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       utm_campaign: lead.utm_campaign || '',
       utm_content: lead.utm_content || '',
       utm_term: lead.utm_term || '',
-      // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
+      // Incluir dados do dispositivo se disponíveis
       location: deviceData?.location || lead.location || '',
       ip_address: deviceData?.ip_address || lead.ip_address || '',
       browser: deviceData?.browser || lead.browser || '',
@@ -347,7 +349,7 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
     if (lead.timezone !== undefined) updateData.timezone = lead.timezone;
     if (lead.language !== undefined) updateData.language = lead.language;
 
-    // Update lead in Supabase
+    // RLS garantirá que apenas leads do usuário logado sejam atualizados
     const { data, error } = await supabase
       .from('leads')
       .update(updateData)
@@ -401,6 +403,7 @@ export const updateLead = async (id: string, lead: Partial<Lead>): Promise<Lead>
 
 export const deleteLead = async (id: string): Promise<void> => {
   try {
+    // RLS garantirá que apenas leads do usuário logado sejam deletados
     const { error } = await supabase
       .from('leads')
       .delete()

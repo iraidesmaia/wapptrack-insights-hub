@@ -4,6 +4,7 @@ import { supabase } from "../integrations/supabase/client";
 
 export const getSales = async (): Promise<Sale[]> => {
   try {
+    // RLS garantirá que apenas vendas do usuário logado sejam retornadas
     const { data: sales, error } = await supabase
       .from('sales')
       .select('*')
@@ -29,6 +30,7 @@ export const getSales = async (): Promise<Sale[]> => {
 
 export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
   try {
+    // user_id será automaticamente definido pelo default auth.uid()
     const { data, error } = await supabase
       .from('sales')
       .insert({
@@ -72,6 +74,7 @@ export const updateSale = async (id: string, sale: Partial<Sale>): Promise<Sale>
     if (sale.product !== undefined) updateData.product = sale.product;
     if (sale.notes !== undefined) updateData.notes = sale.notes;
 
+    // RLS garantirá que apenas vendas do usuário logado sejam atualizadas
     const { data, error } = await supabase
       .from('sales')
       .update(updateData)
@@ -99,6 +102,7 @@ export const updateSale = async (id: string, sale: Partial<Sale>): Promise<Sale>
 
 export const deleteSale = async (id: string): Promise<void> => {
   try {
+    // RLS garantirá que apenas vendas do usuário logado sejam deletadas
     const { error } = await supabase
       .from('sales')
       .delete()

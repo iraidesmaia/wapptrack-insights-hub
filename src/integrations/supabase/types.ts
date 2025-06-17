@@ -40,6 +40,7 @@ export type Database = {
           server_side_api_enabled: boolean | null
           test_event_code: string | null
           tracking_domain: string | null
+          user_id: string
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -78,6 +79,7 @@ export type Database = {
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
           tracking_domain?: string | null
+          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -116,6 +118,7 @@ export type Database = {
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
           tracking_domain?: string | null
+          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -135,6 +138,7 @@ export type Database = {
           logo_url: string | null
           theme: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
           company_name?: string
@@ -144,6 +148,7 @@ export type Database = {
           logo_url?: string | null
           theme?: string | null
           updated_at?: string
+          user_id?: string
         }
         Update: {
           company_name?: string
@@ -153,6 +158,7 @@ export type Database = {
           logo_url?: string | null
           theme?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -378,6 +384,7 @@ export type Database = {
           status: string | null
           timezone: string | null
           tracking_method: string | null
+          user_id: string
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -417,6 +424,7 @@ export type Database = {
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
+          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -456,6 +464,7 @@ export type Database = {
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
+          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -557,6 +566,7 @@ export type Database = {
           lead_name: string
           notes: string | null
           product: string | null
+          user_id: string
           value: number
         }
         Insert: {
@@ -567,6 +577,7 @@ export type Database = {
           lead_name: string
           notes?: string | null
           product?: string | null
+          user_id?: string
           value: number
         }
         Update: {
@@ -577,6 +588,7 @@ export type Database = {
           lead_name?: string
           notes?: string | null
           product?: string | null
+          user_id?: string
           value?: number
         }
         Relationships: [
