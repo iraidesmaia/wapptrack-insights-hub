@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Check, Mail } from 'lucide-react';
 import { useInvites } from '@/hooks/useInvites';
 import { InviteFormData } from '@/types/permissions';
 import { inviteService } from '@/services/inviteService';
@@ -83,6 +83,7 @@ const InviteForm: React.FC<InviteFormProps> = ({ onClose, onSuccess }) => {
       const token = await createInvite(formData);
       const link = inviteService.generateInviteLink(token);
       setInviteLink(link);
+      toast.success('Convite criado e email enviado!');
     } catch (error) {
       console.error('Erro ao criar convite:', error);
     }
@@ -103,11 +104,23 @@ const InviteForm: React.FC<InviteFormProps> = ({ onClose, onSuccess }) => {
     return (
       <Card className="border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="text-green-800">Convite Criado com Sucesso!</CardTitle>
+          <CardTitle className="text-green-800 flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Convite Criado com Sucesso!
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="bg-white p-4 rounded-lg border">
+            <p className="text-sm text-green-700 mb-2">
+              ✅ Email de convite enviado para <strong>{formData.email}</strong>
+            </p>
+            <p className="text-xs text-green-600">
+              O usuário receberá um email com instruções para acessar o sistema.
+            </p>
+          </div>
+          
           <div>
-            <Label>Link do Convite</Label>
+            <Label>Link do Convite (backup)</Label>
             <div className="flex items-center space-x-2 mt-1">
               <Input 
                 value={inviteLink} 
@@ -123,7 +136,11 @@ const InviteForm: React.FC<InviteFormProps> = ({ onClose, onSuccess }) => {
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use este link como backup caso o email não chegue.
+            </p>
           </div>
+          
           <div className="flex space-x-2">
             <Button onClick={onSuccess} className="flex-1">
               Concluir

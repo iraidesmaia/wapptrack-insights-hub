@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { InvitedUser, UserPermission, InviteFormData, InvitedUserWithPermissions } from '@/types/permissions';
 
@@ -110,6 +111,32 @@ export const inviteService = {
         console.error('Erro ao inserir permissões:', permissionsError);
         throw new Error('Erro ao criar permissões: ' + permissionsError.message);
       }
+    }
+
+    // Enviar email de convite
+    try {
+      const inviteLink = this.generateInviteLink(token);
+      
+      console.log('Enviando email de convite para:', inviteData.email);
+      
+      const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
+        body: {
+          email: inviteData.email,
+          inviteLink: inviteLink,
+          inviterEmail: user.email
+        }
+      });
+
+      if (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+        // Não falha o convite se o email falhar, apenas loga o erro
+        console.warn('Convite criado, mas email não foi enviado');
+      } else {
+        console.log('Email de convite enviado com sucesso');
+      }
+    } catch (emailError) {
+      console.error('Erro ao chamar função de email:', emailError);
+      // Não falha o convite se o email falhar
     }
 
     console.log('Convite criado com sucesso, token:', token);
