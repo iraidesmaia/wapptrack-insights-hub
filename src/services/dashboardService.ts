@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 
 export const getDashboardStats = async (clientId?: string) => {
@@ -155,6 +156,12 @@ export const getCampaignPerformance = async (clientId?: string) => {
       salesQuery = salesQuery.eq('client_id', clientId);
     }
 
+    const { data: leads, error: leadsError } = await leadsQuery;
+    if (leadsError) throw leadsError;
+
+    const { data: sales, error: salesError } = await salesQuery;
+    if (salesError) throw salesError;
+
     const campaignStats: Record<string, any> = {};
 
     // Agrupar leads por campanha
@@ -263,6 +270,12 @@ export const getTimelineData = async (clientId?: string) => {
       leadsQuery = leadsQuery.eq('client_id', clientId);
       salesQuery = salesQuery.eq('client_id', clientId);
     }
+
+    const { data: leads, error: leadsError } = await leadsQuery;
+    if (leadsError) throw leadsError;
+
+    const { data: sales, error: salesError } = await salesQuery;
+    if (salesError) throw salesError;
 
     const timeline: Record<string, any> = {};
 

@@ -245,7 +245,9 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: 
       city: deviceData?.city || lead.city || '',
       screen_resolution: deviceData?.screen_resolution || lead.screen_resolution || '',
       timezone: deviceData?.timezone || lead.timezone || '',
-      language: deviceData?.language || lead.language || ''
+      language: deviceData?.language || lead.language || '',
+      // Incluir client_id se fornecido
+      client_id: clientId
     };
 
     console.log('💾 Dados que serão inseridos no lead (com dados do dispositivo):', {

@@ -26,7 +26,8 @@ export const addClient = async (client: Omit<Client, 'id' | 'created_at' | 'upda
       .insert({
         name: client.name,
         description: client.description || '',
-        active: client.active !== false
+        active: client.active !== false,
+        user_id: (await supabase.auth.getUser()).data.user?.id
       })
       .select()
       .single();
@@ -84,7 +85,8 @@ export const createDefaultClient = async (): Promise<Client | null> => {
       .insert({
         name: 'Cliente Principal',
         description: 'Cliente padrão',
-        active: true
+        active: true,
+        user_id: (await supabase.auth.getUser()).data.user?.id
       })
       .select()
       .single();
