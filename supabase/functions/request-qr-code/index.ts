@@ -8,6 +8,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface EvolutionCredentials {
+  apiKey: string;
+  baseUrl: string;
+}
+
+const validateEvolutionCredentials = async (credentials: EvolutionCredentials): Promise<{ valid: boolean; error?: string }> => {
+  try {
+    // Teste básico de conectividade
+    const testResponse = await fetch(`${credentials.baseUrl}/instance/fetchInstances`, {
+      method: 'GET',
+      headers: { 'apikey': credentials.apiKey },
+    });
+
+    if (testResponse.status === 401 || testResponse.status === 403) {
+      return { valid: false, error: 'API Key inválida ou sem permissão' };
+    }
+
+    if (!testResponse.ok && testResponse.status !== 404) {
+      return { valid: false, error: `Evolution API não está respondendo (${testResponse.status})` };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: `Erro de conexão: ${error.message}` };
+  }
+};
+
 serve(async (req) => {
   console.log('=== NOVA REQUISIÇÃO EDGE FUNCTION ===');
   console.log('Method:', req.method);
@@ -20,11 +47,11 @@ serve(async (req) => {
   }
 
   try {
-    // Processar body da requisição
     const requestBody = await req.json();
-    const { user_id } = requestBody;
+    const { user_id, evolution_credentials } = requestBody;
 
     console.log('User ID recebido:', user_id);
+    console.log('Credenciais customizadas:', !!evolution_credentials);
 
     if (!user_id) {
       console.error('user_id não fornecido');
@@ -37,21 +64,32 @@ serve(async (req) => {
       });
     }
 
-    // Configurações da Evolution API
-    const EVOLUTION_API_URL = 'https://evolutionapi.workidigital.tech';
-    const EVOLUTION_API_KEY = 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia';
-    const WEBHOOK_URL = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-evolution-receiver`;
+    // Determinar credenciais a usar (customizadas ou padrão)
+    let credentials: EvolutionCredentials;
+    
+    if (evolution_credentials?.apiKey && evolution_credentials?.baseUrl) {
+      credentials = evolution_credentials;
+      console.log('Usando credenciais customizadas');
+    } else {
+      // Usar credenciais padrão
+      credentials = {
+        baseUrl: 'https://evolutionapi.workidigital.tech',
+        apiKey: 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia'
+      };
+      console.log('Usando credenciais padrão');
+    }
 
-    console.log('=== CONFIGURAÇÕES ===');
-    console.log('Evolution URL:', EVOLUTION_API_URL);
-    console.log('Webhook URL:', WEBHOOK_URL);
-
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    console.log('=== VALIDANDO CREDENCIAIS ===');
+    const validation = await validateEvolutionCredentials(credentials);
+    
+    if (!validation.valid) {
+      console.error('Credenciais inválidas:', validation.error);
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'Configurações da Evolution API não disponíveis' 
+        error: `Credenciais Evolution API inválidas: ${validation.error}`,
+        suggestion: 'Verifique suas credenciais nas configurações'
       }), {
-        status: 500,
+        status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
@@ -65,7 +103,8 @@ serve(async (req) => {
     const instanceName = `wpp_${user_id.slice(-8)}_${Date.now()}`;
     console.log('Nome da instância:', instanceName);
 
-    // Payload para Evolution API
+    const WEBHOOK_URL = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-evolution-receiver`;
+
     const evolutionPayload = {
       instanceName: instanceName,
       qrcode: true,
@@ -80,15 +119,15 @@ serve(async (req) => {
       }
     };
 
-    console.log('=== CHAMANDO EVOLUTION API ===');
+    console.log('=== CRIANDO INSTÂNCIA ===');
+    console.log('URL:', `${credentials.baseUrl}/instance/create`);
     console.log('Payload:', JSON.stringify(evolutionPayload, null, 2));
 
-    // Chamar Evolution API
-    const evolutionResponse = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
+    const evolutionResponse = await fetch(`${credentials.baseUrl}/instance/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': EVOLUTION_API_KEY,
+        'apikey': credentials.apiKey,
       },
       body: JSON.stringify(evolutionPayload),
     });
@@ -115,28 +154,29 @@ serve(async (req) => {
 
     console.log('Dados parsed:', evolutionData);
 
-    // Verificar se houve erro na Evolution API
     if (!evolutionResponse.ok) {
       console.error('=== ERRO DA EVOLUTION API ===');
       console.error('Status:', evolutionResponse.status);
       console.error('Data:', evolutionData);
 
-      // Tratamento específico para erro "Invalid integration"
+      let errorMessage = 'Erro na Evolution API';
+      let suggestion = 'Tente novamente ou verifique as configurações';
+
       if (evolutionData?.response?.message?.includes('Invalid integration')) {
-        return new Response(JSON.stringify({ 
-          success: false,
-          error: 'Configuração da Evolution API inválida. Verifique as credenciais.',
-          details: 'A chave da API ou URL podem estar incorretas.'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+        errorMessage = 'Configuração de integração inválida';
+        suggestion = 'Verifique se a API Key e URL estão corretas nas configurações';
+      } else if (evolutionData?.response?.message) {
+        const messages = Array.isArray(evolutionData.response.message) 
+          ? evolutionData.response.message.join(', ')
+          : evolutionData.response.message;
+        errorMessage = messages;
       }
 
       return new Response(JSON.stringify({ 
         success: false,
-        error: evolutionData?.error || 'Erro na Evolution API',
-        details: evolutionData?.response?.message || `Status: ${evolutionResponse.status}`
+        error: errorMessage,
+        suggestion: suggestion,
+        details: evolutionData
       }), {
         status: evolutionResponse.status,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

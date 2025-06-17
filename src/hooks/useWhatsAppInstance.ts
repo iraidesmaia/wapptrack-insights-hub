@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,6 +17,7 @@ export const useWhatsAppInstance = () => {
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [loading, setLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [evolutionCredentials, setEvolutionCredentials] = useState<any>(null);
 
   const loadInstance = async () => {
     try {
@@ -46,7 +46,7 @@ export const useWhatsAppInstance = () => {
     }
   };
 
-  const requestQrCode = async () => {
+  const requestQrCode = async (customCredentials?: any) => {
     try {
       setLoading(true);
       
@@ -67,9 +67,18 @@ export const useWhatsAppInstance = () => {
       console.log('=== SOLICITANDO QR CODE ===');
       console.log('User ID:', user.id);
 
-      // Chamada simplificada para a Edge Function
+      // Usar credenciais customizadas se fornecidas, senão usar as padrão
+      const requestPayload: any = { user_id: user.id };
+      
+      if (customCredentials || evolutionCredentials) {
+        requestPayload.evolution_credentials = customCredentials || evolutionCredentials;
+        console.log('Usando credenciais customizadas');
+      } else {
+        console.log('Usando credenciais padrão');
+      }
+
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
-        body: { user_id: user.id }
+        body: requestPayload
       });
 
       console.log('=== RESPOSTA COMPLETA ===');
@@ -78,19 +87,10 @@ export const useWhatsAppInstance = () => {
 
       if (error) {
         console.error('Erro da Edge Function:', error);
-        
-        // Tratamento específico para diferentes tipos de erro
-        if (error.message?.includes('Invalid integration')) {
-          toast.error('Erro de configuração da Evolution API. Verifique as credenciais.');
-        } else if (error.message?.includes('non-2xx status code')) {
-          toast.error('Erro de comunicação com o servidor WhatsApp. Tente novamente.');
-        } else {
-          toast.error('Erro ao gerar QR Code: ' + (error.message || 'Erro desconhecido'));
-        }
+        toast.error('Erro ao gerar QR Code: ' + (error.message || 'Erro desconhecido'));
         return;
       }
 
-      // Verificar se a resposta é de sucesso
       if (data?.success) {
         console.log('QR Code gerado com sucesso');
         if (data.qrcode) {
@@ -99,10 +99,15 @@ export const useWhatsAppInstance = () => {
         } else {
           toast.success('Instância criada. Aguardando QR Code...');
         }
-        await loadInstance(); // Recarregar instância
+        await loadInstance();
       } else {
         console.error('Resposta de erro:', data);
         toast.error(data?.error || 'Falha ao gerar QR Code');
+        
+        // Mostrar sugestão se disponível
+        if (data?.suggestion) {
+          toast.info(data.suggestion);
+        }
       }
     } catch (error: any) {
       console.error('=== ERRO GERAL ===');
@@ -111,6 +116,25 @@ export const useWhatsAppInstance = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const setCredentials = (credentials: any) => {
+    setEvolutionCredentials(credentials);
+    localStorage.setItem('evolution_credentials', JSON.stringify(credentials));
+  };
+
+  const loadStoredCredentials = () => {
+    try {
+      const stored = localStorage.getItem('evolution_credentials');
+      if (stored) {
+        const credentials = JSON.parse(stored);
+        setEvolutionCredentials(credentials);
+        return credentials;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar credenciais:', error);
+    }
+    return null;
   };
 
   const deleteInstance = async () => {
@@ -137,9 +161,9 @@ export const useWhatsAppInstance = () => {
     }
   };
 
-  // Monitorar mudanças na instância em tempo real
   useEffect(() => {
     loadInstance();
+    loadStoredCredentials();
 
     const setupRealtimeSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,6 +208,8 @@ export const useWhatsAppInstance = () => {
     loading,
     requestQrCode,
     deleteInstance,
-    loadInstance
+    loadInstance,
+    setCredentials,
+    evolutionCredentials
   };
 };
