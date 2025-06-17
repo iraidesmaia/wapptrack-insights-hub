@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 
 export const getDashboardStats = async () => {
@@ -22,24 +21,62 @@ export const getDashboardStats = async () => {
 
     if (salesError) throw salesError;
 
+    // Calcular estatísticas
     const totalLeads = leads?.length || 0;
     const activeCampaigns = campaigns?.filter(c => c.active)?.length || 0;
-    const totalSales = sales?.reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
+    const totalRevenue = sales?.reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
+    const confirmedSales = sales?.length || 0;
     const conversionRate = totalLeads > 0 ? ((sales?.length || 0) / totalLeads) * 100 : 0;
+
+    // Leads de hoje
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todaysLeads = leads?.filter(lead => {
+      const leadDate = new Date(lead.created_at);
+      return leadDate >= today;
+    }).length || 0;
+
+    // Conversas pendentes (leads com status 'new' ou 'contacted')
+    const pendingConversations = leads?.filter(lead => 
+      lead.status === 'new' || lead.status === 'contacted'
+    ).length || 0;
+
+    // Leads do mês atual
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthlyLeads = leads?.filter(lead => {
+      const leadDate = new Date(lead.created_at);
+      return leadDate >= startOfMonth;
+    }).length || 0;
+
+    // Receita do mês atual
+    const monthlyRevenue = sales?.filter(sale => {
+      const saleDate = new Date(sale.date);
+      return saleDate >= startOfMonth;
+    }).reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
 
     return {
       totalLeads,
-      activeCampaigns,
-      totalSales,
-      conversionRate: parseFloat(conversionRate.toFixed(2))
+      totalSales: confirmedSales,
+      totalRevenue,
+      conversionRate: parseFloat(conversionRate.toFixed(2)),
+      todaysLeads,
+      confirmedSales,
+      pendingConversations,
+      monthlyLeads,
+      monthlyRevenue
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
     return {
       totalLeads: 0,
-      activeCampaigns: 0,
       totalSales: 0,
-      conversionRate: 0
+      totalRevenue: 0,
+      conversionRate: 0,
+      todaysLeads: 0,
+      confirmedSales: 0,
+      pendingConversations: 0,
+      monthlyLeads: 0,
+      monthlyRevenue: 0
     };
   }
 };
