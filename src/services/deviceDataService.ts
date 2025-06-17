@@ -125,9 +125,11 @@ export const captureDeviceData = async (phone?: string): Promise<DeviceDataCaptu
   };
 };
 
-// Salvar dados do dispositivo no banco
+// Salvar dados do dispositivo no banco de dados
 export const saveDeviceData = async (deviceData: DeviceDataCapture) => {
   try {
+    console.log('💾 Salvando dados do dispositivo no banco:', deviceData);
+    
     const { error } = await supabase
       .from('device_data')
       .insert({
@@ -153,14 +155,14 @@ export const saveDeviceData = async (deviceData: DeviceDataCapture) => {
       });
 
     if (error) {
-      console.error('Erro ao salvar dados do dispositivo:', error);
+      console.error('❌ Erro ao salvar dados do dispositivo:', error);
       return { success: false, error };
     }
 
-    console.log('Dados do dispositivo salvos com sucesso');
+    console.log('✅ Dados do dispositivo salvos com sucesso no banco');
     return { success: true };
   } catch (error) {
-    console.error('Erro geral ao salvar dados do dispositivo:', error);
+    console.error('❌ Erro geral ao salvar dados do dispositivo:', error);
     return { success: false, error };
   }
 };
@@ -168,6 +170,9 @@ export const saveDeviceData = async (deviceData: DeviceDataCapture) => {
 // Buscar dados do dispositivo por telefone
 export const getDeviceDataByPhone = async (phone: string): Promise<DeviceDataCapture | null> => {
   try {
+    console.log('🔍 Buscando dados do dispositivo para telefone:', phone);
+    
+    // Buscar dados do dispositivo salvos nas últimas 2 horas
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
     const { data, error } = await supabase
@@ -179,13 +184,46 @@ export const getDeviceDataByPhone = async (phone: string): Promise<DeviceDataCap
       .limit(1);
 
     if (error) {
-      console.error('Erro ao buscar dados do dispositivo:', error);
+      console.error('❌ Erro ao buscar dados do dispositivo:', error);
       return null;
     }
 
-    return data && data.length > 0 ? data[0] : null;
+    if (data && data.length > 0) {
+      const deviceInfo = data[0];
+      console.log('✅ Dados do dispositivo encontrados:', {
+        device_type: deviceInfo.device_type,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        location: deviceInfo.location
+      });
+      
+      return {
+        phone: deviceInfo.phone,
+        ip_address: deviceInfo.ip_address,
+        user_agent: deviceInfo.user_agent,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        device_type: deviceInfo.device_type,
+        device_model: deviceInfo.device_model,
+        location: deviceInfo.location,
+        country: deviceInfo.country,
+        city: deviceInfo.city,
+        referrer: deviceInfo.referrer,
+        screen_resolution: deviceInfo.screen_resolution,
+        timezone: deviceInfo.timezone,
+        language: deviceInfo.language,
+        utm_source: deviceInfo.utm_source,
+        utm_medium: deviceInfo.utm_medium,
+        utm_campaign: deviceInfo.utm_campaign,
+        utm_content: deviceInfo.utm_content,
+        utm_term: deviceInfo.utm_term
+      };
+    }
+
+    console.log('❌ Nenhum dado do dispositivo encontrado para:', phone);
+    return null;
   } catch (error) {
-    console.error('Erro geral ao buscar dados do dispositivo:', error);
+    console.error('❌ Erro geral ao buscar dados do dispositivo:', error);
     return null;
   }
 };

@@ -1,5 +1,6 @@
 
 import { supabase } from "../integrations/supabase/client";
+import { getDeviceDataByPhone } from "./deviceDataService";
 
 /**
  * ✅ NOVA FUNÇÃO PARA SALVAR UTMs DE CLICKS DIRETOS
@@ -92,14 +93,40 @@ export const trackRedirect = async (
       // Fallback: criar lead genérico se não for redirecionamento direto
       if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
+        
+        // 🎯 BUSCAR DADOS DO DISPOSITIVO
+        let deviceData = null;
+        if (phone) {
+          console.log('📱 Buscando dados do dispositivo para telefone no fallback:', phone);
+          deviceData = await getDeviceDataByPhone(phone);
+        }
+        
         const leadData: any = {
           name: name || 'Lead via Tracking',
           phone,
           campaign: defaultCampaign,
           status: 'new',
-          ...utms
+          ...utms,
+          // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
+          location: deviceData?.location || '',
+          ip_address: deviceData?.ip_address || '',
+          browser: deviceData?.browser || '',
+          os: deviceData?.os || '',
+          device_type: deviceData?.device_type || '',
+          device_model: deviceData?.device_model || '',
+          country: deviceData?.country || '',
+          city: deviceData?.city || '',
+          screen_resolution: deviceData?.screen_resolution || '',
+          timezone: deviceData?.timezone || '',
+          language: deviceData?.language || ''
         };
-        console.log('📝 Salvando lead no fallback:', leadData);
+        
+        console.log('📝 Salvando lead no fallback com dados do dispositivo:', {
+          nome: leadData.name,
+          device_type: leadData.device_type,
+          location: leadData.location,
+          tem_dados_dispositivo: !!deviceData
+        });
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -108,7 +135,7 @@ export const trackRedirect = async (
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('Created lead with default campaign and UTMs:', utms);
+          console.log('✅ Lead criado com campanha padrão e dados do dispositivo:', leadData);
         }
       }
       return { targetPhone: '5585998372658' };
@@ -207,15 +234,48 @@ export const trackRedirect = async (
       }
 
       if (!existingLead || existingLead.length === 0) {
+        // 🎯 BUSCAR DADOS DO DISPOSITIVO ANTES DE CRIAR O LEAD
+        let deviceData = null;
+        if (phone) {
+          console.log('📱 Buscando dados do dispositivo para telefone no trackRedirect:', phone);
+          deviceData = await getDeviceDataByPhone(phone);
+          
+          if (deviceData) {
+            console.log('✅ Dados do dispositivo encontrados no trackRedirect:', {
+              device_type: deviceData.device_type,
+              browser: deviceData.browser,
+              location: deviceData.location
+            });
+          }
+        }
+        
         const leadData: any = {
           name: name || 'Lead via Tracking',
           phone,
           campaign: campaign.name,
           campaign_id: campaign.id,
           status: 'new', // ⭐️ Status inicial como 'new' para formulários
-          ...utms
+          ...utms,
+          // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
+          location: deviceData?.location || '',
+          ip_address: deviceData?.ip_address || '',
+          browser: deviceData?.browser || '',
+          os: deviceData?.os || '',
+          device_type: deviceData?.device_type || '',
+          device_model: deviceData?.device_model || '',
+          country: deviceData?.country || '',
+          city: deviceData?.city || '',
+          screen_resolution: deviceData?.screen_resolution || '',
+          timezone: deviceData?.timezone || '',
+          language: deviceData?.language || ''
         };
-        console.log('📝 Salvando novo lead com status NEW:', leadData);
+        
+        console.log('📝 Salvando novo lead com status NEW e dados do dispositivo:', {
+          nome: leadData.name,
+          device_type: leadData.device_type,
+          location: leadData.location,
+          tem_dados_dispositivo: !!deviceData
+        });
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -224,7 +284,7 @@ export const trackRedirect = async (
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('✅ Lead criado com status NEW e UTMs:', utms);
+          console.log('✅ Lead criado com status NEW, UTMs e dados do dispositivo:', leadData);
         }
       } else {
         console.log('📞 Lead já existe, preservando nome original:', {
