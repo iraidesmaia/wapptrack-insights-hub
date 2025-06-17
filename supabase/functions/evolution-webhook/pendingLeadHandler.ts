@@ -1,5 +1,6 @@
 
 import { getDeviceDataByPhone } from './deviceDataHandler.ts';
+import { createPhoneSearchVariations } from './phoneVariations.ts';
 
 export const handlePendingLeadConversion = async (supabase: any, phone: string, messageText: string, messageId: string, status: string, contactName?: string) => {
   console.log(`🔄 handlePendingLeadConversion - Verificando pending_lead para: ${phone}`);
@@ -53,11 +54,14 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       temDadosDispositivo: !!deviceData
     });
 
-    // Verificar se já existe um lead para este telefone
+    // 🎯 BUSCAR LEAD EXISTENTE COM VARIAÇÕES DO TELEFONE
+    const phoneVariations = createPhoneSearchVariations(phone);
+    console.log('📞 Variações de telefone para busca:', phoneVariations);
+    
     const { data: existingLead, error: leadCheckError } = await supabase
       .from('leads')
       .select('*')
-      .eq('phone', phone)
+      .in('phone', phoneVariations)
       .limit(1);
 
     if (leadCheckError) {
@@ -66,9 +70,14 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
     }
 
     if (existingLead && existingLead.length > 0) {
-      console.log('📝 Lead existente encontrado, verificando se deve atualizar primeira mensagem...');
+      console.log('📝 Lead existente encontrado, preservando nome original e atualizando mensagem:', {
+        leadId: existingLead[0].id,
+        nomeOriginal: existingLead[0].name,
+        nomeContato: contactName,
+        nomePreservado: existingLead[0].name
+      });
       
-      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR + ATUALIZAR DADOS DO DISPOSITIVO
+      // 🔒 PRESERVAR NOME ORIGINAL DO LEAD e adicionar dados do dispositivo
       const updateData: any = {
         last_contact_date: new Date().toISOString(),
         evolution_message_id: messageId,
@@ -84,7 +93,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
         console.log('📱 Adicionando dados do dispositivo ao lead existente');
       }
       
-      // Verificar se já tem mensagem salva
+      // 🎯 SALVAR PRIMEIRA MENSAGEM APENAS SE NÃO EXISTIR
       if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
         updateData.last_message = messageText;
         console.log('📝 Salvando primeira mensagem do lead existente:', messageText);
@@ -100,7 +109,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead existente:', updateError);
       } else {
-        console.log('✅ Lead existente atualizado com dados do dispositivo:', {
+        console.log('✅ Lead existente atualizado preservando nome original:', {
           leadId: existingLead[0].id,
           nomePreservado: existingLead[0].name,
           primeiraMensagem: updateData.last_message || existingLead[0].last_message,
