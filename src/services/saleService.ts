@@ -1,14 +1,19 @@
-
 import { Sale } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
-export const getSales = async (): Promise<Sale[]> => {
+export const getSales = async (clientId?: string): Promise<Sale[]> => {
   try {
-    // RLS garantirá que apenas vendas do usuário logado sejam retornadas
-    const { data: sales, error } = await supabase
+    let query = supabase
       .from('sales')
       .select('*')
       .order('date', { ascending: false });
+
+    // Filtrar por cliente se fornecido
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: sales, error } = await query;
 
     if (error) throw error;
 
@@ -28,9 +33,8 @@ export const getSales = async (): Promise<Sale[]> => {
   }
 };
 
-export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
+export const addSale = async (sale: Omit<Sale, 'id'>, clientId?: string): Promise<Sale> => {
   try {
-    // user_id será automaticamente definido pelo default auth.uid()
     const { data, error } = await supabase
       .from('sales')
       .insert({
@@ -40,7 +44,8 @@ export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
         lead_name: sale.lead_name,
         campaign: sale.campaign,
         product: sale.product,
-        notes: sale.notes
+        notes: sale.notes,
+        client_id: clientId
       })
       .select()
       .single();

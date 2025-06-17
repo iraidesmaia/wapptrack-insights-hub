@@ -15,6 +15,7 @@ export type Database = {
           advanced_matching_enabled: boolean | null
           auto_create_leads: boolean | null
           cancellation_keywords: string[] | null
+          client_id: string | null
           company_subtitle: string | null
           company_title: string | null
           conversion_api_enabled: boolean | null
@@ -54,6 +55,7 @@ export type Database = {
           advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
+          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -93,6 +95,7 @@ export type Database = {
           advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
+          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -127,10 +130,49 @@ export type Database = {
           webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
         Relationships: []
       }
       company_settings: {
         Row: {
+          client_id: string | null
           company_name: string
           company_subtitle: string
           created_at: string
@@ -141,6 +183,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
@@ -151,6 +194,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
@@ -160,7 +204,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_data: {
         Row: {
@@ -360,6 +412,7 @@ export type Database = {
           campaign: string
           campaign_id: string | null
           city: string | null
+          client_id: string | null
           country: string | null
           created_at: string | null
           custom_fields: Json | null
@@ -400,6 +453,7 @@ export type Database = {
           campaign: string
           campaign_id?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
@@ -440,6 +494,7 @@ export type Database = {
           campaign?: string
           campaign_id?: string | null
           city?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
@@ -478,6 +533,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -560,6 +622,7 @@ export type Database = {
       sales: {
         Row: {
           campaign: string
+          client_id: string | null
           date: string | null
           id: string
           lead_id: string | null
@@ -571,6 +634,7 @@ export type Database = {
         }
         Insert: {
           campaign: string
+          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
@@ -582,6 +646,7 @@ export type Database = {
         }
         Update: {
           campaign?: string
+          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
@@ -592,6 +657,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_lead_id_fkey"
             columns: ["lead_id"]
