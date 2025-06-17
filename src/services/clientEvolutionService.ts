@@ -16,16 +16,23 @@ export interface ClientEvolutionSettings {
 
 export const getClientEvolutionSettings = async (clientId: string): Promise<ClientEvolutionSettings | null> => {
   try {
+    console.log('🔍 Fetching Evolution settings for client:', clientId);
+    
     const { data, error } = await supabase
       .from('client_evolution_settings')
       .select('*')
       .eq('client_id', clientId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error in getClientEvolutionSettings:', error);
+      throw error;
+    }
+    
+    console.log('📊 Retrieved Evolution settings data:', data);
     return data;
   } catch (error) {
-    console.error("Error fetching client evolution settings:", error);
+    console.error("❌ Error fetching client evolution settings:", error);
     return null;
   }
 };
@@ -34,10 +41,18 @@ export const saveClientEvolutionSettings = async (settings: Omit<ClientEvolution
   try {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     
+    if (!userId) {
+      throw new Error('Usuário não autenticado');
+    }
+    
+    console.log('💾 Saving Evolution settings for client:', settings.client_id, 'User:', userId, 'Settings:', settings);
+    
     // Verificar se já existe configuração para este cliente
     const existing = await getClientEvolutionSettings(settings.client_id);
     
     if (existing) {
+      console.log('🔄 Updating existing Evolution settings for client:', settings.client_id);
+      
       // Atualizar existente
       const { data, error } = await supabase
         .from('client_evolution_settings')
@@ -49,12 +64,20 @@ export const saveClientEvolutionSettings = async (settings: Omit<ClientEvolution
           webhook_url: settings.webhook_url
         })
         .eq('id', existing.id)
+        .eq('client_id', settings.client_id) // Garantir que só atualize para o cliente correto
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error updating Evolution settings:', error);
+        throw error;
+      }
+      
+      console.log('✅ Evolution settings updated successfully:', data);
       return data;
     } else {
+      console.log('➕ Creating new Evolution settings for client:', settings.client_id);
+      
       // Criar novo
       const { data, error } = await supabase
         .from('client_evolution_settings')
@@ -65,11 +88,16 @@ export const saveClientEvolutionSettings = async (settings: Omit<ClientEvolution
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error creating Evolution settings:', error);
+        throw error;
+      }
+      
+      console.log('✅ Evolution settings created successfully:', data);
       return data;
     }
   } catch (error) {
-    console.error("Error saving client evolution settings:", error);
+    console.error("❌ Error saving client evolution settings:", error);
     throw error;
   }
 };

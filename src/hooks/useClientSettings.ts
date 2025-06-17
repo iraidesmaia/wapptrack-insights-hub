@@ -29,11 +29,44 @@ export const useClientSettings = (clientId?: string) => {
     webhook_url: ''
   });
 
+  // Limpar estado quando clientId mudar
+  useEffect(() => {
+    console.log('🔄 Client changed to:', clientId);
+    
+    // Resetar estados para valores padrão
+    setSettings(null);
+    setFormData({
+      company_name: '',
+      company_subtitle: '',
+      logo_url: '',
+      theme: 'system' as Theme
+    });
+    
+    setEvolutionConfig({
+      evolution_api_key: '',
+      evolution_instance_name: '',
+      evolution_base_url: '',
+      webhook_callback_url: 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook',
+      webhook_url: ''
+    });
+    
+    // Carregar dados do novo cliente
+    if (clientId) {
+      loadSettings();
+      loadEvolutionConfig();
+    }
+  }, [clientId]);
+
   const loadSettings = async () => {
-    if (!clientId) return;
+    if (!clientId) {
+      console.log('❌ No clientId provided for loadSettings');
+      return;
+    }
     
     try {
+      console.log('📥 Loading settings for client:', clientId);
       const data = await getClientSettings(clientId);
+      console.log('📊 Loaded settings data:', data);
       
       if (data) {
         setSettings(data);
@@ -47,7 +80,9 @@ export const useClientSettings = (clientId?: string) => {
         if (data.theme) {
           setTheme(data.theme as Theme);
         }
+        console.log('✅ Settings loaded successfully for client:', clientId);
       } else {
+        console.log('📝 No settings found, using defaults for client:', clientId);
         setFormData({
           company_name: 'Sua Empresa',
           company_subtitle: 'Sistema de Marketing',
@@ -56,15 +91,21 @@ export const useClientSettings = (clientId?: string) => {
         });
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('❌ Error loading settings for client:', clientId, error);
     }
   };
 
   const loadEvolutionConfig = async () => {
-    if (!clientId) return;
+    if (!clientId) {
+      console.log('❌ No clientId provided for loadEvolutionConfig');
+      return;
+    }
     
     try {
+      console.log('📥 Loading Evolution config for client:', clientId);
       const data = await getClientEvolutionSettings(clientId);
+      console.log('📊 Loaded Evolution config:', data);
+      
       if (data) {
         setEvolutionConfig({
           evolution_api_key: data.evolution_api_key || '',
@@ -73,9 +114,12 @@ export const useClientSettings = (clientId?: string) => {
           webhook_callback_url: data.webhook_callback_url || 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook',
           webhook_url: data.webhook_url || ''
         });
+        console.log('✅ Evolution config loaded successfully for client:', clientId);
+      } else {
+        console.log('📝 No Evolution config found, using defaults for client:', clientId);
       }
     } catch (error) {
-      console.error('Error loading Evolution config:', error);
+      console.error('❌ Error loading Evolution config for client:', clientId, error);
     }
   };
 
@@ -102,6 +146,8 @@ export const useClientSettings = (clientId?: string) => {
     }
 
     try {
+      console.log('💾 Saving Evolution config for client:', clientId, evolutionConfig);
+      
       await saveClientEvolutionSettings({
         client_id: clientId,
         evolution_api_key: evolutionConfig.evolution_api_key,
@@ -110,9 +156,11 @@ export const useClientSettings = (clientId?: string) => {
         webhook_callback_url: evolutionConfig.webhook_callback_url,
         webhook_url: evolutionConfig.webhook_url
       });
+      
+      console.log('✅ Evolution config saved successfully for client:', clientId);
       toast.success('Configurações da Evolution API salvas!');
     } catch (error) {
-      console.error('Error saving Evolution config:', error);
+      console.error('❌ Error saving Evolution config for client:', clientId, error);
       toast.error('Erro ao salvar configurações da Evolution API');
     }
   };
@@ -216,6 +264,8 @@ export const useClientSettings = (clientId?: string) => {
         return;
       }
 
+      console.log('💾 Saving settings for client:', clientId, formData);
+
       await saveClientSettings(clientId, {
         company_name: formData.company_name.trim(),
         company_subtitle: formData.company_subtitle.trim(),
@@ -223,23 +273,17 @@ export const useClientSettings = (clientId?: string) => {
         theme: formData.theme
       });
 
+      console.log('✅ Settings saved successfully for client:', clientId);
       toast.success('Configurações salvas com sucesso!');
       await loadSettings();
       
     } catch (error: any) {
-      console.error('Error saving settings:', error);
+      console.error('❌ Error saving settings for client:', clientId, error);
       toast.error(error.message || 'Erro ao salvar configurações');
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (clientId) {
-      loadSettings();
-      loadEvolutionConfig();
-    }
-  }, [clientId]);
 
   return {
     settings,
