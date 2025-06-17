@@ -49,44 +49,75 @@ export const useWhatsAppInstance = () => {
     try {
       setLoading(true);
       
-      const { data: { user } } = await supabase.auth.getUser();
+      // Passo 1: Verificar se o user_id está sendo obtido corretamente
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Erro ao obter usuário:', userError);
+        toast.error('Erro de autenticação: ' + userError.message);
+        return;
+      }
+
       if (!user) {
+        console.error('Usuário não autenticado');
         toast.error('Usuário não autenticado');
         return;
       }
 
-      console.log('Solicitando QR Code para usuário:', user.id);
+      console.log('=== DEBUG FRONTEND ===');
+      console.log('User ID obtido:', user.id);
+      console.log('User completo:', user);
 
-      // Usar invoke corretamente com o user_id no body
+      // Passo 2 e 3: Simplificar a chamada e adicionar logs detalhados
+      const requestPayload = { user_id: user.id };
+      console.log('Payload que será enviado:', requestPayload);
+      console.log('Payload JSON:', JSON.stringify(requestPayload));
+
+      // Chamada simplificada sem headers customizados desnecessários
+      console.log('Iniciando chamada para Edge Function...');
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
-        body: { 
-          user_id: user.id 
-        },
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json'
-        }
+        body: requestPayload
       });
 
-      console.log('Resposta da Edge Function:', { data, error });
+      console.log('=== RESPOSTA DA EDGE FUNCTION ===');
+      console.log('Data recebida:', data);
+      console.log('Error recebido:', error);
 
       if (error) {
-        console.error('Erro ao solicitar QR Code:', error);
-        toast.error('Erro ao gerar QR Code: ' + error.message);
+        console.error('Erro detalhado da Edge Function:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+          context: error.context
+        });
+        
+        // Mensagem de erro mais específica baseada no tipo
+        if (error.message?.includes('non-2xx status code')) {
+          toast.error('Erro de comunicação com o servidor. Verifique os logs para mais detalhes.');
+        } else {
+          toast.error('Erro ao gerar QR Code: ' + error.message);
+        }
         return;
       }
 
+      console.log('=== PROCESSANDO RESPOSTA ===');
       if (data?.success) {
+        console.log('QR Code gerado com sucesso:', data.qrcode ? 'QR Code presente' : 'QR Code ausente');
         setQrCode(data.qrcode);
         toast.success('QR Code gerado com sucesso!');
         await loadInstance(); // Recarregar para pegar a nova instância
       } else {
-        console.error('Erro na resposta:', data);
-        toast.error(data?.error || 'Erro ao gerar QR Code');
+        console.error('Resposta de erro da API:', data);
+        toast.error(data?.error || 'Erro desconhecido ao gerar QR Code');
       }
     } catch (error: any) {
-      console.error('Erro ao solicitar QR Code:', error);
-      toast.error('Erro ao conectar com o servidor: ' + error.message);
+      console.error('=== ERRO GERAL NO FRONTEND ===');
+      console.error('Erro capturado:', error);
+      console.error('Tipo do erro:', typeof error);
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      
+      toast.error('Erro inesperado: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
