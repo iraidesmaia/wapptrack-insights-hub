@@ -80,39 +80,8 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
     }
   };
 
-  // Extrair dados do dispositivo tanto do custom_fields quanto dos novos campos diretos
-  const deviceInfo = lead.custom_fields?.device_info || {
-    ip_address: lead.ip_address,
-    browser: lead.browser,
-    os: lead.os,
-    device_type: lead.device_type,
-    device_model: lead.device_model,
-    location: lead.location,
-    country: lead.country,
-    city: lead.city,
-    screen_resolution: lead.screen_resolution,
-    timezone: lead.timezone,
-    language: lead.language
-  };
-
-  // Verificar se há dados de dispositivo válidos
-  const hasDeviceData = deviceInfo && (
-    deviceInfo.device_type || 
-    deviceInfo.browser || 
-    deviceInfo.os || 
-    deviceInfo.location ||
-    deviceInfo.ip_address
-  );
-
-  // Extrair GCLID e FBCLID dos parâmetros UTM
-  const extractParam = (content: string | undefined, param: string) => {
-    if (!content) return null;
-    const match = content.match(new RegExp(`${param}=([^&]+)`));
-    return match ? match[1] : null;
-  };
-
-  const gclid = extractParam(lead.utm_content, 'gclid') || extractParam(lead.utm_term, 'gclid');
-  const fbclid = extractParam(lead.utm_content, 'fbclid') || extractParam(lead.utm_term, 'fbclid');
+  // Extrair dados do dispositivo do custom_fields
+  const deviceInfo = lead.custom_fields?.device_info;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -146,7 +115,7 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Informações Básicas</TabsTrigger>
             <TabsTrigger value="device">Dispositivo</TabsTrigger>
-            <TabsTrigger value="utm">Parâmetros de URL</TabsTrigger>
+            <TabsTrigger value="utm">UTM & Tracking</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-4">
@@ -280,17 +249,12 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
           </TabsContent>
 
           <TabsContent value="device" className="space-y-4">
-            {hasDeviceData ? (
+            {deviceInfo ? (
               <DeviceInfoDisplay deviceInfo={deviceInfo} />
             ) : (
               <Card>
                 <CardContent className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-2">
-                    <p className="text-gray-500">Nenhuma informação de dispositivo disponível para este lead.</p>
-                    <p className="text-xs text-gray-400">
-                      Os dados são coletados automaticamente quando o lead interage com o formulário de contato.
-                    </p>
-                  </div>
+                  <p className="text-gray-500">Nenhuma informação de dispositivo disponível para este lead.</p>
                 </CardContent>
               </Card>
             )}
@@ -299,8 +263,8 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
           <TabsContent value="utm" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Parâmetros de URL</CardTitle>
-                <CardDescription>Informações de origem e rastreamento do lead</CardDescription>
+                <CardTitle className="text-lg">Parâmetros UTM e Tracking</CardTitle>
+                <CardDescription>Informações de origem e campanha do lead</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,7 +324,7 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="utm_term">UTM Term</Label>
                     {isEditing ? (
                       <Input
@@ -373,20 +337,6 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
                       <p className="text-sm">{lead.utm_term || 'Não disponível'}</p>
                     )}
                   </div>
-
-                  {gclid && (
-                    <div className="space-y-2">
-                      <Label>GCLID</Label>
-                      <p className="text-sm font-mono">{gclid}</p>
-                    </div>
-                  )}
-
-                  {fbclid && (
-                    <div className="space-y-2">
-                      <Label>FBCLID</Label>
-                      <p className="text-sm font-mono">{fbclid}</p>
-                    </div>
-                  )}
                 </div>
 
                 {lead.evolution_message_id && (

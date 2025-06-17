@@ -131,7 +131,7 @@ export const collectUrlParameters = (): UrlParameters => {
     utm_content: allParams.get('utm_content') || undefined,
     utm_term: allParams.get('utm_term') || undefined,
     fbclid: allParams.get('fbclid') || undefined,
-    gclid: allParams.get('gclid') || undefined, // 🎯 ADICIONADO GCLID
+    gclid: allParams.get('gclid') || undefined,
     ttclid: allParams.get('ttclid') || undefined,
     _fbc: allParams.get('_fbc') || localStorage.getItem('_fbc') || undefined,
     _fbp: allParams.get('_fbp') || localStorage.getItem('_fbp') || undefined,
@@ -399,17 +399,6 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       console.warn('Não foi possível obter dados de geolocalização:', error);
     }
 
-    // 🎯 INCLUIR GCLID NOS PARÂMETROS SALVOS
-    const urlParamsString = [
-      urlParams.utm_source ? `utm_source=${urlParams.utm_source}` : '',
-      urlParams.utm_medium ? `utm_medium=${urlParams.utm_medium}` : '',
-      urlParams.utm_campaign ? `utm_campaign=${urlParams.utm_campaign}` : '',
-      urlParams.utm_content ? `utm_content=${urlParams.utm_content}` : '',
-      urlParams.utm_term ? `utm_term=${urlParams.utm_term}` : '',
-      urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : '',
-      urlParams.gclid ? `gclid=${urlParams.gclid}` : '', // 🎯 GCLID INCLUÍDO
-    ].filter(Boolean).join(', ');
-
     // Montar objeto completo para salvar
     const completeDeviceData = {
       phone,
@@ -429,11 +418,11 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       utm_source: urlParams.utm_source,
       utm_medium: urlParams.utm_medium,
       utm_campaign: urlParams.utm_campaign,
-      utm_content: urlParams.utm_content || (urlParams.gclid ? `gclid=${urlParams.gclid}` : undefined), // 🎯 INCLUIR GCLID
-      utm_term: urlParams.utm_term || (urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : undefined)
+      utm_content: urlParams.utm_content,
+      utm_term: urlParams.utm_term
     };
 
-    console.log('📱 Dados do dispositivo coletados com GCLID:', completeDeviceData);
+    console.log('📱 Dados do dispositivo coletados:', completeDeviceData);
     
     // Importar dinamicamente o serviço para evitar circular dependency
     const { saveDeviceData } = await import('@/services/deviceDataService');

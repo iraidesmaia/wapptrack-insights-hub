@@ -40,12 +40,6 @@ export interface Lead {
   ad_set_name?: string;
   ad_name?: string;
   initial_message?: string;
-  // Campos adicionais de dispositivo
-  country?: string;
-  city?: string;
-  screen_resolution?: string;
-  timezone?: string;
-  language?: string;
   // Campos Evolution API
   evolution_message_id?: string;
   evolution_status?: string;
@@ -162,6 +156,3 @@ export interface MonthlyStats {
     revenue: number;
   };
 }
-
-// Adicionar os tipos de permissões
-export * from './permissions';

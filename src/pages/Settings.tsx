@@ -4,17 +4,20 @@ import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
-import WhatsAppInstanceSettings from '@/components/settings/WhatsAppInstanceSettings';
-import EvolutionCredentialsSettings from '@/components/settings/EvolutionCredentialsSettings';
-import SharingSettings from '@/components/sharing/SharingSettings';
+import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
 import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
   const {
     loading,
     uploading,
+    testingEvolution,
     formData,
+    evolutionConfig,
     handleInputChange,
+    handleEvolutionConfigChange,
+    saveEvolutionConfig,
+    testEvolutionConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
@@ -43,11 +46,13 @@ const Settings = () => {
             onThemeChange={handleThemeChange}
           />
 
-          <EvolutionCredentialsSettings />
-
-          <WhatsAppInstanceSettings />
-
-          <SharingSettings />
+          <EvolutionApiSettings
+            evolutionConfig={evolutionConfig}
+            testingWebhook={testingEvolution}
+            onEvolutionConfigChange={handleEvolutionConfigChange}
+            onSaveEvolutionConfig={saveEvolutionConfig}
+            onTestWebhookConnection={testEvolutionConnection}
+          />
 
           <div className="flex justify-end">
             <Button 

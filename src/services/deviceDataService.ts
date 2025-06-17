@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 
 export interface DeviceDataCapture {
   phone?: string;
@@ -125,105 +124,78 @@ export const captureDeviceData = async (phone?: string): Promise<DeviceDataCaptu
   };
 };
 
-// Salvar dados do dispositivo no banco de dados
+// Salvar dados do dispositivo no banco usando SQL direto
 export const saveDeviceData = async (deviceData: DeviceDataCapture) => {
   try {
-    console.log('💾 Salvando dados do dispositivo no banco:', deviceData);
-    
-    const { error } = await supabase
-      .from('device_data')
-      .insert({
-        phone: deviceData.phone || null,
-        ip_address: deviceData.ip_address || null,
-        user_agent: deviceData.user_agent || null,
-        browser: deviceData.browser || null,
-        os: deviceData.os || null,
-        device_type: deviceData.device_type || null,
-        device_model: deviceData.device_model || null,
-        location: deviceData.location || null,
-        country: deviceData.country || null,
-        city: deviceData.city || null,
-        referrer: deviceData.referrer || null,
-        screen_resolution: deviceData.screen_resolution || null,
-        timezone: deviceData.timezone || null,
-        language: deviceData.language || null,
-        utm_source: deviceData.utm_source || null,
-        utm_medium: deviceData.utm_medium || null,
-        utm_campaign: deviceData.utm_campaign || null,
-        utm_content: deviceData.utm_content || null,
-        utm_term: deviceData.utm_term || null
-      });
+    // Usar raw SQL pois a tabela device_data não está nos tipos gerados
+    const { error } = await supabase.rpc('exec_sql', {
+      sql: `
+        INSERT INTO device_data (
+          phone, ip_address, user_agent, browser, os, device_type, device_model,
+          location, country, city, referrer, screen_resolution, timezone, language,
+          utm_source, utm_medium, utm_campaign, utm_content, utm_term
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+        )
+      `,
+      params: [
+        deviceData.phone || null,
+        deviceData.ip_address || null,
+        deviceData.user_agent || null,
+        deviceData.browser || null,
+        deviceData.os || null,
+        deviceData.device_type || null,
+        deviceData.device_model || null,
+        deviceData.location || null,
+        deviceData.country || null,
+        deviceData.city || null,
+        deviceData.referrer || null,
+        deviceData.screen_resolution || null,
+        deviceData.timezone || null,
+        deviceData.language || null,
+        deviceData.utm_source || null,
+        deviceData.utm_medium || null,
+        deviceData.utm_campaign || null,
+        deviceData.utm_content || null,
+        deviceData.utm_term || null
+      ]
+    });
 
     if (error) {
-      console.error('❌ Erro ao salvar dados do dispositivo:', error);
+      console.error('Erro ao salvar dados do dispositivo:', error);
       return { success: false, error };
     }
 
-    console.log('✅ Dados do dispositivo salvos com sucesso no banco');
+    console.log('Dados do dispositivo salvos com sucesso');
     return { success: true };
   } catch (error) {
-    console.error('❌ Erro geral ao salvar dados do dispositivo:', error);
+    console.error('Erro geral ao salvar dados do dispositivo:', error);
     return { success: false, error };
   }
 };
 
-// Buscar dados do dispositivo por telefone
+// Buscar dados do dispositivo por telefone usando SQL direto
 export const getDeviceDataByPhone = async (phone: string): Promise<DeviceDataCapture | null> => {
   try {
-    console.log('🔍 Buscando dados do dispositivo para telefone:', phone);
-    
-    // Buscar dados do dispositivo salvos nas últimas 2 horas
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    
-    const { data, error } = await supabase
-      .from('device_data')
-      .select('*')
-      .eq('phone', phone)
-      .gte('created_at', twoHoursAgo)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    const { data, error } = await supabase.rpc('exec_sql', {
+      sql: `
+        SELECT * FROM device_data 
+        WHERE phone = $1 
+        AND created_at >= NOW() - INTERVAL '2 hours'
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `,
+      params: [phone]
+    });
 
     if (error) {
-      console.error('❌ Erro ao buscar dados do dispositivo:', error);
+      console.error('Erro ao buscar dados do dispositivo:', error);
       return null;
     }
 
-    if (data && data.length > 0) {
-      const deviceInfo = data[0];
-      console.log('✅ Dados do dispositivo encontrados:', {
-        device_type: deviceInfo.device_type,
-        browser: deviceInfo.browser,
-        os: deviceInfo.os,
-        location: deviceInfo.location
-      });
-      
-      return {
-        phone: deviceInfo.phone,
-        ip_address: deviceInfo.ip_address,
-        user_agent: deviceInfo.user_agent,
-        browser: deviceInfo.browser,
-        os: deviceInfo.os,
-        device_type: deviceInfo.device_type,
-        device_model: deviceInfo.device_model,
-        location: deviceInfo.location,
-        country: deviceInfo.country,
-        city: deviceInfo.city,
-        referrer: deviceInfo.referrer,
-        screen_resolution: deviceInfo.screen_resolution,
-        timezone: deviceInfo.timezone,
-        language: deviceInfo.language,
-        utm_source: deviceInfo.utm_source,
-        utm_medium: deviceInfo.utm_medium,
-        utm_campaign: deviceInfo.utm_campaign,
-        utm_content: deviceInfo.utm_content,
-        utm_term: deviceInfo.utm_term
-      };
-    }
-
-    console.log('❌ Nenhum dado do dispositivo encontrado para:', phone);
-    return null;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error('❌ Erro geral ao buscar dados do dispositivo:', error);
+    console.error('Erro geral ao buscar dados do dispositivo:', error);
     return null;
   }
 };

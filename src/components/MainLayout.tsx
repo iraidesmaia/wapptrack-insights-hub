@@ -92,12 +92,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Default company branding configuration
   const defaultCompanyBranding = {
     logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
     title: "Sua Empresa",
     subtitle: "Sistema de Marketing"
   };
 
+  // Use company settings if available, otherwise use default
   const companyBranding = {
     logo: companySettings?.logo_url || defaultCompanyBranding.logo,
     title: companySettings?.company_name || defaultCompanyBranding.title,
@@ -182,11 +184,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                  {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.email}
+                    {user?.name || user?.email}
                   </p>
                 </div>
               </div>
@@ -240,11 +242,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                  {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.email}
+                    {user?.name || user?.email}
                   </p>
                 </div>
               </div>

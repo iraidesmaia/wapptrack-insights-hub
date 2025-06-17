@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } from '@/lib/phoneUtils';
-import { useDeviceData } from '@/hooks/useDeviceData';
 
 interface ContactFormProps {
   onSubmit: (phone: string, name: string) => Promise<void>;
@@ -16,12 +15,6 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const { deviceData, captureAndSave } = useDeviceData();
-
-  useEffect(() => {
-    // Capturar dados do dispositivo quando o componente for montado
-    console.log('📱 Capturando dados do dispositivo automaticamente');
-  }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -47,11 +40,6 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
     try {
       // Process phone to add Brazil country code (55)
       const processedPhone = processBrazilianPhone(phone);
-      
-      // 💾 SALVAR DADOS DO DISPOSITIVO COM O TELEFONE
-      console.log('💾 Salvando dados do dispositivo com telefone:', processedPhone);
-      await captureAndSave(processedPhone);
-      
       await onSubmit(processedPhone, name);
     } catch (err) {
       setError('Erro ao processar redirecionamento');
@@ -101,13 +89,6 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
           </div>
           {error && (
             <p className="text-sm text-red-600">{error}</p>
-          )}
-          
-          {/* Debug: mostrar dados capturados */}
-          {deviceData && (
-            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-              📱 Dados capturados: {deviceData.device_type} • {deviceData.browser} • {deviceData.location}
-            </div>
           )}
         </CardContent>
         <CardFooter>

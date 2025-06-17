@@ -1,5 +1,5 @@
 
-// Handler para buscar dados do dispositivo salvos no banco de dados
+// Handler para buscar dados do dispositivo salvos
 export const getDeviceDataByPhone = async (supabase: any, phone: string): Promise<{
   ip_address?: string;
   browser?: string;
@@ -14,7 +14,7 @@ export const getDeviceDataByPhone = async (supabase: any, phone: string): Promis
   language?: string;
 } | null> => {
   try {
-    console.log(`🔍 Buscando dados do dispositivo no banco para: ${phone}`);
+    console.log(`🔍 Buscando dados do dispositivo para: ${phone}`);
     
     // Buscar dados do dispositivo salvos nas últimas 2 horas
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
@@ -28,18 +28,17 @@ export const getDeviceDataByPhone = async (supabase: any, phone: string): Promis
       .limit(1);
 
     if (error) {
-      console.error('❌ Erro ao buscar dados do dispositivo no banco:', error);
+      console.error('❌ Erro ao buscar dados do dispositivo:', error);
       return null;
     }
 
     if (deviceData && deviceData.length > 0) {
       const device = deviceData[0];
-      console.log('✅ Dados do dispositivo encontrados no banco:', {
+      console.log('✅ Dados do dispositivo encontrados:', {
         device_type: device.device_type,
         browser: device.browser,
         os: device.os,
-        location: device.location,
-        created_at: device.created_at
+        location: device.location
       });
       
       return {
@@ -57,10 +56,10 @@ export const getDeviceDataByPhone = async (supabase: any, phone: string): Promis
       };
     }
 
-    console.log('❌ Nenhum dado do dispositivo encontrado no banco para:', phone);
+    console.log('❌ Nenhum dado do dispositivo encontrado para:', phone);
     return null;
   } catch (error) {
-    console.error('❌ Erro geral ao buscar dados do dispositivo no banco:', error);
+    console.error('❌ Erro geral ao buscar dados do dispositivo:', error);
     return null;
   }
 };

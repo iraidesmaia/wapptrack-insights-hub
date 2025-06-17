@@ -1,5 +1,5 @@
+
 import { supabase } from "../integrations/supabase/client";
-import { getDeviceDataByPhone } from "./deviceDataService";
 
 /**
  * ✅ NOVA FUNÇÃO PARA SALVAR UTMs DE CLICKS DIRETOS
@@ -62,8 +62,6 @@ export const trackRedirect = async (
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
-    gclid?: string // 🎯 ADICIONADO GCLID
-    fbclid?: string // 🎯 ADICIONADO FBCLID
   }
 ): Promise<{targetPhone?: string}> => {
   try {
@@ -86,59 +84,22 @@ export const trackRedirect = async (
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
-        const utmsToSave = {
-          utm_source: utms.utm_source,
-          utm_medium: utms.utm_medium,
-          utm_campaign: utms.utm_campaign,
-          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
-        };
-        await saveDirectClickUtms(phone, utmsToSave);
+        await saveDirectClickUtms(phone, utms);
       }
       
       // Fallback: criar lead genérico se não for redirecionamento direto
       if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
-        
-        // 🎯 BUSCAR DADOS DO DISPOSITIVO
-        let deviceData = null;
-        if (phone) {
-          console.log('📱 Buscando dados do dispositivo para telefone no fallback:', phone);
-          deviceData = await getDeviceDataByPhone(phone);
-        }
-        
         const leadData: any = {
           name: name || 'Lead via Tracking',
           phone,
           campaign: defaultCampaign,
           status: 'new',
-          utm_source: utms?.utm_source,
-          utm_medium: utms?.utm_medium,
-          utm_campaign: utms?.utm_campaign,
-          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
-          // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
-          location: deviceData?.location || '',
-          ip_address: deviceData?.ip_address || '',
-          browser: deviceData?.browser || '',
-          os: deviceData?.os || '',
-          device_type: deviceData?.device_type || '',
-          device_model: deviceData?.device_model || '',
-          country: deviceData?.country || '',
-          city: deviceData?.city || '',
-          screen_resolution: deviceData?.screen_resolution || '',
-          timezone: deviceData?.timezone || '',
-          language: deviceData?.language || ''
+          ...utms
         };
-        
-        console.log('📝 Salvando lead no fallback com dados do dispositivo:', {
-          nome: leadData.name,
-          device_type: leadData.device_type,
-          location: leadData.location,
-          tem_dados_dispositivo: !!deviceData
-        });
+        console.log('📝 Salvando lead no fallback:', leadData);
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -147,7 +108,7 @@ export const trackRedirect = async (
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('✅ Lead criado com campanha padrão e dados do dispositivo:', leadData);
+          console.log('Created lead with default campaign and UTMs:', utms);
         }
       }
       return { targetPhone: '5585998372658' };
@@ -163,16 +124,9 @@ export const trackRedirect = async (
         utms
       });
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
-        const utmsToSave = {
-          utm_source: utms.utm_source,
-          utm_medium: utms.utm_medium,
-          utm_campaign: utms.utm_campaign,
-          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
-        };
-        await saveDirectClickUtms(phone, utmsToSave);
+        await saveDirectClickUtms(phone, utms);
       }
       
       // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
@@ -206,8 +160,8 @@ export const trackRedirect = async (
             utm_source: utms?.utm_source || null,
             utm_medium: utms?.utm_medium || null,
             utm_campaign: utms?.utm_campaign || null,
-            utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : null), // 🎯 GCLID
-            utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : null), // 🎯 FBCLID
+            utm_content: utms?.utm_content || null,
+            utm_term: utms?.utm_term || null,
             status: 'pending'
           };
           
@@ -253,52 +207,15 @@ export const trackRedirect = async (
       }
 
       if (!existingLead || existingLead.length === 0) {
-        // 🎯 BUSCAR DADOS DO DISPOSITIVO ANTES DE CRIAR O LEAD
-        let deviceData = null;
-        if (phone) {
-          console.log('📱 Buscando dados do dispositivo para telefone no trackRedirect:', phone);
-          deviceData = await getDeviceDataByPhone(phone);
-          
-          if (deviceData) {
-            console.log('✅ Dados do dispositivo encontrados no trackRedirect:', {
-              device_type: deviceData.device_type,
-              browser: deviceData.browser,
-              location: deviceData.location
-            });
-          }
-        }
-        
         const leadData: any = {
           name: name || 'Lead via Tracking',
           phone,
           campaign: campaign.name,
           campaign_id: campaign.id,
           status: 'new', // ⭐️ Status inicial como 'new' para formulários
-          utm_source: utms?.utm_source,
-          utm_medium: utms?.utm_medium,
-          utm_campaign: utms?.utm_campaign,
-          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
-          // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
-          location: deviceData?.location || '',
-          ip_address: deviceData?.ip_address || '',
-          browser: deviceData?.browser || '',
-          os: deviceData?.os || '',
-          device_type: deviceData?.device_type || '',
-          device_model: deviceData?.device_model || '',
-          country: deviceData?.country || '',
-          city: deviceData?.city || '',
-          screen_resolution: deviceData?.screen_resolution || '',
-          timezone: deviceData?.timezone || '',
-          language: deviceData?.language || ''
+          ...utms
         };
-        
-        console.log('📝 Salvando novo lead com status NEW e dados do dispositivo:', {
-          nome: leadData.name,
-          device_type: leadData.device_type,
-          location: leadData.location,
-          tem_dados_dispositivo: !!deviceData
-        });
+        console.log('📝 Salvando novo lead com status NEW:', leadData);
 
         const { error: leadError } = await supabase
           .from('leads')
@@ -307,7 +224,7 @@ export const trackRedirect = async (
         if (leadError) {
           console.error('Error creating lead:', leadError);
         } else {
-          console.log('✅ Lead criado com status NEW, UTMs e dados do dispositivo:', leadData);
+          console.log('✅ Lead criado com status NEW e UTMs:', utms);
         }
       } else {
         console.log('📞 Lead já existe, preservando nome original:', {
