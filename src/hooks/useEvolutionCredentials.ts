@@ -8,9 +8,9 @@ interface EvolutionCredentials {
   user_id: string;
   api_url: string;
   api_key: string;
-  instance_name?: string;
-  status: 'pending' | 'valid' | 'invalid';
-  validated_at?: string;
+  instance_name?: string | null;
+  status: string;
+  validated_at?: string | null;
   created_at: string;
   updated_at: string;
 }
