@@ -8,38 +8,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EvolutionCredentials {
-  apiKey: string;
-  baseUrl: string;
-}
-
-const validateEvolutionCredentials = async (credentials: EvolutionCredentials): Promise<{ valid: boolean; error?: string }> => {
-  try {
-    // Teste básico de conectividade
-    const testResponse = await fetch(`${credentials.baseUrl}/instance/fetchInstances`, {
-      method: 'GET',
-      headers: { 'apikey': credentials.apiKey },
-    });
-
-    if (testResponse.status === 401 || testResponse.status === 403) {
-      return { valid: false, error: 'API Key inválida ou sem permissão' };
-    }
-
-    if (!testResponse.ok && testResponse.status !== 404) {
-      return { valid: false, error: `Evolution API não está respondendo (${testResponse.status})` };
-    }
-
-    return { valid: true };
-  } catch (error) {
-    return { valid: false, error: `Erro de conexão: ${error.message}` };
-  }
-};
-
 serve(async (req) => {
-  console.log('=== NOVA REQUISIÇÃO EDGE FUNCTION ===');
-  console.log('Method:', req.method);
+  console.log('=== INÍCIO DA EDGE FUNCTION ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
   
   if (req.method === 'OPTIONS') {
+    console.log('Respondendo a OPTIONS request');
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -47,185 +22,223 @@ serve(async (req) => {
   }
 
   try {
-    const requestBody = await req.json();
-    const { user_id, evolution_credentials } = requestBody;
-
-    console.log('User ID recebido:', user_id);
-    console.log('Credenciais customizadas:', !!evolution_credentials);
+    console.log('=== PROCESSANDO REQUEST BODY ===');
+    
+    // Passo 4: Melhorar tratamento de erro com mensagens mais específicas
+    let requestBody;
+    
+    try {
+      const bodyText = await req.text();
+      console.log('Request body text recebido:', bodyText);
+      console.log('Tamanho do body:', bodyText.length);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        console.error('=== ERRO: Body vazio ===');
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Body da requisição está vazio. O user_id é obrigatório.',
+          details: 'Nenhum dado foi enviado na requisição'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+      
+      requestBody = JSON.parse(bodyText);
+      console.log('Request body parsed com sucesso:', requestBody);
+      console.log('Tipo do requestBody:', typeof requestBody);
+      
+    } catch (parseError) {
+      console.error('=== ERRO NO PARSE DO JSON ===');
+      console.error('Parse error:', parseError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'JSON inválido na requisição.',
+        details: `Erro de parsing: ${parseError.message}`
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+    
+    const { user_id } = requestBody;
+    console.log('user_id extraído:', user_id);
+    console.log('Tipo do user_id:', typeof user_id);
 
     if (!user_id) {
-      console.error('user_id não fornecido');
+      console.error('=== ERRO: user_id não fornecido ===');
+      console.error('RequestBody completo:', requestBody);
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'user_id é obrigatório' 
+        error: 'user_id é obrigatório',
+        details: 'O campo user_id não foi encontrado na requisição',
+        received: requestBody
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
 
-    // Determinar credenciais a usar (customizadas ou padrão)
-    let credentials: EvolutionCredentials;
+    console.log('=== CONFIGURAÇÕES DA EVOLUTION API ===');
     
-    if (evolution_credentials?.apiKey && evolution_credentials?.baseUrl) {
-      credentials = evolution_credentials;
-      console.log('Usando credenciais customizadas');
-    } else {
-      // Usar credenciais padrão
-      credentials = {
-        baseUrl: 'https://evolutionapi.workidigital.tech',
-        apiKey: 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia'
-      };
-      console.log('Usando credenciais padrão');
-    }
+    // Configurações da Evolution API
+    const EVOLUTION_API_URL = 'https://evolutionapi.workidigital.tech';
+    const EVOLUTION_API_KEY = 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia';
+    const WEBHOOK_RECEIVER_URL = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-evolution-receiver`;
 
-    console.log('=== VALIDANDO CREDENCIAIS ===');
-    const validation = await validateEvolutionCredentials(credentials);
-    
-    if (!validation.valid) {
-      console.error('Credenciais inválidas:', validation.error);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: `Credenciais Evolution API inválidas: ${validation.error}`,
-        suggestion: 'Verifique suas credenciais nas configurações'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    }
+    console.log('Evolution API URL:', EVOLUTION_API_URL);
+    console.log('Webhook URL:', WEBHOOK_RECEIVER_URL);
+    console.log('SUPABASE_URL env:', Deno.env.get('SUPABASE_URL'));
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { auth: { persistSession: false } }
+      {
+        auth: {
+          persistSession: false
+        }
+      }
     );
 
-    const instanceName = `wpp_${user_id.slice(-8)}_${Date.now()}`;
-    console.log('Nome da instância:', instanceName);
-
-    const WEBHOOK_URL = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-evolution-receiver`;
-
-    const evolutionPayload = {
-      instanceName: instanceName,
-      qrcode: true,
-      webhook: {
-        url: WEBHOOK_URL,
-        enabled: true,
-        events: [
-          "QRCODE_UPDATED",
-          "CONNECTION_UPDATE",
-          "MESSAGES_UPSERT"
-        ]
-      }
-    };
-
-    console.log('=== CRIANDO INSTÂNCIA ===');
-    console.log('URL:', `${credentials.baseUrl}/instance/create`);
-    console.log('Payload:', JSON.stringify(evolutionPayload, null, 2));
-
-    const evolutionResponse = await fetch(`${credentials.baseUrl}/instance/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': credentials.apiKey,
-      },
-      body: JSON.stringify(evolutionPayload),
-    });
-
-    console.log('Status da resposta:', evolutionResponse.status);
-    
-    const responseText = await evolutionResponse.text();
-    console.log('Resposta raw:', responseText);
-
-    let evolutionData;
-    try {
-      evolutionData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Erro ao fazer parse da resposta:', parseError);
+    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+      console.error('=== ERRO: Configurações faltando ===');
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'Resposta inválida da Evolution API',
-        details: responseText
+        error: 'Erro de configuração: Chaves da Evolution API faltando.',
+        details: 'Configurações internas do servidor não estão disponíveis'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
 
-    console.log('Dados parsed:', evolutionData);
+    const instanceName = `wpp_instance_${user_id}_${Date.now()}`;
+    console.log('=== CRIANDO INSTÂNCIA ===');
+    console.log(`Criando instância: ${instanceName} para usuário: ${user_id}`);
 
-    if (!evolutionResponse.ok) {
-      console.error('=== ERRO DA EVOLUTION API ===');
-      console.error('Status:', evolutionResponse.status);
-      console.error('Data:', evolutionData);
-
-      let errorMessage = 'Erro na Evolution API';
-      let suggestion = 'Tente novamente ou verifique as configurações';
-
-      if (evolutionData?.response?.message?.includes('Invalid integration')) {
-        errorMessage = 'Configuração de integração inválida';
-        suggestion = 'Verifique se a API Key e URL estão corretas nas configurações';
-      } else if (evolutionData?.response?.message) {
-        const messages = Array.isArray(evolutionData.response.message) 
-          ? evolutionData.response.message.join(', ')
-          : evolutionData.response.message;
-        errorMessage = messages;
+    // Passo 5: Preparar payload para Evolution API
+    const evolutionPayload = {
+      instanceName: instanceName,
+      qrcode: true,
+      webhook: {
+        url: WEBHOOK_RECEIVER_URL,
+        enabled: true,
+        events: [
+          "QRCODE_UPDATED",
+          "CONNECTION_UPDATE",
+          "MESSAGES_UPSERT",
+          "SEND_MESSAGE",
+        ]
       }
+    };
 
+    console.log('Payload para Evolution API:', evolutionPayload);
+
+    // Criar instância na Evolution API
+    console.log('=== CHAMANDO EVOLUTION API ===');
+    const evolutionResponse = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY,
+      },
+      body: JSON.stringify(evolutionPayload),
+    });
+
+    console.log('Evolution API response status:', evolutionResponse.status);
+    console.log('Evolution API response headers:', Object.fromEntries(evolutionResponse.headers.entries()));
+    
+    let evolutionData;
+    try {
+      const responseText = await evolutionResponse.text();
+      console.log('Evolution API response text:', responseText);
+      
+      if (responseText) {
+        evolutionData = JSON.parse(responseText);
+        console.log('Evolution API response data:', evolutionData);
+      } else {
+        console.error('Evolution API retornou resposta vazia');
+        evolutionData = null;
+      }
+    } catch (evolutionParseError) {
+      console.error('=== ERRO NO PARSE DA RESPOSTA DA EVOLUTION API ===');
+      console.error('Parse error:', evolutionParseError);
       return new Response(JSON.stringify({ 
         success: false,
-        error: errorMessage,
-        suggestion: suggestion,
-        details: evolutionData
+        error: 'Erro na resposta da Evolution API: formato inválido',
+        details: `Erro de parsing da resposta: ${evolutionParseError.message}`
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    if (evolutionResponse.ok && evolutionData) {
+      console.log('=== SALVANDO NO SUPABASE ===');
+      
+      // Salvar instância no banco de dados
+      const { error: dbError } = await supabase
+        .from('whatsapp_instances')
+        .insert({
+          user_id: user_id,
+          instance_name: instanceName,
+          instance_token: evolutionData.instance?.token || null,
+          status: 'QRCODE_WAITING',
+          qrcode_base64: evolutionData.qrcode?.base64 || null,
+        });
+
+      if (dbError) {
+        console.error("=== ERRO AO SALVAR NO SUPABASE ===");
+        console.error("Supabase error:", dbError);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Erro interno ao salvar dados da instância.',
+          details: `Erro do banco de dados: ${dbError.message}`
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+
+      console.log('=== SUCESSO ===');
+      console.log(`Instância ${instanceName} criada e salva com sucesso`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        qrcode: evolutionData.qrcode?.base64 || null,
+        instanceName: instanceName,
+        message: 'Instância criada com sucesso'
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    } else {
+      console.error("=== ERRO DA EVOLUTION API ===");
+      console.error("Evolution API error:", evolutionData);
+      console.error("Response status:", evolutionResponse.status);
+      
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: evolutionData?.message || 'Erro ao criar instância na Evolution API.',
+        details: `Status HTTP: ${evolutionResponse.status}`,
+        evolutionResponse: evolutionData
       }), {
         status: evolutionResponse.status,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
-
-    // Sucesso - salvar no Supabase
-    console.log('=== SALVANDO NO SUPABASE ===');
-    const { error: dbError } = await supabase
-      .from('whatsapp_instances')
-      .insert({
-        user_id: user_id,
-        instance_name: instanceName,
-        instance_token: evolutionData.instance?.token || null,
-        status: 'QRCODE_WAITING',
-        qrcode_base64: evolutionData.qrcode?.base64 || null,
-      });
-
-    if (dbError) {
-      console.error('Erro ao salvar no Supabase:', dbError);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'Erro ao salvar instância no banco',
-        details: dbError.message
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    }
-
-    console.log('=== SUCESSO COMPLETO ===');
-    return new Response(JSON.stringify({
-      success: true,
-      qrcode: evolutionData.qrcode?.base64 || null,
-      instanceName: instanceName,
-      message: 'Instância criada com sucesso'
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    });
-
   } catch (error) {
-    console.error("=== ERRO GERAL ===");
-    console.error('Erro:', error);
+    console.error("=== ERRO GERAL NA FUNÇÃO ===");
+    console.error("Error type:", typeof error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Full error:", error);
     
     return new Response(JSON.stringify({ 
       success: false,
       error: 'Erro interno do servidor',
-      details: error.message
+      details: `Erro geral: ${error.message}`,
+      type: typeof error
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },

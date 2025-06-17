@@ -17,7 +17,6 @@ export const useWhatsAppInstance = () => {
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
   const [loading, setLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [evolutionCredentials, setEvolutionCredentials] = useState<any>(null);
 
   const loadInstance = async () => {
     try {
@@ -46,10 +45,11 @@ export const useWhatsAppInstance = () => {
     }
   };
 
-  const requestQrCode = async (customCredentials?: any) => {
+  const requestQrCode = async () => {
     try {
       setLoading(true);
       
+      // Passo 1: Verificar se o user_id está sendo obtido corretamente
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -64,77 +64,63 @@ export const useWhatsAppInstance = () => {
         return;
       }
 
-      console.log('=== SOLICITANDO QR CODE ===');
-      console.log('User ID:', user.id);
+      console.log('=== DEBUG FRONTEND ===');
+      console.log('User ID obtido:', user.id);
+      console.log('User completo:', user);
 
-      // Usar credenciais customizadas se fornecidas, senão usar as padrão
-      const requestPayload: any = { user_id: user.id };
-      
-      if (customCredentials || evolutionCredentials) {
-        requestPayload.evolution_credentials = customCredentials || evolutionCredentials;
-        console.log('Usando credenciais customizadas');
-      } else {
-        console.log('Usando credenciais padrão');
-      }
+      // Passo 2 e 3: Simplificar a chamada e adicionar logs detalhados
+      const requestPayload = { user_id: user.id };
+      console.log('Payload que será enviado:', requestPayload);
+      console.log('Payload JSON:', JSON.stringify(requestPayload));
 
+      // Chamada simplificada sem headers customizados desnecessários
+      console.log('Iniciando chamada para Edge Function...');
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
         body: requestPayload
       });
 
-      console.log('=== RESPOSTA COMPLETA ===');
-      console.log('Success data:', data);
-      console.log('Error object:', error);
+      console.log('=== RESPOSTA DA EDGE FUNCTION ===');
+      console.log('Data recebida:', data);
+      console.log('Error recebido:', error);
 
       if (error) {
-        console.error('Erro da Edge Function:', error);
-        toast.error('Erro ao gerar QR Code: ' + (error.message || 'Erro desconhecido'));
+        console.error('Erro detalhado da Edge Function:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+          context: error.context
+        });
+        
+        // Mensagem de erro mais específica baseada no tipo
+        if (error.message?.includes('non-2xx status code')) {
+          toast.error('Erro de comunicação com o servidor. Verifique os logs para mais detalhes.');
+        } else {
+          toast.error('Erro ao gerar QR Code: ' + error.message);
+        }
         return;
       }
 
+      console.log('=== PROCESSANDO RESPOSTA ===');
       if (data?.success) {
-        console.log('QR Code gerado com sucesso');
-        if (data.qrcode) {
-          setQrCode(data.qrcode);
-          toast.success('QR Code gerado! Escaneie com seu WhatsApp.');
-        } else {
-          toast.success('Instância criada. Aguardando QR Code...');
-        }
-        await loadInstance();
+        console.log('QR Code gerado com sucesso:', data.qrcode ? 'QR Code presente' : 'QR Code ausente');
+        setQrCode(data.qrcode);
+        toast.success('QR Code gerado com sucesso!');
+        await loadInstance(); // Recarregar para pegar a nova instância
       } else {
-        console.error('Resposta de erro:', data);
-        toast.error(data?.error || 'Falha ao gerar QR Code');
-        
-        // Mostrar sugestão se disponível
-        if (data?.suggestion) {
-          toast.info(data.suggestion);
-        }
+        console.error('Resposta de erro da API:', data);
+        toast.error(data?.error || 'Erro desconhecido ao gerar QR Code');
       }
     } catch (error: any) {
-      console.error('=== ERRO GERAL ===');
-      console.error('Erro completo:', error);
+      console.error('=== ERRO GERAL NO FRONTEND ===');
+      console.error('Erro capturado:', error);
+      console.error('Tipo do erro:', typeof error);
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      
       toast.error('Erro inesperado: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const setCredentials = (credentials: any) => {
-    setEvolutionCredentials(credentials);
-    localStorage.setItem('evolution_credentials', JSON.stringify(credentials));
-  };
-
-  const loadStoredCredentials = () => {
-    try {
-      const stored = localStorage.getItem('evolution_credentials');
-      if (stored) {
-        const credentials = JSON.parse(stored);
-        setEvolutionCredentials(credentials);
-        return credentials;
-      }
-    } catch (error) {
-      console.error('Erro ao carregar credenciais:', error);
-    }
-    return null;
   };
 
   const deleteInstance = async () => {
@@ -161,9 +147,9 @@ export const useWhatsAppInstance = () => {
     }
   };
 
+  // Monitorar mudanças na instância em tempo real
   useEffect(() => {
     loadInstance();
-    loadStoredCredentials();
 
     const setupRealtimeSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -208,8 +194,6 @@ export const useWhatsAppInstance = () => {
     loading,
     requestQrCode,
     deleteInstance,
-    loadInstance,
-    setCredentials,
-    evolutionCredentials
+    loadInstance
   };
 };
