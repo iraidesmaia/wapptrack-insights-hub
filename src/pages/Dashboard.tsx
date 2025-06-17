@@ -7,7 +7,7 @@ import BarChart from '@/components/charts/BarChart';
 import LineChart from '@/components/charts/LineChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
-import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
+import { getDashboardStats, getCampaignPerformance, getTimelineData } from '@/services/dashboardService';
 import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
@@ -33,9 +33,9 @@ const Dashboard = () => {
     try {
       setIsLoading(true);
       const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
+        getDashboardStats(),
         getCampaignPerformance(),
-        getTimelineData(dateRange.startDate, dateRange.endDate)
+        getTimelineData()
       ]);
       setStats(dashboardStats);
       setCampaignPerformance(campaignData);
