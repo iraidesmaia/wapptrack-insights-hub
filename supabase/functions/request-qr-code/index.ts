@@ -20,8 +20,35 @@ serve(async (req) => {
   }
 
   try {
-    const requestBody = await req.json();
-    console.log('Request body:', requestBody);
+    let requestBody;
+    
+    // Melhor tratamento do parsing do JSON
+    try {
+      const bodyText = await req.text();
+      console.log('Request body text:', bodyText);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        console.error('Body da requisição está vazio');
+        return new Response(JSON.stringify({ 
+          error: 'Body da requisição não pode estar vazio. user_id é obrigatório.' 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+      
+      requestBody = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do JSON:', parseError);
+      return new Response(JSON.stringify({ 
+        error: 'JSON inválido na requisição. Verifique o formato dos dados enviados.' 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+    
+    console.log('Request body parsed:', requestBody);
     
     const { user_id } = requestBody;
 
@@ -95,8 +122,19 @@ serve(async (req) => {
 
     console.log('Evolution API response status:', evolutionResponse.status);
     
-    const evolutionData = await evolutionResponse.json();
-    console.log('Evolution API response data:', evolutionData);
+    let evolutionData;
+    try {
+      evolutionData = await evolutionResponse.json();
+      console.log('Evolution API response data:', evolutionData);
+    } catch (evolutionParseError) {
+      console.error('Erro ao fazer parse da resposta da Evolution API:', evolutionParseError);
+      return new Response(JSON.stringify({ 
+        error: 'Erro na resposta da Evolution API: formato inválido' 
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
 
     if (evolutionResponse.ok) {
       // Salvar instância no banco de dados
@@ -140,9 +178,9 @@ serve(async (req) => {
       });
     }
   } catch (error) {
-    console.error("Erro ao comunicar com a Evolution API:", error);
+    console.error("Erro geral na função:", error);
     return new Response(JSON.stringify({ 
-      error: 'Erro interno do servidor ao conectar ao WhatsApp: ' + error.message 
+      error: 'Erro interno do servidor: ' + error.message 
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },

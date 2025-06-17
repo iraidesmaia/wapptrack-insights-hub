@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -58,9 +57,11 @@ export const useWhatsAppInstance = () => {
 
       console.log('Solicitando QR Code para usuário:', user.id);
 
-      // Usar invoke corretamente com headers de autorização
+      // Usar invoke corretamente com o user_id no body
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
-        body: { user_id: user.id },
+        body: { 
+          user_id: user.id 
+        },
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
           'Content-Type': 'application/json'
