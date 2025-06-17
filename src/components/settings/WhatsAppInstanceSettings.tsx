@@ -3,11 +3,13 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, QrCode, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { MessageSquare, QrCode, Trash2, RefreshCw, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 import { useWhatsAppInstance } from '@/hooks/useWhatsAppInstance';
+import { useEvolutionCredentials } from '@/hooks/useEvolutionCredentials';
 
 const WhatsAppInstanceSettings = () => {
   const { instance, qrCode, loading, requestQrCode, deleteInstance } = useWhatsAppInstance();
+  const { credentials } = useEvolutionCredentials();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -22,6 +24,9 @@ const WhatsAppInstanceSettings = () => {
     }
   };
 
+  // Verificar se as credenciais estão configuradas e válidas
+  const hasValidCredentials = credentials && credentials.status === 'valid';
+
   return (
     <Card>
       <CardHeader>
@@ -34,7 +39,20 @@ const WhatsAppInstanceSettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {instance ? (
+        {!hasValidCredentials ? (
+          <div className="text-center space-y-4">
+            <div className="py-8">
+              <Settings className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h4 className="font-medium mb-2">Credenciais não configuradas</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Configure suas credenciais da Evolution API antes de conectar o WhatsApp
+              </p>
+              <p className="text-xs text-orange-600 dark:text-orange-400">
+                Vá para a seção "Credenciais Evolution API" acima para configurar
+              </p>
+            </div>
+          </div>
+        ) : instance ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -122,6 +140,7 @@ const WhatsAppInstanceSettings = () => {
         <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
           <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Como funciona:</h4>
           <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+            <li>Configure suas credenciais da Evolution API (seção acima)</li>
             <li>Clique em "Conectar WhatsApp" para gerar um QR Code único</li>
             <li>Escaneie o QR Code com seu WhatsApp</li>
             <li>Sua instância ficará conectada e pronta para automação</li>

@@ -9,10 +9,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('=== NOVA REQUISIÇÃO EDGE FUNCTION ===');
-  console.log('Method:', req.method);
+  console.log('=== INÍCIO DA EDGE FUNCTION ===');
+  console.log('Request method:', req.method);
   
   if (req.method === 'OPTIONS') {
+    console.log('Respondendo a OPTIONS request');
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -20,47 +21,45 @@ serve(async (req) => {
   }
 
   try {
-    // Processar body da requisição
-    const requestBody = await req.json();
-    const { user_id } = requestBody;
+    console.log('=== PROCESSANDO REQUEST BODY ===');
+    const requestBody = await req.text();
+    console.log('Request body text recebido:', requestBody);
+    
+    const { user_id } = JSON.parse(requestBody);
+    console.log('Request body parsed com sucesso:', { user_id });
+    console.log('user_id extraído:', user_id);
 
-    console.log('User ID recebido:', user_id);
+    console.log('=== INICIALIZANDO SUPABASE CLIENT ===');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
 
-    if (!user_id) {
-      console.error('user_id não fornecido');
+    console.log('=== BUSCANDO CREDENCIAIS DO USUÁRIO ===');
+    const { data: credentials, error: credentialsError } = await supabase
+      .from('evolution_credentials')
+      .select('*')
+      .eq('user_id', user_id)
+      .eq('status', 'valid')
+      .single();
+
+    if (credentialsError || !credentials) {
+      console.error('=== ERRO: Credenciais não configuradas ===');
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'user_id é obrigatório' 
+        error: 'Credenciais da Evolution API não configuradas ou inválidas. Configure nas configurações.' 
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
 
-    // Configurações da Evolution API
-    const EVOLUTION_API_URL = 'https://evolutionapi.workidigital.tech';
-    const EVOLUTION_API_KEY = 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia';
+    console.log('=== CREDENCIAIS ENCONTRADAS ===');
+    console.log('API URL:', credentials.api_url);
+    
     const WEBHOOK_URL = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook-evolution-receiver`;
-
-    console.log('=== CONFIGURAÇÕES ===');
-    console.log('Evolution URL:', EVOLUTION_API_URL);
     console.log('Webhook URL:', WEBHOOK_URL);
-
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'Configurações da Evolution API não disponíveis' 
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
 
     const instanceName = `wpp_${user_id.slice(-8)}_${Date.now()}`;
     console.log('Nome da instância:', instanceName);
@@ -83,12 +82,12 @@ serve(async (req) => {
     console.log('=== CHAMANDO EVOLUTION API ===');
     console.log('Payload:', JSON.stringify(evolutionPayload, null, 2));
 
-    // Chamar Evolution API
-    const evolutionResponse = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
+    // Chamar Evolution API usando as credenciais do usuário
+    const evolutionResponse = await fetch(`${credentials.api_url}/instance/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': EVOLUTION_API_KEY,
+        'apikey': credentials.api_key,
       },
       body: JSON.stringify(evolutionPayload),
     });
@@ -120,18 +119,6 @@ serve(async (req) => {
       console.error('=== ERRO DA EVOLUTION API ===');
       console.error('Status:', evolutionResponse.status);
       console.error('Data:', evolutionData);
-
-      // Tratamento específico para erro "Invalid integration"
-      if (evolutionData?.response?.message?.includes('Invalid integration')) {
-        return new Response(JSON.stringify({ 
-          success: false,
-          error: 'Configuração da Evolution API inválida. Verifique as credenciais.',
-          details: 'A chave da API ou URL podem estar incorretas.'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
-      }
 
       return new Response(JSON.stringify({ 
         success: false,
