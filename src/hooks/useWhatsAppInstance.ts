@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -49,7 +50,6 @@ export const useWhatsAppInstance = () => {
     try {
       setLoading(true);
       
-      // Passo 1: Verificar se o user_id está sendo obtido corretamente
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -64,59 +64,49 @@ export const useWhatsAppInstance = () => {
         return;
       }
 
-      console.log('=== DEBUG FRONTEND ===');
-      console.log('User ID obtido:', user.id);
-      console.log('User completo:', user);
+      console.log('=== SOLICITANDO QR CODE ===');
+      console.log('User ID:', user.id);
 
-      // Passo 2 e 3: Simplificar a chamada e adicionar logs detalhados
-      const requestPayload = { user_id: user.id };
-      console.log('Payload que será enviado:', requestPayload);
-      console.log('Payload JSON:', JSON.stringify(requestPayload));
-
-      // Chamada simplificada sem headers customizados desnecessários
-      console.log('Iniciando chamada para Edge Function...');
+      // Chamada simplificada para a Edge Function
       const { data, error } = await supabase.functions.invoke('request-qr-code', {
-        body: requestPayload
+        body: { user_id: user.id }
       });
 
-      console.log('=== RESPOSTA DA EDGE FUNCTION ===');
-      console.log('Data recebida:', data);
-      console.log('Error recebido:', error);
+      console.log('=== RESPOSTA COMPLETA ===');
+      console.log('Success data:', data);
+      console.log('Error object:', error);
 
       if (error) {
-        console.error('Erro detalhado da Edge Function:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
-          context: error.context
-        });
+        console.error('Erro da Edge Function:', error);
         
-        // Mensagem de erro mais específica baseada no tipo
-        if (error.message?.includes('non-2xx status code')) {
-          toast.error('Erro de comunicação com o servidor. Verifique os logs para mais detalhes.');
+        // Tratamento específico para diferentes tipos de erro
+        if (error.message?.includes('Invalid integration')) {
+          toast.error('Erro de configuração da Evolution API. Verifique as credenciais.');
+        } else if (error.message?.includes('non-2xx status code')) {
+          toast.error('Erro de comunicação com o servidor WhatsApp. Tente novamente.');
         } else {
-          toast.error('Erro ao gerar QR Code: ' + error.message);
+          toast.error('Erro ao gerar QR Code: ' + (error.message || 'Erro desconhecido'));
         }
         return;
       }
 
-      console.log('=== PROCESSANDO RESPOSTA ===');
+      // Verificar se a resposta é de sucesso
       if (data?.success) {
-        console.log('QR Code gerado com sucesso:', data.qrcode ? 'QR Code presente' : 'QR Code ausente');
-        setQrCode(data.qrcode);
-        toast.success('QR Code gerado com sucesso!');
-        await loadInstance(); // Recarregar para pegar a nova instância
+        console.log('QR Code gerado com sucesso');
+        if (data.qrcode) {
+          setQrCode(data.qrcode);
+          toast.success('QR Code gerado! Escaneie com seu WhatsApp.');
+        } else {
+          toast.success('Instância criada. Aguardando QR Code...');
+        }
+        await loadInstance(); // Recarregar instância
       } else {
-        console.error('Resposta de erro da API:', data);
-        toast.error(data?.error || 'Erro desconhecido ao gerar QR Code');
+        console.error('Resposta de erro:', data);
+        toast.error(data?.error || 'Falha ao gerar QR Code');
       }
     } catch (error: any) {
-      console.error('=== ERRO GERAL NO FRONTEND ===');
-      console.error('Erro capturado:', error);
-      console.error('Tipo do erro:', typeof error);
-      console.error('Message:', error.message);
-      console.error('Stack:', error.stack);
-      
+      console.error('=== ERRO GERAL ===');
+      console.error('Erro completo:', error);
       toast.error('Erro inesperado: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
