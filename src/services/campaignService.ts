@@ -1,19 +1,13 @@
 import { Campaign } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
-export const getCampaigns = async (clientId?: string): Promise<Campaign[]> => {
+export const getCampaigns = async (): Promise<Campaign[]> => {
   try {
-    let query = supabase
+    // RLS garantirá que apenas campanhas do usuário logado sejam retornadas
+    const { data: campaigns, error } = await supabase
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false });
-
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      query = query.eq('client_id', clientId);
-    }
-
-    const { data: campaigns, error } = await query;
 
     if (error) throw error;
 
@@ -53,8 +47,9 @@ export const getCampaigns = async (clientId?: string): Promise<Campaign[]> => {
   }
 };
 
-export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>, clientId?: string): Promise<Campaign> => {
+export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>): Promise<Campaign> => {
   try {
+    // user_id será automaticamente definido pelo default auth.uid()
     const { data, error } = await supabase
       .from('campaigns')
       .insert({
@@ -83,8 +78,7 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>,
         external_id: campaign.external_id || '',
         data_processing_options: campaign.data_processing_options || [],
         data_processing_options_country: campaign.data_processing_options_country || 0,
-        data_processing_options_state: campaign.data_processing_options_state || 0,
-        client_id: clientId // Adicionar client_id
+        data_processing_options_state: campaign.data_processing_options_state || 0
       })
       .select()
       .single();

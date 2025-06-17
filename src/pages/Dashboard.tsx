@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import StatCard from '@/components/StatCard';
@@ -7,12 +8,10 @@ import LineChart from '@/components/charts/LineChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { getDashboardStats, getCampaignPerformance, getTimelineData } from '@/services/dashboardService';
-import { useClient } from '@/context/ClientContext';
 import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
 const Dashboard = () => {
-  const { selectedClient } = useClient();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
@@ -27,20 +26,16 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (selectedClient) {
-      fetchData();
-    }
-  }, [dateRange, selectedClient]);
+    fetchData();
+  }, [dateRange]);
 
   const fetchData = async () => {
-    if (!selectedClient) return;
-
     try {
       setIsLoading(true);
       const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStats(selectedClient.id),
-        getCampaignPerformance(selectedClient.id),
-        getTimelineData(selectedClient.id)
+        getDashboardStats(),
+        getCampaignPerformance(),
+        getTimelineData()
       ]);
       setStats(dashboardStats);
       setCampaignPerformance(campaignData);
@@ -56,21 +51,11 @@ const Dashboard = () => {
     setDateRange(newRange);
   };
 
-  if (!selectedClient) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Selecione um cliente para visualizar o dashboard</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard - {selectedClient.name}</h1>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
             Acompanhe os resultados de suas campanhas de WhatsApp.
           </p>

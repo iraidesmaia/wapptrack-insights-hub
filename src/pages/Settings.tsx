@@ -5,13 +5,9 @@ import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
-import { useClientSettings } from '@/hooks/useClientSettings';
-import { useClient } from '@/context/ClientContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
-  const { selectedClient } = useClient();
   const {
     loading,
     uploading,
@@ -25,29 +21,7 @@ const Settings = () => {
     handleThemeChange,
     handleFileUpload,
     handleSave
-  } = useClientSettings(selectedClient?.id);
-
-  if (!selectedClient) {
-    return (
-      <MainLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Configurações</h1>
-            <p className="text-muted-foreground">
-              Gerencie as configurações da sua empresa e integrações
-            </p>
-          </div>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Selecione um cliente para configurar suas configurações específicas.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </MainLayout>
-    );
-  }
+  } = useSettings();
 
   return (
     <MainLayout>
@@ -55,7 +29,7 @@ const Settings = () => {
         <div>
           <h1 className="text-3xl font-bold">Configurações</h1>
           <p className="text-muted-foreground">
-            Configurações específicas para <strong>{selectedClient.name}</strong>
+            Gerencie as configurações da sua empresa e integrações
           </p>
         </div>
 
@@ -86,7 +60,7 @@ const Settings = () => {
               disabled={loading}
               className="min-w-[120px]"
             >
-              {loading ? 'Salvando...' : 'Salvar Configurações'}
+              {loading ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
         </div>

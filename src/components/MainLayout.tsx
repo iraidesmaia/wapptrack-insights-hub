@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -14,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import ClientSelector from './ClientSelector';
 import type { CompanySettings, Theme } from '@/types';
 
 type MainLayoutProps = {
@@ -163,12 +163,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <BrandingSection />
               </Link>
             </div>
-            
-            {/* Client Selector */}
-            <div className="px-4 py-3 border-b border-border">
-              <ClientSelector />
-            </div>
-            
             <nav className="flex-1 px-2 py-4 space-y-1">
               {navigation.map((item) => (
                 <NavLink
@@ -188,7 +182,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </NavLink>
               ))}
             </nav>
-            
             <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
@@ -225,12 +218,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <X />
               </Button>
             </div>
-            
-            {/* Client Selector Mobile */}
-            <div className="p-4 border-b border-border">
-              <ClientSelector />
-            </div>
-            
             <div className="flex-1 p-4">
               <nav className="space-y-4">
                 {navigation.map((item) => (
@@ -253,7 +240,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ))}
               </nav>
             </div>
-            
             <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">

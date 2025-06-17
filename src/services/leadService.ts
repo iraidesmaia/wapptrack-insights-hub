@@ -1,23 +1,18 @@
+
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 import { createPhoneSearchVariations } from "@/lib/phoneCorrection";
 
-export const getLeads = async (clientId?: string): Promise<Lead[]> => {
+export const getLeads = async (): Promise<Lead[]> => {
   try {
-    console.log('🔄 leadService.getLeads() - Iniciando busca...', { clientId });
+    console.log('🔄 leadService.getLeads() - Iniciando busca...');
     
-    let query = supabase
+    // RLS garantirá que apenas leads do usuário logado sejam retornados
+    const { data: leads, error } = await supabase
       .from('leads')
       .select('*')
       .order('created_at', { ascending: false });
-
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      query = query.eq('client_id', clientId);
-    }
-
-    const { data: leads, error } = await query;
 
     if (error) throw error;
     
@@ -83,25 +78,20 @@ export const getLeads = async (clientId?: string): Promise<Lead[]> => {
   }
 };
 
-export const findLeadByPhoneVariations = async (phone: string, clientId?: string): Promise<Lead | null> => {
+export const findLeadByPhoneVariations = async (phone: string): Promise<Lead | null> => {
   try {
-    console.log('🔍 Buscando lead existente para telefone:', phone, { clientId });
+    console.log('🔍 Buscando lead existente para telefone:', phone);
     
+    // Criar variações do telefone para busca
     const phoneVariations = createPhoneSearchVariations(phone);
     console.log('📞 Variações de telefone para busca:', phoneVariations);
     
-    let query = supabase
+    // RLS garantirá que apenas leads do usuário logado sejam consultados
+    const { data: existingLead, error } = await supabase
       .from('leads')
       .select('*')
       .in('phone', phoneVariations)
       .limit(1);
-
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      query = query.eq('client_id', clientId);
-    }
-
-    const { data: existingLead, error } = await query;
 
     if (error) {
       console.error('❌ Erro ao buscar lead existente:', error);
@@ -161,12 +151,12 @@ export const findLeadByPhoneVariations = async (phone: string, clientId?: string
   }
 };
 
-export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: string): Promise<Lead> => {
+export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Lead> => {
   try {
-    console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone, { clientId });
+    console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone);
     
-    // Verificar se já existe lead com este telefone no cliente específico
-    const existingLead = await findLeadByPhoneVariations(lead.phone, clientId);
+    // Verificar se já existe lead com este telefone
+    const existingLead = await findLeadByPhoneVariations(lead.phone);
     
     if (existingLead) {
       console.log('🔒 Lead já existe, preservando nome original e atualizando apenas dados necessários:', {
@@ -176,6 +166,7 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: 
         nomePreservado: existingLead.name
       });
       
+      // Atualizar apenas last_contact_date e preservar tudo do lead original
       const { data, error } = await supabase
         .from('leads')
         .update({
@@ -189,6 +180,11 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: 
         console.error('❌ Erro ao atualizar lead existente:', error);
         throw error;
       }
+
+      console.log('✅ Lead existente atualizado preservando nome original:', {
+        id: data.id,
+        nomePreservado: data.name
+      });
 
       return existingLead;
     }
@@ -245,15 +241,12 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: 
       city: deviceData?.city || lead.city || '',
       screen_resolution: deviceData?.screen_resolution || lead.screen_resolution || '',
       timezone: deviceData?.timezone || lead.timezone || '',
-      language: deviceData?.language || lead.language || '',
-      // Incluir client_id se fornecido
-      client_id: clientId
+      language: deviceData?.language || lead.language || ''
     };
 
     console.log('💾 Dados que serão inseridos no lead (com dados do dispositivo):', {
       nome: leadData.name,
       telefone: leadData.phone,
-      client_id: leadData.client_id,
       device_type: leadData.device_type,
       browser: leadData.browser,
       location: leadData.location,

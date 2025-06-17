@@ -1,35 +1,24 @@
-
 import { supabase } from "../integrations/supabase/client";
 
-export const getDashboardStats = async (clientId?: string) => {
+export const getDashboardStats = async () => {
   try {
     // RLS garantirá que apenas dados do usuário logado sejam retornados
-    let leadsQuery = supabase
+    const { data: leads, error: leadsError } = await supabase
       .from('leads')
       .select('id, status, created_at');
 
-    let campaignsQuery = supabase
+    if (leadsError) throw leadsError;
+
+    const { data: campaigns, error: campaignsError } = await supabase
       .from('campaigns')
       .select('id, active');
 
-    let salesQuery = supabase
+    if (campaignsError) throw campaignsError;
+
+    const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('value, date');
 
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      leadsQuery = leadsQuery.eq('client_id', clientId);
-      campaignsQuery = campaignsQuery.eq('client_id', clientId);
-      salesQuery = salesQuery.eq('client_id', clientId);
-    }
-
-    const { data: leads, error: leadsError } = await leadsQuery;
-    if (leadsError) throw leadsError;
-
-    const { data: campaigns, error: campaignsError } = await campaignsQuery;
-    if (campaignsError) throw campaignsError;
-
-    const { data: sales, error: salesError } = await salesQuery;
     if (salesError) throw salesError;
 
     // Calcular estatísticas
@@ -92,31 +81,24 @@ export const getDashboardStats = async (clientId?: string) => {
   }
 };
 
-export const getDashboardStatsByPeriod = async (days: number = 30, clientId?: string) => {
+export const getDashboardStatsByPeriod = async (days: number = 30) => {
   try {
     const dateFrom = new Date();
     dateFrom.setDate(dateFrom.getDate() - days);
 
-    let leadsQuery = supabase
+    // RLS garantirá que apenas dados do usuário logado sejam retornados
+    const { data: leads, error: leadsError } = await supabase
       .from('leads')
       .select('id, status, created_at')
       .gte('created_at', dateFrom.toISOString());
 
-    let salesQuery = supabase
+    if (leadsError) throw leadsError;
+
+    const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('value, date')
       .gte('date', dateFrom.toISOString());
 
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      leadsQuery = leadsQuery.eq('client_id', clientId);
-      salesQuery = salesQuery.eq('client_id', clientId);
-    }
-
-    const { data: leads, error: leadsError } = await leadsQuery;
-    if (leadsError) throw leadsError;
-
-    const { data: sales, error: salesError } = await salesQuery;
     if (salesError) throw salesError;
 
     const totalLeads = leads?.length || 0;
@@ -140,26 +122,19 @@ export const getDashboardStatsByPeriod = async (days: number = 30, clientId?: st
   }
 };
 
-export const getCampaignPerformance = async (clientId?: string) => {
+export const getCampaignPerformance = async () => {
   try {
-    let leadsQuery = supabase
+    // RLS garantirá que apenas dados do usuário logado sejam retornados
+    const { data: leads, error: leadsError } = await supabase
       .from('leads')
       .select('campaign, status, created_at');
 
-    let salesQuery = supabase
+    if (leadsError) throw leadsError;
+
+    const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('campaign, value');
 
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      leadsQuery = leadsQuery.eq('client_id', clientId);
-      salesQuery = salesQuery.eq('client_id', clientId);
-    }
-
-    const { data: leads, error: leadsError } = await leadsQuery;
-    if (leadsError) throw leadsError;
-
-    const { data: sales, error: salesError } = await salesQuery;
     if (salesError) throw salesError;
 
     const campaignStats: Record<string, any> = {};
@@ -200,7 +175,7 @@ export const getCampaignPerformance = async (clientId?: string) => {
   }
 };
 
-export const getMonthlyStats = async (clientId?: string) => {
+export const getMonthlyStats = async () => {
   try {
     const currentDate = new Date();
     const last6Months = [];
@@ -209,28 +184,21 @@ export const getMonthlyStats = async (clientId?: string) => {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 1);
       
-      let leadsQuery = supabase
+      // RLS garantirá que apenas dados do usuário logado sejam retornados
+      const { data: leads, error: leadsError } = await supabase
         .from('leads')
         .select('id')
         .gte('created_at', date.toISOString())
         .lt('created_at', nextMonth.toISOString());
 
-      let salesQuery = supabase
+      if (leadsError) throw leadsError;
+
+      const { data: sales, error: salesError } = await supabase
         .from('sales')
         .select('value')
         .gte('date', date.toISOString())
         .lt('date', nextMonth.toISOString());
 
-      // Filtrar por cliente se fornecido
-      if (clientId) {
-        leadsQuery = leadsQuery.eq('client_id', clientId);
-        salesQuery = salesQuery.eq('client_id', clientId);
-      }
-
-      const { data: leads, error: leadsError } = await leadsQuery;
-      if (leadsError) throw leadsError;
-
-      const { data: sales, error: salesError } = await salesQuery;
       if (salesError) throw salesError;
 
       last6Months.push({
@@ -248,33 +216,26 @@ export const getMonthlyStats = async (clientId?: string) => {
   }
 };
 
-export const getTimelineData = async (clientId?: string) => {
+export const getTimelineData = async () => {
   try {
     const dateFrom = new Date();
     dateFrom.setDate(dateFrom.getDate() - 30);
 
-    let leadsQuery = supabase
+    // RLS garantirá que apenas dados do usuário logado sejam retornados
+    const { data: leads, error: leadsError } = await supabase
       .from('leads')
       .select('created_at')
       .gte('created_at', dateFrom.toISOString())
       .order('created_at');
 
-    let salesQuery = supabase
+    if (leadsError) throw leadsError;
+
+    const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('date')
       .gte('date', dateFrom.toISOString())
       .order('date');
 
-    // Filtrar por cliente se fornecido
-    if (clientId) {
-      leadsQuery = leadsQuery.eq('client_id', clientId);
-      salesQuery = salesQuery.eq('client_id', clientId);
-    }
-
-    const { data: leads, error: leadsError } = await leadsQuery;
-    if (leadsError) throw leadsError;
-
-    const { data: sales, error: salesError } = await salesQuery;
     if (salesError) throw salesError;
 
     const timeline: Record<string, any> = {};
