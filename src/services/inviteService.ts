@@ -1,18 +1,23 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { InvitedUser, UserPermission, InviteFormData, InvitedUserWithPermissions } from '@/types/permissions';
 
 export const inviteService = {
   // Buscar todos os usuários convidados com suas permissões
   async getInvitedUsers(): Promise<InvitedUserWithPermissions[]> {
+    console.log('Buscando usuários convidados...');
+    
     const { data: invitedUsers, error: usersError } = await supabase
       .from('invited_users')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Erro ao buscar usuários convidados:', usersError);
+      throw usersError;
+    }
 
     if (!invitedUsers || invitedUsers.length === 0) {
+      console.log('Nenhum usuário convidado encontrado');
       return [];
     }
 
@@ -21,7 +26,10 @@ export const inviteService = {
       .select('*')
       .in('invited_user_id', invitedUsers.map(user => user.id));
 
-    if (permissionsError) throw permissionsError;
+    if (permissionsError) {
+      console.error('Erro ao buscar permissões:', permissionsError);
+      throw permissionsError;
+    }
 
     return invitedUsers.map(user => ({
       ...user,
@@ -38,17 +46,29 @@ export const inviteService = {
 
   // Criar um novo convite
   async createInvite(inviteData: InviteFormData): Promise<string> {
+    console.log('Criando convite para:', inviteData.email);
+    
     // Verificar se o usuário está autenticado
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !user) {
-      throw new Error('Usuário não autenticado');
+    console.log('Usuário autenticado:', user?.id);
+    
+    if (authError) {
+      console.error('Erro de autenticação:', authError);
+      throw new Error('Erro de autenticação: ' + authError.message);
+    }
+    
+    if (!user) {
+      console.error('Usuário não autenticado');
+      throw new Error('Usuário não autenticado. Faça login novamente.');
     }
 
     const token = crypto.randomUUID();
     const expiresAt = inviteData.expires_in_days 
       ? new Date(Date.now() + inviteData.expires_in_days * 24 * 60 * 60 * 1000).toISOString()
       : null;
+
+    console.log('Inserindo usuário convidado com invited_by:', user.id);
 
     // Inserir usuário convidado com o invited_by
     const { data: invitedUser, error: userError } = await supabase
@@ -62,7 +82,12 @@ export const inviteService = {
       .select()
       .single();
 
-    if (userError) throw userError;
+    if (userError) {
+      console.error('Erro ao inserir usuário convidado:', userError);
+      throw new Error('Erro ao criar convite: ' + userError.message);
+    }
+
+    console.log('Usuário convidado criado:', invitedUser.id);
 
     // Inserir permissões
     const permissionsToInsert = Object.entries(inviteData.permissions)
@@ -75,13 +100,19 @@ export const inviteService = {
       }));
 
     if (permissionsToInsert.length > 0) {
+      console.log('Inserindo permissões:', permissionsToInsert);
+      
       const { error: permissionsError } = await supabase
         .from('user_permissions')
         .insert(permissionsToInsert);
 
-      if (permissionsError) throw permissionsError;
+      if (permissionsError) {
+        console.error('Erro ao inserir permissões:', permissionsError);
+        throw new Error('Erro ao criar permissões: ' + permissionsError.message);
+      }
     }
 
+    console.log('Convite criado com sucesso, token:', token);
     return token;
   },
 
