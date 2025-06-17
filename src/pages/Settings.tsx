@@ -4,20 +4,15 @@ import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
-import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
+import N8nWhatsAppSettings from '@/components/settings/N8nWhatsAppSettings';
 import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
   const {
     loading,
     uploading,
-    testingEvolution,
     formData,
-    evolutionConfig,
     handleInputChange,
-    handleEvolutionConfigChange,
-    saveEvolutionConfig,
-    testEvolutionConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
@@ -46,13 +41,7 @@ const Settings = () => {
             onThemeChange={handleThemeChange}
           />
 
-          <EvolutionApiSettings
-            evolutionConfig={evolutionConfig}
-            testingWebhook={testingEvolution}
-            onEvolutionConfigChange={handleEvolutionConfigChange}
-            onSaveEvolutionConfig={saveEvolutionConfig}
-            onTestWebhookConnection={testEvolutionConnection}
-          />
+          <N8nWhatsAppSettings />
 
           <div className="flex justify-end">
             <Button 
