@@ -113,9 +113,9 @@ export const useWhatsAppInstance = () => {
   useEffect(() => {
     loadInstance();
 
-    const { data: { user } } = supabase.auth.getUser();
-    user.then((result) => {
-      if (!result.user) return;
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
       const channel = supabase
         .channel('whatsapp_instances_changes')
@@ -125,7 +125,7 @@ export const useWhatsAppInstance = () => {
             event: '*',
             schema: 'public',
             table: 'whatsapp_instances',
-            filter: `user_id=eq.${result.user.id}`
+            filter: `user_id=eq.${user.id}`
           },
           (payload) => {
             console.log('Mudança na instância:', payload);
@@ -145,7 +145,9 @@ export const useWhatsAppInstance = () => {
       return () => {
         supabase.removeChannel(channel);
       };
-    });
+    };
+
+    setupRealtimeSubscription();
   }, []);
 
   return {
