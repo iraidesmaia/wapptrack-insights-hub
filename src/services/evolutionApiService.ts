@@ -1,12 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
-interface EvolutionConfig {
-  evolution_api_key: string;
-  evolution_instance_name: string;
-  evolution_base_url: string;
-  webhook_callback_url?: string;
-}
+import { sendMessage } from './evolutionDirectService';
 
 interface SendMessagePayload {
   campaignId: string;
@@ -18,17 +12,7 @@ interface SendMessagePayload {
 
 export const sendToEvolutionAPI = async (payload: SendMessagePayload): Promise<{success: boolean, error?: string}> => {
   try {
-    // Buscar configurações da Evolution API
-    const evolutionConfigStr = localStorage.getItem('evolution_config');
-    if (!evolutionConfigStr) {
-      throw new Error('Configurações da Evolution API não encontradas');
-    }
-
-    const config: EvolutionConfig = JSON.parse(evolutionConfigStr);
-    
-    if (!config.evolution_api_key || !config.evolution_instance_name || !config.evolution_base_url) {
-      throw new Error('Configurações da Evolution API incompletas');
-    }
+    console.log('📤 Enviando mensagem via Evolution API (wapptrack):', payload);
 
     // Criar lead pendente
     const { error: pendingError } = await supabase
@@ -42,8 +26,8 @@ export const sendToEvolutionAPI = async (payload: SendMessagePayload): Promise<{
         status: 'pending',
         webhook_data: {
           evolution_config: {
-            instance: config.evolution_instance_name,
-            base_url: config.evolution_base_url
+            instance: 'wapptrack',
+            base_url: 'https://evolutionapi.workidigital.tech'
           },
           message: payload.message
         }
@@ -54,27 +38,14 @@ export const sendToEvolutionAPI = async (payload: SendMessagePayload): Promise<{
       throw new Error('Erro ao criar lead pendente');
     }
 
-    // Preparar mensagem para Evolution API
+    // Preparar mensagem
     const messageText = payload.message || `Olá ${payload.name}! Obrigado pelo seu interesse. Em breve entraremos em contato!`;
     
-    // Enviar mensagem via Evolution API
-    const evolutionResponse = await fetch(`${config.evolution_base_url}/message/sendText/${config.evolution_instance_name}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.evolution_api_key
-      },
-      body: JSON.stringify({
-        number: payload.phone,
-        text: messageText,
-        delay: 1000
-      })
-    });
+    // Enviar mensagem via Evolution API direta
+    const evolutionResult = await sendMessage(payload.phone, messageText);
 
-    const evolutionData = await evolutionResponse.json();
-
-    if (!evolutionResponse.ok) {
-      console.error('Evolution API error:', evolutionData);
+    if (!evolutionResult.success) {
+      console.error('Evolution API error:', evolutionResult.error);
       
       // Marcar lead pendente como falha
       await supabase
@@ -82,22 +53,22 @@ export const sendToEvolutionAPI = async (payload: SendMessagePayload): Promise<{
         .update({ 
           status: 'failed',
           webhook_data: {
-            error: evolutionData,
+            error: evolutionResult.error,
             failed_at: new Date().toISOString()
           }
         })
         .eq('phone', payload.phone)
         .eq('status', 'pending');
 
-      throw new Error(`Erro na Evolution API: ${evolutionData.error || 'Erro desconhecido'}`);
+      throw new Error(`Erro na Evolution API: ${evolutionResult.error}`);
     }
 
-    console.log('Message sent successfully via Evolution API:', evolutionData);
+    console.log('✅ Mensagem enviada com sucesso via wapptrack:', evolutionResult.data);
     
     return { success: true };
 
   } catch (error: any) {
-    console.error('Error sending to Evolution API:', error);
+    console.error('❌ Erro ao enviar via Evolution API:', error);
     return { 
       success: false, 
       error: error.message || 'Erro ao enviar via Evolution API' 
@@ -107,34 +78,16 @@ export const sendToEvolutionAPI = async (payload: SendMessagePayload): Promise<{
 
 export const checkEvolutionApiHealth = async (): Promise<{healthy: boolean, error?: string}> => {
   try {
-    const evolutionConfigStr = localStorage.getItem('evolution_config');
-    if (!evolutionConfigStr) {
-      return { healthy: false, error: 'Configurações não encontradas' };
-    }
-
-    const config: EvolutionConfig = JSON.parse(evolutionConfigStr);
+    // Usar o serviço direto para verificar status
+    const { getInstanceStatus } = await import('./evolutionDirectService');
+    const result = await getInstanceStatus();
     
-    // Verificar status da instância
-    const response = await fetch(`${config.evolution_base_url}/instance/fetchInstances`, {
-      method: 'GET',
-      headers: {
-        'apikey': config.evolution_api_key
-      }
-    });
-
-    if (!response.ok) {
-      return { healthy: false, error: 'API não está respondendo' };
+    if (!result.success) {
+      return { healthy: false, error: result.error };
     }
 
-    const data = await response.json();
-    const instance = data.find((inst: any) => inst.instance.instanceName === config.evolution_instance_name);
-    
-    if (!instance) {
-      return { healthy: false, error: 'Instância não encontrada' };
-    }
-
-    if (instance.instance.connectionStatus !== 'open') {
-      return { healthy: false, error: 'WhatsApp não está conectado' };
+    if (result.status !== 'connected') {
+      return { healthy: false, error: 'WhatsApp não está conectado na instância wapptrack' };
     }
 
     return { healthy: true };
@@ -142,7 +95,7 @@ export const checkEvolutionApiHealth = async (): Promise<{healthy: boolean, erro
   } catch (error: any) {
     return { 
       healthy: false, 
-      error: error.message || 'Erro ao verificar status' 
+      error: error.message || 'Erro ao verificar status da wapptrack' 
     };
   }
 };

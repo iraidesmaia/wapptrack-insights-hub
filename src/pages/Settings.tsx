@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
-import N8nWhatsAppSettings from '@/components/settings/N8nWhatsAppSettings';
+import EvolutionWhatsAppSettings from '@/components/settings/EvolutionWhatsAppSettings';
 import { useSettings } from '@/hooks/useSettings';
 
 const Settings = () => {
@@ -41,7 +41,7 @@ const Settings = () => {
             onThemeChange={handleThemeChange}
           />
 
-          <N8nWhatsAppSettings />
+          <EvolutionWhatsAppSettings />
 
           <div className="flex justify-end">
             <Button 
