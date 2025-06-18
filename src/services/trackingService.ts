@@ -48,7 +48,7 @@ const saveDirectClickUtms = async (
 };
 
 /**
- * ✅ NOVA FUNÇÃO PARA CONVERSÃO AUTOMÁTICA
+ * ✅ FUNÇÃO MELHORADA PARA CONVERSÃO AUTOMÁTICA COM MELHOR TRATAMENTO DE ERRO
  */
 const convertPendingLeadToLead = async (pendingLeadData: any) => {
   try {
@@ -66,39 +66,48 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       if (campaign && !campaignError) {
         campaignUserId = campaign.user_id;
         console.log('✅ User ID da campanha encontrado:', campaignUserId);
+      } else {
+        console.error('❌ Erro ao buscar campanha ou campanha não encontrada:', campaignError);
+        // Continuar mesmo sem user_id da campanha
       }
     }
 
     // Buscar dados do dispositivo
     const deviceData = await getDeviceDataByPhone(pendingLeadData.phone);
+    console.log('📱 Dados do dispositivo encontrados:', deviceData ? 'SIM' : 'NÃO');
 
     // Verificar se já existe lead para este telefone
-    const { data: existingLead } = await supabase
+    const { data: existingLead, error: checkError } = await supabase
       .from('leads')
       .select('*')
       .eq('phone', pendingLeadData.phone)
       .limit(1);
+
+    if (checkError) {
+      console.error('❌ Erro ao verificar lead existente:', checkError);
+      return false;
+    }
 
     if (existingLead && existingLead.length > 0) {
       console.log('⚠️ Lead já existe para este telefone, pulando conversão automática');
       return false;
     }
 
-    // Criar novo lead com user_id da campanha
+    // Criar novo lead com dados mais seguros
     const newLeadData = {
-      name: pendingLeadData.name,
+      name: pendingLeadData.name || 'Lead Automático',
       phone: pendingLeadData.phone,
       campaign: pendingLeadData.campaign_name || 'Formulário Direto',
-      campaign_id: pendingLeadData.campaign_id,
-      user_id: campaignUserId, // ✅ INCLUIR USER_ID DA CAMPANHA
+      campaign_id: pendingLeadData.campaign_id || null,
+      user_id: campaignUserId || null, // ✅ PERMITIR NULL SE NÃO ENCONTRAR
       status: 'new' as const,
       first_contact_date: new Date().toISOString(),
       notes: 'Lead criado automaticamente a partir de formulário',
-      utm_source: pendingLeadData.utm_source,
-      utm_medium: pendingLeadData.utm_medium,
-      utm_campaign: pendingLeadData.utm_campaign,
-      utm_content: pendingLeadData.utm_content,
-      utm_term: pendingLeadData.utm_term,
+      utm_source: pendingLeadData.utm_source || null,
+      utm_medium: pendingLeadData.utm_medium || null,
+      utm_campaign: pendingLeadData.utm_campaign || null,
+      utm_content: pendingLeadData.utm_content || null,
+      utm_term: pendingLeadData.utm_term || null,
       // Incluir dados do dispositivo se disponíveis
       location: deviceData?.location || '',
       ip_address: deviceData?.ip_address || '',
@@ -111,25 +120,33 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       screen_resolution: deviceData?.screen_resolution || '',
       timezone: deviceData?.timezone || '',  
       language: deviceData?.language || '',
-      // ✅ CORRIGIR TIPO JSON - converter deviceData para JSON compatível
+      // ✅ CONVERTER PARA JSON COMPATÍVEL APENAS SE DEVICEDATA EXISTIR
       custom_fields: deviceData ? JSON.parse(JSON.stringify({ device_info: deviceData })) : null
     };
 
-    console.log('💾 Criando lead com user_id da campanha:', newLeadData);
+    console.log('💾 Criando lead com dados:', {
+      nome: newLeadData.name,
+      telefone: newLeadData.phone,
+      user_id: newLeadData.user_id,
+      campaign_id: newLeadData.campaign_id
+    });
 
-    const { error: insertError } = await supabase
+    const { data: insertedLead, error: insertError } = await supabase
       .from('leads')
-      .insert(newLeadData);
+      .insert(newLeadData)
+      .select()
+      .single();
 
     if (insertError) {
-      console.error('❌ Erro ao converter pending_lead para lead:', insertError);
+      console.error('❌ ERRO DETALHADO ao converter pending_lead para lead:', insertError);
+      console.error('❌ DADOS que causaram erro:', newLeadData);
       return false;
     }
 
-    console.log('✅ Pending lead convertido para lead automaticamente com sucesso');
+    console.log('✅ Pending lead convertido para lead automaticamente com sucesso:', insertedLead);
     return true;
   } catch (error) {
-    console.error('❌ Erro em conversão automática:', error);
+    console.error('❌ Erro CATCH em conversão automática:', error);
     return false;
   }
 };
@@ -289,8 +306,12 @@ export const trackRedirect = async (
       } else {
         console.log('✅ Pending lead de formulário criado com sucesso:', pendingData);
         
-        // ✅ TENTAR CONVERSÃO AUTOMÁTICA IMEDIATA
+        // ✅ TENTAR CONVERSÃO AUTOMÁTICA IMEDIATA COM DELAY
         console.log('🔄 Tentando conversão automática imediata...');
+        
+        // Aguardar um pouco para garantir que o pending_lead foi salvo
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         const conversionSuccess = await convertPendingLeadToLead(insertedPendingLead);
         
         if (conversionSuccess) {
