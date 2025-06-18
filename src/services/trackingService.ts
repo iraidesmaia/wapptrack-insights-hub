@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 import type { ConversionResult } from '@/types/supabase-functions';
@@ -72,7 +73,7 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
 
     console.log('📋 [CONVERSÃO AUTOMÁTICA] Resultado da conversão:', result);
 
-    const typedResult = result as ConversionResult;
+    const typedResult = result as unknown as ConversionResult;
 
     if (typedResult?.success) {
       console.log('✅ [CONVERSÃO AUTOMÁTICA] Sucesso:', typedResult.message);

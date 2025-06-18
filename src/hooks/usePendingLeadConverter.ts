@@ -22,7 +22,7 @@ export const usePendingLeadConverter = () => {
 
       console.log('📋 Resultado da conversão:', result);
 
-      const typedResult = result as BatchConversionResult;
+      const typedResult = result as unknown as BatchConversionResult;
       const { total_converted, total_errors, details } = typedResult;
 
       if (total_converted > 0) {
