@@ -224,8 +224,8 @@ const Campaigns = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Campanhas</h1>
-            <p className="text-muted-foreground">Crie e gerencie campanhas com tracking avançado e máximos parâmetros</p>
+            <h1 className="text-2xl font-bold">Links de rastreamento</h1>
+            <p className="text-muted-foreground">Crie e gerencie links de rastreamento com tracking avançado e máximos parâmetros</p>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -236,7 +236,7 @@ const Campaigns = () => {
               <Tags className="mr-2 h-4 w-4" /> Configurar Tags
             </Button>
             <Button onClick={handleOpenAddDialog}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Campanha
+              <Plus className="mr-2 h-4 w-4" /> Novo Link de rastreamento
             </Button>
           </div>
         </div>

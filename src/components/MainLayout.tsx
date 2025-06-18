@@ -42,7 +42,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       current: location.pathname === '/leads' 
     },
     { 
-      name: 'Campanhas', 
+      name: 'Links de rastreamento', 
       href: '/campaigns', 
       icon: MessageSquare, 
       current: location.pathname === '/campaigns' 

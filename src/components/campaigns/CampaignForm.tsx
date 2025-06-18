@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -100,12 +101,12 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'add' ? 'Adicionar Nova Campanha' : 'Editar Campanha'}
+            {mode === 'add' ? 'Adicionar Novo Link de rastreamento' : 'Editar Link de rastreamento'}
           </DialogTitle>
           <DialogDescription>
             {mode === 'add' 
-              ? 'Configure sua campanha com tracking avançado e máximos parâmetros.' 
-              : 'Atualize os detalhes da campanha e configurações de tracking.'}
+              ? 'Configure seu link de rastreamento com tracking avançado e máximos parâmetros.' 
+              : 'Atualize os detalhes do link de rastreamento e configurações de tracking.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -182,7 +183,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome da Campanha*</Label>
+              <Label htmlFor="name">Nome do Link de rastreamento*</Label>
               <Input
                 id="name"
                 name="name"
@@ -192,7 +193,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Este nome serve apenas como identificação interna da campanha.
+                Este nome serve apenas como identificação interna do link de rastreamento.
               </p>
             </div>
 
@@ -202,7 +203,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 checked={campaign.active || false}
                 onCheckedChange={handleSwitchChange}
               />
-              <Label htmlFor="active">Campanha Ativa</Label>
+              <Label htmlFor="active">Link de rastreamento Ativo</Label>
             </div>
           </TabsContent>
 
