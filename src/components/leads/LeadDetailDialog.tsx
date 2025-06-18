@@ -65,6 +65,8 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
       case 'qualified': return 'bg-purple-100 text-purple-800';
       case 'converted': return 'bg-green-100 text-green-800';
       case 'lost': return 'bg-red-100 text-red-800';
+      case 'lead': return 'bg-green-100 text-green-800';
+      case 'to_recover': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -76,24 +78,28 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
       case 'qualified': return 'Qualificado';
       case 'converted': return 'Convertido';
       case 'lost': return 'Perdido';
+      case 'lead': return 'Lead';
+      case 'to_recover': return 'Recuperar';
       default: return status;
     }
   };
 
   // Extrair dados do dispositivo tanto do custom_fields quanto dos novos campos diretos
-  const deviceInfo = lead.custom_fields?.device_info || {
-    ip_address: lead.ip_address,
-    browser: lead.browser,
-    os: lead.os,
-    device_type: lead.device_type,
-    device_model: lead.device_model,
-    location: lead.location,
-    country: lead.country,
-    city: lead.city,
-    screen_resolution: lead.screen_resolution,
-    timezone: lead.timezone,
-    language: lead.language
-  };
+  const deviceInfo = (typeof lead.custom_fields?.device_info === 'object' && lead.custom_fields.device_info !== null) 
+    ? lead.custom_fields.device_info as any 
+    : {
+        ip_address: lead.ip_address,
+        browser: lead.browser,
+        os: lead.os,
+        device_type: lead.device_type,
+        device_model: lead.device_model,
+        location: lead.location,
+        country: lead.country,
+        city: lead.city,
+        screen_resolution: lead.screen_resolution,
+        timezone: lead.timezone,
+        language: lead.language
+      };
 
   // Verificar se há dados de dispositivo válidos
   const hasDeviceData = deviceInfo && (
@@ -197,6 +203,8 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
                           <SelectItem value="qualified">Qualificado</SelectItem>
                           <SelectItem value="converted">Convertido</SelectItem>
                           <SelectItem value="lost">Perdido</SelectItem>
+                          <SelectItem value="lead">Lead</SelectItem>
+                          <SelectItem value="to_recover">Recuperar</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
@@ -373,6 +381,28 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
                       <p className="text-sm">{lead.utm_term || 'Não disponível'}</p>
                     )}
                   </div>
+
+                  {/* 🎯 NOVOS CAMPOS DO FACEBOOK ADS */}
+                  {lead.facebook_ad_id && (
+                    <div className="space-y-2">
+                      <Label>Facebook Ad ID</Label>
+                      <p className="text-sm font-mono">{lead.facebook_ad_id}</p>
+                    </div>
+                  )}
+
+                  {lead.facebook_adset_id && (
+                    <div className="space-y-2">
+                      <Label>Facebook Adset ID</Label>
+                      <p className="text-sm font-mono">{lead.facebook_adset_id}</p>
+                    </div>
+                  )}
+
+                  {lead.facebook_campaign_id && (
+                    <div className="space-y-2">
+                      <Label>Facebook Campaign ID</Label>
+                      <p className="text-sm font-mono">{lead.facebook_campaign_id}</p>
+                    </div>
+                  )}
 
                   {gclid && (
                     <div className="space-y-2">

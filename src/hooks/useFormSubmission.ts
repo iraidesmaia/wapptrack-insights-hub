@@ -178,6 +178,6 @@ export const useFormSubmission = (
 
   return {
     handleFormSubmit,
-    updateLeadWhatsAppStatus
+    updateLea dWhatsAppStatus
   };
 };

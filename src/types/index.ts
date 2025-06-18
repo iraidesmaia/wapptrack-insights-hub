@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name?: string;
@@ -10,13 +11,17 @@ export interface Lead {
   name: string;
   phone: string;
   campaign: string;
-  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover';
   created_at: string;
   custom_fields?: Record<string, string>;
   notes?: string;
   first_contact_date?: string;
   last_contact_date?: string;
   last_message?: string;
+  evolution_message_id?: string;
+  evolution_status?: string;
+  whatsapp_delivery_attempts?: number;
+  last_whatsapp_attempt?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -56,14 +61,14 @@ export interface Campaign {
   pixel_id?: string;
   facebook_access_token?: string;
   whatsapp_number?: string;
-  event_type?: string;
+  event_type?: 'contact' | 'lead' | 'page_view' | 'sale';
   active?: boolean;
   custom_message?: string;
   company_title?: string;
   company_subtitle?: string;
   logo_url?: string;
-  redirect_type?: string;
-  pixel_integration_type?: string;
+  redirect_type?: 'whatsapp' | 'form';
+  pixel_integration_type?: 'direct' | 'form';
   conversion_api_enabled?: boolean;
   advanced_matching_enabled?: boolean;
   server_side_api_enabled?: boolean;
@@ -74,6 +79,8 @@ export interface Campaign {
   data_processing_options?: string[];
   data_processing_options_country?: number;
   data_processing_options_state?: number;
+  conversion_keywords?: string[];
+  cancellation_keywords?: string[];
   created_at?: string;
 }
 

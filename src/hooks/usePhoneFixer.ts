@@ -73,8 +73,7 @@ export const usePhoneFixer = () => {
           name: lead.name,
           phone: lead.phone,
           campaign: lead.campaign,
-          campaign_id: lead.campaign_id,
-          status: lead.status as 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover',
+          status: lead.status as Lead['status'],
           notes: lead.notes,
           first_contact_date: lead.first_contact_date,
           last_contact_date: lead.last_contact_date,
@@ -86,11 +85,6 @@ export const usePhoneFixer = () => {
           last_message: lead.last_message,
           evolution_message_id: lead.evolution_message_id,
           evolution_status: lead.evolution_status,
-          user_id: lead.user_id,
-          // Usar campos que existem no banco de dados
-          email: '', // Campo não existe no banco, usar string vazia
-          source: '', // Campo não existe no banco, usar string vazia
-          lead_score: 0, // Campo não existe no banco, usar 0
           utm_source: lead.utm_source,
           utm_medium: lead.utm_medium,
           utm_campaign: lead.utm_campaign,
@@ -111,7 +105,10 @@ export const usePhoneFixer = () => {
           city: lead.city,
           screen_resolution: lead.screen_resolution,
           timezone: lead.timezone,
-          language: lead.language
+          language: lead.language,
+          facebook_ad_id: lead.facebook_ad_id,
+          facebook_adset_id: lead.facebook_adset_id,
+          facebook_campaign_id: lead.facebook_campaign_id
         }));
         return transformedLeads;
       }
