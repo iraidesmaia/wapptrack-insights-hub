@@ -422,6 +422,48 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_instances: {
+        Row: {
+          active: boolean | null
+          api_key: string | null
+          base_url: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          instance_name: string
+          is_default_for_organic: boolean | null
+          phone_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          api_key?: string | null
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name: string
+          is_default_for_organic?: boolean | null
+          phone_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          api_key?: string | null
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          instance_name?: string
+          is_default_for_organic?: boolean | null
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           card_positions: Json | null
@@ -982,6 +1024,10 @@ export type Database = {
           utm_term: string
           created_at: string
         }[]
+      }
+      get_user_by_instance: {
+        Args: { instance_name_param: string }
+        Returns: string
       }
       insert_tracking_session: {
         Args: {

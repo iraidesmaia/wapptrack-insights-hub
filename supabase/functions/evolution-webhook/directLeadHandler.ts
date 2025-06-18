@@ -95,20 +95,74 @@ const sendFacebookLeadEvent = async (params: {
   }
 };
 
+// 🔍 FUNÇÃO PARA BUSCAR USUÁRIO POR INSTÂNCIA
+const getUserByInstance = async (supabase: any, instanceName: string): Promise<string | null> => {
+  try {
+    console.log(`🔍 Buscando usuário para instância: ${instanceName}`);
+    
+    const { data, error } = await supabase.rpc('get_user_by_instance', {
+      instance_name_param: instanceName
+    });
+
+    if (error) {
+      console.error('❌ Erro ao buscar usuário por instância:', error);
+      return null;
+    }
+
+    if (data) {
+      console.log(`✅ Usuário encontrado para instância ${instanceName}: ${data}`);
+      return data;
+    }
+
+    console.log(`❌ Nenhum usuário encontrado para instância: ${instanceName}`);
+    return null;
+  } catch (error) {
+    console.error('❌ Erro geral ao buscar usuário por instância:', error);
+    return null;
+  }
+};
+
 export const handleDirectLead = async (params: {
   supabase: any;
   message: any;
   realPhoneNumber: string;
+  instanceName?: string;
 }) => {
-  const { supabase, message, realPhoneNumber } = params;
+  const { supabase, message, realPhoneNumber, instanceName } = params;
   
-  console.log(`🆕 handleDirectLead - Novo contato direto de: ${realPhoneNumber}`);
+  console.log(`🆕 handleDirectLead - Novo contato direto de: ${realPhoneNumber} (instância: ${instanceName})`);
   
   try {
     const messageContent = message.message?.conversation || 
                           message.message?.extendedTextMessage?.text || 
                           'Mensagem não disponível';
     
+    // 🔍 BUSCAR USUÁRIO RESPONSÁVEL POR ESTA INSTÂNCIA
+    let targetUserId = null;
+    if (instanceName) {
+      targetUserId = await getUserByInstance(supabase, instanceName);
+    }
+
+    if (!targetUserId) {
+      console.log(`❌ Não foi possível determinar usuário responsável para instância: ${instanceName}`);
+      console.log('🔄 Tentando buscar usuário pela primeira campanha ativa encontrada...');
+      
+      // Fallback: buscar primeira campanha ativa
+      const { data: firstCampaign } = await supabase
+        .from('campaigns')
+        .select('user_id')
+        .eq('active', true)
+        .limit(1);
+      
+      if (firstCampaign && firstCampaign.length > 0) {
+        targetUserId = firstCampaign[0].user_id;
+        console.log(`✅ Usando usuário da primeira campanha ativa: ${targetUserId}`);
+      } else {
+        console.error('❌ Nenhuma campanha ativa encontrada. Não é possível atribuir o lead.');
+        return;
+      }
+    }
+
     // 📱 BUSCAR DADOS DO DISPOSITIVO PRIMEIRO
     const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
     
@@ -214,6 +268,7 @@ export const handleDirectLead = async (params: {
         name: existingLead[0].name,
         phone: existingLead[0].phone,
         status: existingLead[0].status,
+        user_id: existingLead[0].user_id,
         tem_device_data: !!existingLead[0].device_type
       });
       
@@ -270,7 +325,8 @@ export const handleDirectLead = async (params: {
           statusAnterior: existingLead[0].status,
           statusNovo: updateData.status || existingLead[0].status,
           primeiraMensagem: updateData.last_message || existingLead[0].last_message,
-          temDadosDispositivo: !!deviceData
+          temDadosDispositivo: !!deviceData,
+          userId: existingLead[0].user_id
         });
 
         // 🎯 ENVIAR EVENTO LEAD PARA FACEBOOK SE NECESSÁRIO
@@ -304,13 +360,14 @@ export const handleDirectLead = async (params: {
         phone: realPhoneNumber,
         campaign: campaignName,
         campaign_id: campaignId,
+        user_id: targetUserId, // 🎯 USAR O USUÁRIO CORRETO
         status: 'lead', // 🎯 NOVO LEAD DIRETO JÁ INICIA COMO 'lead'
         last_message: messageContent,
         first_contact_date: new Date().toISOString(),
         last_contact_date: new Date().toISOString(),
         evolution_message_id: message.key?.id,
         evolution_status: message.status,
-        notes: `Lead criado automaticamente via WhatsApp ${isDirectClick ? 'direto (correlacionado)' : 'orgânico'}`,
+        notes: `Lead criado automaticamente via WhatsApp ${isDirectClick ? 'direto (correlacionado)' : 'orgânico'} - Instância: ${instanceName}`,
         utm_source: finalUtms.utm_source,
         utm_medium: finalUtms.utm_medium,
         utm_campaign: finalUtms.utm_campaign,
@@ -335,6 +392,8 @@ export const handleDirectLead = async (params: {
         campaign_id: campaignId,
         nome_campanha_do_banco: campaignName,
         status: newLeadData.status,
+        user_id: targetUserId,
+        instance_name: instanceName,
         utms: finalUtms,
         tem_dados_dispositivo: !!deviceData
       });
@@ -348,7 +407,12 @@ export const handleDirectLead = async (params: {
       if (insertError) {
         console.error('❌ Erro ao criar novo lead direto:', insertError);
       } else {
-        console.log(`✅ Novo lead direto criado: "${campaignName}"`, message.pushName || 'Lead via WhatsApp');
+        console.log(`✅ Novo lead direto criado: "${campaignName}"`, {
+          lead_id: insertedLead.id,
+          name: message.pushName || 'Lead via WhatsApp',
+          user_id: targetUserId,
+          instance_name: instanceName
+        });
         
         // 🎯 ENVIAR EVENTO LEAD PARA FACEBOOK PARA NOVO LEAD DIRETO
         if (campaignData && insertedLead) {
