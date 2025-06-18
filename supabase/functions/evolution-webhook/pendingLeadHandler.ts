@@ -93,9 +93,10 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
         };
       }
       
-      // Salvar primeira mensagem se não existir
+      // ✅ SALVAR MENSAGEM PERSONALIZADA NO CAMPO CORRETO
       if (!existingLead[0].last_message || existingLead[0].last_message.trim() === '') {
         updateData.last_message = messageText;
+        updateData.initial_message = `Mensagem personalizada: ${messageText}`;
       }
 
       const { error: updateError } = await supabase
@@ -106,20 +107,21 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (updateError) {
         console.error('❌ Erro ao atualizar lead existente:', updateError);
       } else {
-        console.log('✅ Lead existente atualizado');
+        console.log('✅ Lead existente atualizado com mensagem personalizada');
       }
     } else {
       console.log('🆕 Criando novo lead a partir do pending_lead...');
       
-      // ✅ CRIAR NOVO LEAD COM USER_ID DA CAMPANHA
+      // ✅ CRIAR NOVO LEAD COM USER_ID DA CAMPANHA E MENSAGEM PERSONALIZADA
       const newLeadData = {
         name: finalName,
         phone: phone,
         campaign: pendingLead.campaign_name || 'WhatsApp',
         campaign_id: pendingLead.campaign_id,
-        user_id: campaignUserId, // ✅ INCLUIR USER_ID DA CAMPANHA
+        user_id: campaignUserId,
         status: 'lead',
         last_message: messageText,
+        initial_message: `Mensagem personalizada: ${messageText}`,
         first_contact_date: new Date().toISOString(),
         last_contact_date: new Date().toISOString(),
         evolution_message_id: messageId,
@@ -133,7 +135,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
         custom_fields: deviceData ? { device_info: deviceData } : null
       };
 
-      console.log('💾 Dados do novo lead (com user_id da campanha):', newLeadData);
+      console.log('💾 Dados do novo lead (com mensagem personalizada):', newLeadData);
 
       const { error: insertError } = await supabase
         .from('leads')
@@ -142,7 +144,7 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
       if (insertError) {
         console.error('❌ Erro ao criar novo lead:', insertError);
       } else {
-        console.log('✅ Novo lead criado com user_id da campanha!');
+        console.log('✅ Novo lead criado com mensagem personalizada salva!');
       }
     }
 
@@ -163,75 +165,30 @@ export const handlePendingLeadConversion = async (supabase: any, phone: string, 
   }
 };
 
-// ✅ NOVA FUNÇÃO PARA CONVERSÃO AUTOMÁTICA SEM WEBHOOK
+// ✅ FUNÇÃO ATUALIZADA PARA USAR A FUNÇÃO SUPABASE
 export const convertPendingLeadToLead = async (supabase: any, pendingLead: any) => {
-  console.log('🔄 convertPendingLeadToLead - Convertendo pending_lead:', pendingLead.id);
+  console.log('🔄 convertPendingLeadToLead - Convertendo usando função Supabase:', pendingLead.id);
   
   try {
-    // Buscar user_id da campanha
-    let campaignUserId = null;
-    if (pendingLead.campaign_id) {
-      const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .select('user_id')
-        .eq('id', pendingLead.campaign_id)
-        .single();
+    // Usar a nova função Supabase para conversão segura
+    const { data: result, error } = await supabase.rpc('convert_pending_lead_secure', {
+      pending_lead_id: pendingLead.id
+    });
 
-      if (campaign && !campaignError) {
-        campaignUserId = campaign.user_id;
-      }
+    if (error) {
+      console.error('❌ Erro ao executar função Supabase:', error);
+      return false;
     }
 
-    // Buscar dados do dispositivo
-    const deviceData = await getDeviceDataByPhone(supabase, pendingLead.phone);
+    console.log('📋 Resultado da conversão:', result);
 
-    // Verificar se já existe lead para este telefone
-    const { data: existingLead } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('phone', pendingLead.phone)
-      .limit(1);
-
-    if (existingLead && existingLead.length > 0) {
-      console.log('⚠️ Lead já existe para este telefone, pulando conversão');
-      return;
+    if (result?.success) {
+      console.log('✅ Conversão automática via função Supabase bem-sucedida');
+      return true;
+    } else {
+      console.error('❌ Falha na conversão via função Supabase:', result?.error);
+      return false;
     }
-
-    // Criar novo lead
-    const newLeadData = {
-      name: pendingLead.name,
-      phone: pendingLead.phone,
-      campaign: pendingLead.campaign_name || 'Formulário Direto',
-      campaign_id: pendingLead.campaign_id,
-      user_id: campaignUserId,
-      status: 'new',
-      first_contact_date: new Date().toISOString(),
-      notes: 'Lead criado automaticamente a partir de formulário',
-      utm_source: pendingLead.utm_source,
-      utm_medium: pendingLead.utm_medium,
-      utm_campaign: pendingLead.utm_campaign,
-      utm_content: pendingLead.utm_content,
-      utm_term: pendingLead.utm_term,
-      custom_fields: deviceData ? { device_info: deviceData } : null
-    };
-
-    const { error: insertError } = await supabase
-      .from('leads')
-      .insert(newLeadData);
-
-    if (insertError) {
-      console.error('❌ Erro ao converter pending_lead para lead:', insertError);
-      throw insertError;
-    }
-
-    // Marcar como convertido
-    await supabase
-      .from('pending_leads')
-      .update({ status: 'converted' })
-      .eq('id', pendingLead.id);
-
-    console.log('✅ Pending lead convertido para lead com sucesso');
-    return true;
   } catch (error) {
     console.error('❌ Erro em convertPendingLeadToLead:', error);
     return false;

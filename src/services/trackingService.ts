@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 
@@ -49,125 +48,36 @@ const saveDirectClickUtms = async (
 };
 
 /**
- * ✅ FUNÇÃO CORRIGIDA PARA CONVERSÃO AUTOMÁTICA - AGORA COM MELHOR TRATAMENTO
+ * ✅ FUNÇÃO ATUALIZADA PARA USAR A FUNÇÃO SUPABASE SEGURA
  */
 const convertPendingLeadToLead = async (pendingLeadData: any) => {
   try {
-    console.log('🔄 [CONVERSÃO AUTOMÁTICA] Iniciando conversão:', {
+    console.log('🔄 [CONVERSÃO AUTOMÁTICA] Iniciando conversão usando função Supabase:', {
       id: pendingLeadData.id,
       name: pendingLeadData.name,
       phone: pendingLeadData.phone,
       campaign_id: pendingLeadData.campaign_id
     });
 
-    // Buscar user_id da campanha
-    let campaignUserId = null;
-    if (pendingLeadData.campaign_id) {
-      console.log('🔍 Buscando user_id da campanha:', pendingLeadData.campaign_id);
-      
-      const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .select('user_id')
-        .eq('id', pendingLeadData.campaign_id)
-        .single();
-
-      if (campaign && !campaignError) {
-        campaignUserId = campaign.user_id;
-        console.log('✅ User ID da campanha encontrado:', campaignUserId);
-      } else {
-        console.error('❌ Erro ao buscar campanha:', campaignError);
-        console.log('⚠️ Continuando conversão sem user_id da campanha');
-      }
-    } else {
-      console.log('⚠️ Nenhum campaign_id fornecido, continuando sem user_id');
-    }
-
-    // Buscar dados do dispositivo
-    console.log('📱 Buscando dados do dispositivo para:', pendingLeadData.phone);
-    const deviceData = await getDeviceDataByPhone(pendingLeadData.phone);
-    console.log('📱 Dados do dispositivo:', deviceData ? 'ENCONTRADOS' : 'NÃO ENCONTRADOS');
-
-    // Verificar se já existe lead para este telefone
-    console.log('🔍 Verificando se já existe lead para o telefone:', pendingLeadData.phone);
-    const { data: existingLead, error: checkError } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('phone', pendingLeadData.phone)
-      .limit(1);
-
-    if (checkError) {
-      console.error('❌ Erro ao verificar lead existente:', checkError);
-      return false;
-    }
-
-    if (existingLead && existingLead.length > 0) {
-      console.log('⚠️ Lead já existe para este telefone:', existingLead[0].id);
-      console.log('⚠️ Pulando conversão automática para evitar duplicata');
-      return false;
-    }
-
-    console.log('✅ Nenhum lead existente encontrado, prosseguindo com a criação');
-
-    // Criar novo lead com dados mais robustos - TIPOS CORRIGIDOS
-    const newLeadData = {
-      name: pendingLeadData.name || 'Lead Automático',
-      phone: pendingLeadData.phone,
-      campaign: pendingLeadData.campaign_name || 'Formulário Direto',
-      campaign_id: pendingLeadData.campaign_id || null,
-      user_id: campaignUserId, // ✅ PODE SER NULL SE CAMPANHA NÃO FOR ENCONTRADA
-      status: 'new' as const,
-      first_contact_date: new Date().toISOString(),
-      notes: 'Lead criado automaticamente a partir de formulário',
-      utm_source: pendingLeadData.utm_source || null,
-      utm_medium: pendingLeadData.utm_medium || null,
-      utm_campaign: pendingLeadData.utm_campaign || null,
-      utm_content: pendingLeadData.utm_content || null,
-      utm_term: pendingLeadData.utm_term || null,
-      // Incluir dados do dispositivo se disponíveis
-      location: deviceData?.location || '',
-      ip_address: deviceData?.ip_address || '',
-      browser: deviceData?.browser || '',
-      os: deviceData?.os || '',
-      device_type: deviceData?.device_type || '',
-      device_model: deviceData?.device_model || '',
-      country: deviceData?.country || '',
-      city: deviceData?.city || '',
-      screen_resolution: deviceData?.screen_resolution || '',
-      timezone: deviceData?.timezone || '',  
-      language: deviceData?.language || '',
-      // ✅ CORRIGIDO: USAR JSON VÁLIDO PARA CUSTOM_FIELDS
-      custom_fields: deviceData ? JSON.parse(JSON.stringify({ device_info: deviceData })) : null
-    };
-
-    console.log('💾 [CONVERSÃO AUTOMÁTICA] Tentando inserir lead:', {
-      nome: newLeadData.name,
-      telefone: newLeadData.phone,
-      user_id: newLeadData.user_id,
-      campaign_id: newLeadData.campaign_id,
-      tem_device_data: !!deviceData
+    // Usar a nova função Supabase para conversão segura
+    const { data: result, error } = await supabase.rpc('convert_pending_lead_secure', {
+      pending_lead_id: pendingLeadData.id
     });
 
-    // ✅ USAR INSERT DIRETO COM TIPOS CORRIGIDOS
-    const { data: insertedLead, error: insertError } = await supabase
-      .from('leads')
-      .insert(newLeadData)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('❌ [CONVERSÃO AUTOMÁTICA] ERRO DETALHADO ao inserir lead:', {
-        error: insertError,
-        code: insertError.code,
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint
-      });
-      console.error('❌ [CONVERSÃO AUTOMÁTICA] DADOS que causaram erro:', newLeadData);
+    if (error) {
+      console.error('❌ [CONVERSÃO AUTOMÁTICA] Erro ao executar função Supabase:', error);
       return false;
     }
 
-    console.log('✅ [CONVERSÃO AUTOMÁTICA] Lead criado com sucesso:', insertedLead?.id);
-    return true;
+    console.log('📋 [CONVERSÃO AUTOMÁTICA] Resultado da conversão:', result);
+
+    if (result?.success) {
+      console.log('✅ [CONVERSÃO AUTOMÁTICA] Sucesso:', result.message);
+      return true;
+    } else {
+      console.error('❌ [CONVERSÃO AUTOMÁTICA] Falha na conversão:', result?.error);
+      return false;
+    }
   } catch (error) {
     console.error('❌ [CONVERSÃO AUTOMÁTICA] Erro CATCH geral:', {
       error: error,

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, CheckCircle } from 'lucide-react';
 import { usePendingLeadConverter } from '@/hooks/usePendingLeadConverter';
 
 const PendingLeadConverter = () => {
@@ -13,10 +13,10 @@ const PendingLeadConverter = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <RefreshCw className="h-5 w-5" />
-          Conversão de Leads Pendentes
+          Conversão Segura de Leads Pendentes
         </CardTitle>
         <CardDescription>
-          Converta leads de formulários que estão pendentes em leads definitivos
+          Converta leads de formulários que estão pendentes em leads definitivos usando função Supabase com privilégios elevados
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -33,14 +33,15 @@ const PendingLeadConverter = () => {
               </>
             ) : (
               <>
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <CheckCircle className="mr-2 h-4 w-4" />
                 Converter Pending Leads
               </>
             )}
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Clique para converter todos os leads de formulários pendentes em leads definitivos
-          </p>
+          <div className="text-sm text-muted-foreground">
+            <p>✅ Agora usando função Supabase com SECURITY DEFINER</p>
+            <p>🔒 Contorna problemas de RLS e garante conversão segura</p>
+          </div>
         </div>
       </CardContent>
     </Card>

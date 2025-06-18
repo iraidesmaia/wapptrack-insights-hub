@@ -876,6 +876,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_all_pending_leads: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      convert_pending_lead_secure: {
+        Args: { pending_lead_id: string }
+        Returns: Json
+      }
       update_otp_expiry: {
         Args: Record<PropertyKey, never> | { new_expiry_minutes: number }
         Returns: undefined
