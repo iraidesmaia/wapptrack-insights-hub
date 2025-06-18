@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -8,28 +7,22 @@ export interface User {
 
 export interface Lead {
   id: string;
-  created_at: string;
   name: string;
-  email?: string;
   phone: string;
-  source?: string;
   campaign: string;
-  campaign_id?: string;
-  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover';
+  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
+  created_at: string;
+  custom_fields?: Record<string, string>;
   notes?: string;
   first_contact_date?: string;
   last_contact_date?: string;
-  custom_fields?: Record<string, any>;
-  whatsapp_delivery_attempts?: number;
-  last_whatsapp_attempt?: string;
-  last_message?: string | null;
-  lead_score?: number;
+  last_message?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
-  // Novos campos adicionados
+  // Campos de dispositivo e localização
   location?: string;
   ip_address?: string;
   browser?: string;
@@ -41,84 +34,71 @@ export interface Lead {
   ad_set_name?: string;
   ad_name?: string;
   initial_message?: string;
-  // Campos adicionais de dispositivo
   country?: string;
   city?: string;
   screen_resolution?: string;
   timezone?: string;
   language?: string;
-  // Campos Evolution API
-  evolution_message_id?: string;
-  evolution_status?: string;
-  // Campo de usuário para RLS
-  user_id?: string;
+  // 🎯 NOVOS CAMPOS DO FACEBOOK ADS
+  facebook_ad_id?: string;
+  facebook_adset_id?: string;
+  facebook_campaign_id?: string;
 }
 
 export interface Campaign {
   id: string;
   name: string;
-  pixel_id?: string;
-  facebook_access_token?: string;
-  whatsapp_number?: string;
-  event_type?: 'contact' | 'lead' | 'page_view' | 'sale';
-  custom_message?: string;
-  company_title?: string;
-  company_subtitle?: string;
-  logo_url?: string;
-  redirect_type?: 'whatsapp' | 'form';
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  pixel_id?: string;
+  facebook_access_token?: string;
+  whatsapp_number?: string;
+  event_type?: string;
   active?: boolean;
-  created_at?: string;
-  pixel_integration_type?: 'direct' | 'form';
-  conversion_keywords?: string[];
-  cancellation_keywords?: string[];
+  custom_message?: string;
+  company_title?: string;
+  company_subtitle?: string;
+  logo_url?: string;
+  redirect_type?: string;
+  pixel_integration_type?: string;
   conversion_api_enabled?: boolean;
-  test_event_code?: string;
   advanced_matching_enabled?: boolean;
-  custom_audience_pixel_id?: string;
   server_side_api_enabled?: boolean;
+  test_event_code?: string;
+  custom_audience_pixel_id?: string;
   tracking_domain?: string;
   external_id?: string;
   data_processing_options?: string[];
   data_processing_options_country?: number;
   data_processing_options_state?: number;
-  // Campo de usuário para RLS
-  user_id?: string;
+  created_at?: string;
 }
 
 export interface Sale {
   id: string;
-  created_at?: string;
+  value: number;
+  date: string;
   lead_id?: string;
   lead_name: string;
-  product?: string;
-  amount?: number;
-  value: number;
-  sale_date?: string;
-  date?: string;
-  status?: string;
-  notes?: string;
   campaign: string;
-  // Campo de usuário para RLS
-  user_id?: string;
+  product?: string;
+  notes?: string;
 }
 
-export type Theme = 'light' | 'dark' | 'system';
-
-export interface CompanySettings {
+export type CompanySettings = {
   id?: string;
   company_name: string;
   company_subtitle: string;
   logo_url?: string;
-  theme?: Theme;
+  theme: Theme;
   created_at?: string;
   updated_at?: string;
-  user_id?: string;
-}
+};
+
+export type Theme = 'light' | 'dark' | 'system';
 
 export interface DateRange {
   startDate: Date;

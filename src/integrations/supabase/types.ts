@@ -313,6 +313,9 @@ export type Database = {
           created_at: string
           device_model: string | null
           device_type: string | null
+          facebook_ad_id: string | null
+          facebook_adset_id: string | null
+          facebook_campaign_id: string | null
           id: string
           ip_address: string | null
           language: string | null
@@ -336,6 +339,9 @@ export type Database = {
           created_at?: string
           device_model?: string | null
           device_type?: string | null
+          facebook_ad_id?: string | null
+          facebook_adset_id?: string | null
+          facebook_campaign_id?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
@@ -359,6 +365,9 @@ export type Database = {
           created_at?: string
           device_model?: string | null
           device_type?: string | null
+          facebook_ad_id?: string | null
+          facebook_adset_id?: string | null
+          facebook_campaign_id?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
@@ -511,6 +520,9 @@ export type Database = {
           device_type: string | null
           evolution_message_id: string | null
           evolution_status: string | null
+          facebook_ad_id: string | null
+          facebook_adset_id: string | null
+          facebook_campaign_id: string | null
           first_contact_date: string | null
           id: string
           initial_message: string | null
@@ -552,6 +564,9 @@ export type Database = {
           device_type?: string | null
           evolution_message_id?: string | null
           evolution_status?: string | null
+          facebook_ad_id?: string | null
+          facebook_adset_id?: string | null
+          facebook_campaign_id?: string | null
           first_contact_date?: string | null
           id?: string
           initial_message?: string | null
@@ -593,6 +608,9 @@ export type Database = {
           device_type?: string | null
           evolution_message_id?: string | null
           evolution_status?: string | null
+          facebook_ad_id?: string | null
+          facebook_adset_id?: string | null
+          facebook_campaign_id?: string | null
           first_contact_date?: string | null
           id?: string
           initial_message?: string | null
