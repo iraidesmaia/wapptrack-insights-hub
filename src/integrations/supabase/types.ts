@@ -764,6 +764,66 @@ export type Database = {
           },
         ]
       }
+      tracking_sessions: {
+        Row: {
+          browser_fingerprint: string | null
+          campaign_id: string | null
+          created_at: string
+          current_url: string | null
+          id: string
+          ip_address: string | null
+          language: string | null
+          referrer: string | null
+          screen_resolution: string | null
+          session_id: string
+          timezone: string | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          browser_fingerprint?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          current_url?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id: string
+          timezone?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          browser_fingerprint?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          current_url?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id?: string
+          timezone?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           can_edit: boolean | null

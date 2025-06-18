@@ -90,10 +90,8 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       utm_campaign: utms.utm_campaign
     });
     
-    // Salvar na nova tabela tracking_sessions
-    const { error } = await supabase
-      .from('tracking_sessions')
-      .insert(trackingData);
+    // Salvar na nova tabela tracking_sessions usando rpc para evitar problemas de tipos
+    const { error } = await supabase.rpc('insert_tracking_session', trackingData);
     
     if (error) {
       console.error('❌ Erro ao salvar dados de tracking:', error);
@@ -138,16 +136,12 @@ export const getTrackingDataByIdentifiers = async (phone: string) => {
       ip_address: currentIP
     });
     
-    // Buscar por fingerprint, session ou IP nas últimas 4 horas
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-    
-    const { data: trackingData, error } = await supabase
-      .from('tracking_sessions')
-      .select('*')
-      .or(`browser_fingerprint.eq.${currentBrowserFingerprint},session_id.eq.${currentSessionId},ip_address.eq.${currentIP}`)
-      .gte('created_at', fourHoursAgo)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    // Buscar por fingerprint, session ou IP nas últimas 4 horas usando uma função RPC
+    const { data: trackingData, error } = await supabase.rpc('get_tracking_by_identifiers', {
+      p_browser_fingerprint: currentBrowserFingerprint,
+      p_session_id: currentSessionId,
+      p_ip_address: currentIP
+    });
     
     if (error) {
       console.error('❌ Erro ao buscar tracking data:', error);
@@ -155,14 +149,15 @@ export const getTrackingDataByIdentifiers = async (phone: string) => {
     }
     
     if (trackingData && trackingData.length > 0) {
+      const session = trackingData[0];
       console.log('✅ Dados de tracking encontrados:', {
-        campaign_id: trackingData[0].campaign_id,
-        utm_campaign: trackingData[0].utm_campaign,
-        match_type: trackingData[0].browser_fingerprint === currentBrowserFingerprint ? 'fingerprint' : 
-                   trackingData[0].session_id === currentSessionId ? 'session' : 'ip'
+        campaign_id: session.campaign_id,
+        utm_campaign: session.utm_campaign,
+        match_type: session.browser_fingerprint === currentBrowserFingerprint ? 'fingerprint' : 
+                   session.session_id === currentSessionId ? 'session' : 'ip'
       });
       
-      return trackingData[0];
+      return session;
     }
     
     console.log('❌ Nenhum dado de tracking encontrado para os identificadores atuais');

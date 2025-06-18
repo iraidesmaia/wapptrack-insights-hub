@@ -30,17 +30,17 @@ export const getTrackingDataBySession = async (supabase: any, deviceData: any): 
     const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
     
     // Primeira tentativa: por IP e User Agent
-    let { data: trackingData, error } = await supabase
-      .from('tracking_sessions')
-      .select('*')
-      .eq('ip_address', deviceData.ip_address)
-      .eq('user_agent', deviceData.user_agent)
-      .gte('created_at', fourHoursAgo)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    let trackingData = null;
+    let { data, error } = await supabase
+      .rpc('select_from_tracking_sessions', {
+        where_clause: `ip_address = '${deviceData.ip_address}' AND user_agent = '${deviceData.user_agent?.replace(/'/g, "''")}' AND created_at >= '${fourHoursAgo}'`,
+        order_by: 'created_at DESC',
+        limit_count: 1
+      });
     
-    if (error) {
-      console.error('❌ Erro ao buscar por IP + User Agent:', error);
+    if (!error && data && data.length > 0) {
+      trackingData = data;
+      console.log('✅ Encontrado por IP + User Agent:', trackingData[0].campaign_id);
     }
     
     // Segunda tentativa: só por IP se não encontrou
@@ -48,12 +48,11 @@ export const getTrackingDataBySession = async (supabase: any, deviceData: any): 
       console.log('🔍 Tentando busca apenas por IP...');
       
       const { data: ipData, error: ipError } = await supabase
-        .from('tracking_sessions')
-        .select('*')
-        .eq('ip_address', deviceData.ip_address)
-        .gte('created_at', fourHoursAgo)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .rpc('select_from_tracking_sessions', {
+          where_clause: `ip_address = '${deviceData.ip_address}' AND created_at >= '${fourHoursAgo}'`,
+          order_by: 'created_at DESC',
+          limit_count: 1
+        });
       
       if (!ipError && ipData && ipData.length > 0) {
         trackingData = ipData;
@@ -66,12 +65,11 @@ export const getTrackingDataBySession = async (supabase: any, deviceData: any): 
       console.log('🔍 Tentando busca por browser fingerprint...');
       
       const { data: fingerprintData, error: fingerprintError } = await supabase
-        .from('tracking_sessions')
-        .select('*')
-        .eq('browser_fingerprint', browserFingerprint)
-        .gte('created_at', fourHoursAgo)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .rpc('select_from_tracking_sessions', {
+          where_clause: `browser_fingerprint = '${browserFingerprint}' AND created_at >= '${fourHoursAgo}'`,
+          order_by: 'created_at DESC',
+          limit_count: 1
+        });
       
       if (!fingerprintError && fingerprintData && fingerprintData.length > 0) {
         trackingData = fingerprintData;
