@@ -1,3 +1,4 @@
+
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -32,10 +33,16 @@ export const useFormSubmission = (
 
   const handleFormSubmit = async (phone: string, name: string, email?: string) => {
     if (!campaignId) {
+      console.error('❌ ID da campanha não encontrado');
       throw new Error('ID da campanha não encontrado');
     }
 
-    console.log('📝 Processing form submission with enhanced tracking...');
+    console.log('📝 Processing form submission...', {
+      campaignId,
+      phone,
+      name,
+      campaign: campaign?.name
+    });
 
     // Track enhanced lead event BEFORE processing
     if (campaign && trackEnhancedLead) {
@@ -45,7 +52,7 @@ export const useFormSubmission = (
           name,
           phone,
           email,
-          value: 100 // Default lead value
+          value: 100
         });
         console.log('✅ Enhanced lead tracking completed');
       } catch (trackingError) {
@@ -75,7 +82,6 @@ export const useFormSubmission = (
       }
     } catch (error) {
       console.error('❌ Error sending data via external webhook:', error);
-      // Don't interrupt the flow if external webhook fails
     }
 
     // Check if Evolution API is configured
@@ -88,7 +94,6 @@ export const useFormSubmission = (
         if (evolutionConfig.evolution_api_key && evolutionConfig.evolution_instance_name) {
           console.log('🤖 Using Evolution API for lead processing...');
           
-          // Send via Evolution API
           const result = await sendToEvolutionAPI({
             campaignId,
             campaignName: campaign?.name || 'Default Campaign',
@@ -100,8 +105,6 @@ export const useFormSubmission = (
           if (result.success) {
             toast.success('Mensagem enviada! Aguarde a confirmação de entrega.');
             console.log('✅ Lead sent to Evolution API successfully');
-            
-            // Redirect to a confirmation page or wait for webhook
             return;
           } else {
             throw new Error(result.error || 'Erro ao enviar via Evolution API');
@@ -110,7 +113,6 @@ export const useFormSubmission = (
       } catch (error) {
         console.error('❌ Error with Evolution API:', error);
         toast.error('Erro ao processar via Evolution API. Tentando método alternativo...');
-        // Continue with traditional flow
       }
     }
 
@@ -118,60 +120,58 @@ export const useFormSubmission = (
     const utms = collectUrlParameters();
     console.log('🌐 UTMs obtidos da URL:', utms);
 
-    // Traditional flow (fallback)
-    console.log('📱 Using traditional WhatsApp redirect...');
-    
-    // Track the redirect in our system
-    const result = await trackRedirect(
-      campaignId, 
-      phone, 
-      name, 
-      campaign?.event_type,
-      {
-        utm_source: utms.utm_source,
-        utm_medium: utms.utm_medium,
-        utm_campaign: utms.utm_campaign,
-        utm_content: utms.utm_content,
-        utm_term: utms.utm_term
-      }
-    );
-    
-    // Get target WhatsApp number
-    const targetPhone = result.targetPhone || campaign?.whatsapp_number;
-    
-    if (!targetPhone) {
-      console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
-      toast.error('Número de WhatsApp não configurado para esta campanha');
-      throw new Error('Número de WhatsApp não configurado');
-    }
-    
-    // Build WhatsApp URL with custom message
-    let whatsappUrl = `https://wa.me/${targetPhone}`;
-    
-    if (campaign?.custom_message) {
-      let message = campaign.custom_message;
-      if (name) {
-        message = message.replace(/\{nome\}/gi, name);
-      }
-      message = message.replace(/\{telefone\}/gi, phone);
-      
-      const encodedMessage = encodeURIComponent(message);
-      whatsappUrl += `?text=${encodedMessage}`;
-    }
+    // ✅ GARANTIR QUE O LEAD SEJA SALVO SEMPRE
+    console.log('📱 Processando via trackRedirect...');
     
     try {
+      const result = await trackRedirect(
+        campaignId, 
+        phone, 
+        name, 
+        campaign?.event_type,
+        {
+          utm_source: utms.utm_source,
+          utm_medium: utms.utm_medium,
+          utm_campaign: utms.utm_campaign,
+          utm_content: utms.utm_content,
+          utm_term: utms.utm_term
+        }
+      );
+      
+      console.log('✅ trackRedirect executado com sucesso:', result);
+      
+      // Get target WhatsApp number
+      const targetPhone = result.targetPhone || campaign?.whatsapp_number;
+      
+      if (!targetPhone) {
+        console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
+        toast.error('Número de WhatsApp não configurado para esta campanha');
+        throw new Error('Número de WhatsApp não configurado');
+      }
+      
+      // Build WhatsApp URL with custom message
+      let whatsappUrl = `https://wa.me/${targetPhone}`;
+      
+      if (campaign?.custom_message) {
+        let message = campaign.custom_message;
+        if (name) {
+          message = message.replace(/\{nome\}/gi, name);
+        }
+        message = message.replace(/\{telefone\}/gi, phone);
+        
+        const encodedMessage = encodeURIComponent(message);
+        whatsappUrl += `?text=${encodedMessage}`;
+      }
+      
       console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
       
-      // Show success message before redirect
       toast.success('Redirecionando para o WhatsApp...');
-      
-      // Use window.location.href for more reliable redirect
       window.location.href = whatsappUrl;
       
       console.log('✅ WhatsApp redirect initiated');
     } catch (error) {
-      console.error('❌ Error redirecting to WhatsApp:', error);
-      throw new Error('Erro ao redirecionar para WhatsApp');
+      console.error('❌ Error in trackRedirect or WhatsApp redirect:', error);
+      throw new Error('Erro ao processar redirecionamento');
     }
   };
 

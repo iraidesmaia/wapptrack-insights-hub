@@ -1,7 +1,9 @@
+
 import { trackRedirect } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
+import { collectUrlParameters } from '@/lib/dataCollection';
 
 type UTMVars = {
   utm_source?: string;
@@ -15,10 +17,6 @@ export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
   pixelInitialized: boolean
 ) => {
-  /**
-   * @param campaignData Campanha carregada
-   * @param options Dados extras (opcional): telefone do visitante, nome e utms, se existirem
-   */
   const handleDirectWhatsAppRedirect = async (
     campaignData: Campaign,
     options?: {
@@ -51,43 +49,59 @@ export const useDirectWhatsAppRedirect = (
         }
       }
 
-      // Track o redirecionamento no sistema, salvando telefone/nome/utms, se houver
-      // --> Logs detalhados já adicionados em trackingService
-      const result = await trackRedirect(
-        campaignId!, // id da campanha
-        options?.phone || 'Redirecionamento Direto', // telefone real ou nome padrão
-        options?.name || 'Visitante', // nome real ou visitante
-        campaignData.event_type,
-        options?.utms // pode vir undefined
-      );
+      // ✅ COLETA UTMs DA URL ATUAL SE NÃO FORAM FORNECIDOS
+      const currentUtms = options?.utms || collectUrlParameters();
+      console.log('🌐 UTMs para redirecionamento direto:', currentUtms);
 
-      // Pega o número de destino do WhatsApp
-      const targetPhone = result.targetPhone || campaignData.whatsapp_number;
-
-      if (!targetPhone) {
-        console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
-        toast.error('Número de WhatsApp não configurado para esta campanha');
-        throw new Error('Número de WhatsApp não configurado');
-      }
-
-      // Monta a URL do WhatsApp com mensagem personalizada
-      let whatsappUrl = `https://wa.me/${targetPhone}`;
-
-      if (campaignData.custom_message) {
-        const encodedMessage = encodeURIComponent(campaignData.custom_message);
-        whatsappUrl += `?text=${encodedMessage}`;
-      }
-
-      // Redireciona para o WhatsApp com fallback
-      console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
-
+      // ✅ SALVAR O REDIRECIONAMENTO DIRETO
       try {
+        const result = await trackRedirect(
+          campaignId!, 
+          options?.phone || 'Redirecionamento Direto',
+          options?.name || 'Visitante',
+          campaignData.event_type,
+          currentUtms
+        );
+        
+        console.log('✅ Redirecionamento direto salvo com sucesso:', result);
+        
+        // Pega o número de destino do WhatsApp
+        const targetPhone = result.targetPhone || campaignData.whatsapp_number;
+
+        if (!targetPhone) {
+          console.warn('⚠️ Número de WhatsApp não configurado para esta campanha');
+          toast.error('Número de WhatsApp não configurado para esta campanha');
+          throw new Error('Número de WhatsApp não configurado');
+        }
+
+        // Monta a URL do WhatsApp com mensagem personalizada
+        let whatsappUrl = `https://wa.me/${targetPhone}`;
+
+        if (campaignData.custom_message) {
+          const encodedMessage = encodeURIComponent(campaignData.custom_message);
+          whatsappUrl += `?text=${encodedMessage}`;
+        }
+
+        console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
+
         toast.success('Redirecionando para o WhatsApp...');
         window.location.href = whatsappUrl;
         console.log('✅ WhatsApp redirect initiated successfully');
-      } catch (error) {
-        console.error('🔄 Error with redirect, trying fallback:', error);
-        window.location.href = whatsappUrl;
+        
+      } catch (trackError) {
+        console.error('❌ Erro ao salvar redirecionamento direto:', trackError);
+        toast.error('Erro ao processar redirecionamento, mas continuando...');
+        
+        // Continua com o redirecionamento mesmo se houver erro no tracking
+        const targetPhone = campaignData.whatsapp_number;
+        if (targetPhone) {
+          let whatsappUrl = `https://wa.me/${targetPhone}`;
+          if (campaignData.custom_message) {
+            const encodedMessage = encodeURIComponent(campaignData.custom_message);
+            whatsappUrl += `?text=${encodedMessage}`;
+          }
+          window.location.href = whatsappUrl;
+        }
       }
 
     } catch (err) {

@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 
@@ -33,9 +34,8 @@ const saveDirectClickUtms = async (
 
     console.log('💾 Salvando UTMs para click direto:', clickData);
 
-    // ✅ USAR QUERY RAW PARA EVITAR ERRO DE TIPOS
     const { error } = await supabase
-      .from('utm_clicks' as any)
+      .from('utm_clicks')
       .insert(clickData);
 
     if (error) {
@@ -49,7 +49,7 @@ const saveDirectClickUtms = async (
 };
 
 /**
- * Inclui campos UTM opcionalmente no lead.
+ * Função principal para rastrear redirecionamentos e salvar leads
  */
 export const trackRedirect = async (
   campaignId: string, 
@@ -62,8 +62,8 @@ export const trackRedirect = async (
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
-    gclid?: string // 🎯 ADICIONADO GCLID
-    fbclid?: string // 🎯 ADICIONADO FBCLID
+    gclid?: string
+    fbclid?: string
   }
 ): Promise<{targetPhone?: string}> => {
   try {
@@ -84,7 +84,7 @@ export const trackRedirect = async (
 
     // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
-      console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
+      console.log(`❌ Campaign with ID ${campaignId} not found. Creating default lead.`);
       
       // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
@@ -92,13 +92,13 @@ export const trackRedirect = async (
           utm_source: utms.utm_source,
           utm_medium: utms.utm_medium,
           utm_campaign: utms.utm_campaign,
-          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined),
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined),
         };
         await saveDirectClickUtms(phone, utmsToSave);
       }
       
-      // Fallback: criar lead genérico se não for redirecionamento direto
+      // ✅ CRIAR LEAD MESMO SEM CAMPANHA ENCONTRADA
       if (phone && eventType !== 'whatsapp') {
         const defaultCampaign = "Default Campaign";
         
@@ -114,11 +114,11 @@ export const trackRedirect = async (
           phone,
           campaign: defaultCampaign,
           status: 'new',
-          utm_source: utms?.utm_source,
-          utm_medium: utms?.utm_medium,
-          utm_campaign: utms?.utm_campaign,
-          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+          utm_source: utms?.utm_source || '',
+          utm_medium: utms?.utm_medium || '',
+          utm_campaign: utms?.utm_campaign || '',
+          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || '',
+          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
           // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
           location: deviceData?.location || '',
           ip_address: deviceData?.ip_address || '',
@@ -145,7 +145,7 @@ export const trackRedirect = async (
           .insert(leadData);
 
         if (leadError) {
-          console.error('Error creating lead:', leadError);
+          console.error('❌ Error creating fallback lead:', leadError);
         } else {
           console.log('✅ Lead criado com campanha padrão e dados do dispositivo:', leadData);
         }
@@ -155,93 +155,74 @@ export const trackRedirect = async (
 
     const type = eventType || campaign.event_type || 'lead';
 
-    // ⭐️ MODIFICAÇÃO PRINCIPAL: Diferentes comportamentos por redirect_type
+    // ⭐️ COMPORTAMENTOS POR TIPO DE REDIRECIONAMENTO
     if (campaign.redirect_type === 'whatsapp') {
-      console.log(`🚦 Campanha de redirecionamento WhatsApp – Salvar em pending_leads com UTMs corretos!`, {
+      console.log(`🚦 Campanha de redirecionamento WhatsApp – Salvar em pending_leads`, {
         id: campaign.id,
         name: campaign.name,
         utms
       });
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
         const utmsToSave = {
           utm_source: utms.utm_source,
           utm_medium: utms.utm_medium,
           utm_campaign: utms.utm_campaign,
-          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined),
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined),
         };
         await saveDirectClickUtms(phone, utmsToSave);
       }
       
-      // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
+      // Para redirect_type: 'whatsapp', salvar em pending_leads
       if (phone && phone !== 'Redirecionamento Direto') {
         try {
-          // 🔒 GARANTIR QUE O NOME DO FORMULÁRIO SEJA PRESERVADO
-          // Verificar se já existe um pending_lead para este telefone
-          const { data: existingPending } = await supabase
-            .from('pending_leads')
-            .select('name, phone')
-            .eq('phone', phone)
-            .eq('status', 'pending')
-            .limit(1);
-
-          // Se já existe um pending lead e tem nome do formulário, preservar o nome original
-          const finalName = (existingPending && existingPending.length > 0 && existingPending[0].name && existingPending[0].name !== 'Visitante') 
-            ? existingPending[0].name 
-            : (name || 'Visitante');
-
-          console.log('🔒 Nome que será usado (preservando formulário):', {
-            nomeExistente: existingPending?.[0]?.name,
-            nomeNovo: name,
-            nomeFinal: finalName
-          });
-
+          // ✅ CRIAR PENDING LEAD SEMPRE
           const pendingData = {
-            name: finalName,
+            name: name || 'Visitante',
             phone,
             campaign_id: campaign.id,
             campaign_name: campaign.name,
             utm_source: utms?.utm_source || null,
             utm_medium: utms?.utm_medium || null,
             utm_campaign: utms?.utm_campaign || null,
-            utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : null), // 🎯 GCLID
-            utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : null), // 🎯 FBCLID
+            utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : null) || null,
+            utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : null) || null,
             status: 'pending'
           };
           
           console.log('💾 Dados que serão salvos em pending_leads:', pendingData);
           
-          // Impede duplicidade por telefone pendente
-          const { error: delError } = await supabase
+          // Limpar pending leads anteriores para este telefone
+          await supabase
             .from('pending_leads')
             .delete()
             .eq('phone', phone)
             .eq('status', 'pending');
-          if (delError) console.warn("Falha ao limpar pending previous:", delError);
 
           const { error: pendingLeadError } = await supabase
             .from('pending_leads')
             .insert(pendingData);
+
           if (pendingLeadError) {
-            console.error('Erro ao criar pending_lead:', pendingLeadError);
+            console.error('❌ Erro ao criar pending_lead:', pendingLeadError);
           } else {
-            console.log('✅ pending_lead salva com UTMs corretos e nome preservado:', pendingData);
+            console.log('✅ pending_lead salva com sucesso:', pendingData);
           }
         } catch (pendingSaveErr) {
-          console.error("Erro ao gravar pending_lead:", pendingSaveErr);
+          console.error("❌ Erro ao gravar pending_lead:", pendingSaveErr);
         }
       }
 
       return { targetPhone: campaign.whatsapp_number };
     }
 
-    // ⭐️ NOVO: Para campanhas de formulário (ou outras), criar lead imediatamente com status 'new'
+    // ⭐️ PARA CAMPANHAS DE FORMULÁRIO, CRIAR LEAD IMEDIATAMENTE
     if ((type === 'lead' || type === 'contact') && phone) {
-      console.log('📝 Campanha de formulário - Criar lead imediatamente com status NEW');
+      console.log('📝 Campanha de formulário - Criar lead imediatamente');
       
-      // Checa lead duplicado pelo telefone
+      // Verificar se já existe lead para este telefone
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
         .select('id, name')
@@ -249,7 +230,7 @@ export const trackRedirect = async (
         .limit(1);
 
       if (checkError) {
-        console.error('Error checking for existing lead:', checkError);
+        console.error('❌ Error checking for existing lead:', checkError);
       }
 
       if (!existingLead || existingLead.length === 0) {
@@ -273,12 +254,12 @@ export const trackRedirect = async (
           phone,
           campaign: campaign.name,
           campaign_id: campaign.id,
-          status: 'new', // ⭐️ Status inicial como 'new' para formulários
-          utm_source: utms?.utm_source,
-          utm_medium: utms?.utm_medium,
-          utm_campaign: utms?.utm_campaign,
-          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
-          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+          status: 'new',
+          utm_source: utms?.utm_source || '',
+          utm_medium: utms?.utm_medium || '',
+          utm_campaign: utms?.utm_campaign || '',
+          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || '',
+          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
           // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
           location: deviceData?.location || '',
           ip_address: deviceData?.ip_address || '',
@@ -293,7 +274,7 @@ export const trackRedirect = async (
           language: deviceData?.language || ''
         };
         
-        console.log('📝 Salvando novo lead com status NEW e dados do dispositivo:', {
+        console.log('📝 Salvando novo lead de formulário:', {
           nome: leadData.name,
           device_type: leadData.device_type,
           location: leadData.location,
@@ -305,19 +286,16 @@ export const trackRedirect = async (
           .insert(leadData);
 
         if (leadError) {
-          console.error('Error creating lead:', leadError);
+          console.error('❌ Error creating form lead:', leadError);
         } else {
-          console.log('✅ Lead criado com status NEW, UTMs e dados do dispositivo:', leadData);
+          console.log('✅ Lead de formulário criado com sucesso:', leadData);
         }
       } else {
-        console.log('📞 Lead já existe, preservando nome original:', {
+        console.log('📞 Lead já existe, preservando dados originais:', {
           leadId: existingLead[0].id,
           nomeExistente: existingLead[0].name,
           nomeNovo: name
         });
-        
-        // 🔒 NÃO ATUALIZAR O NOME se já existe um lead - preservar o primeiro nome do formulário
-        console.log('🔒 Nome do formulário preservado - lead não duplicado');
       }
     } else {
       console.log("🔎 Não é fluxo de lead/contact ou telefone não informado:", {
@@ -328,7 +306,7 @@ export const trackRedirect = async (
 
     return { targetPhone: campaign.whatsapp_number };
   } catch (error) {
-    console.error('Error tracking redirect:', error);
+    console.error('❌ Error tracking redirect:', error);
     return { targetPhone: '5585998372658' };
   }
 };
