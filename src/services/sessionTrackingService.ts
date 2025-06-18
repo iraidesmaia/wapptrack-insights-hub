@@ -78,8 +78,7 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       utm_medium: utms.utm_medium,
       utm_campaign: utms.utm_campaign,
       utm_content: utms.utm_content,
-      utm_term: utms.utm_term,
-      created_at: new Date().toISOString()
+      utm_term: utms.utm_term
     };
     
     console.log('📊 Dados de tracking preparados:', {
@@ -90,8 +89,26 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       utm_campaign: utms.utm_campaign
     });
     
-    // Salvar na nova tabela tracking_sessions usando rpc para evitar problemas de tipos
-    const { error } = await supabase.rpc('insert_tracking_session', trackingData);
+    // Inserir diretamente na tabela tracking_sessions
+    const { error } = await supabase
+      .from('tracking_sessions')
+      .insert({
+        session_id: trackingData.session_id,
+        browser_fingerprint: trackingData.browser_fingerprint,
+        ip_address: trackingData.ip_address,
+        user_agent: trackingData.user_agent,
+        screen_resolution: trackingData.screen_resolution,
+        language: trackingData.language,
+        timezone: trackingData.timezone,
+        referrer: trackingData.referrer,
+        current_url: trackingData.current_url,
+        campaign_id: trackingData.campaign_id,
+        utm_source: trackingData.utm_source,
+        utm_medium: trackingData.utm_medium,
+        utm_campaign: trackingData.utm_campaign,
+        utm_content: trackingData.utm_content,
+        utm_term: trackingData.utm_term
+      });
     
     if (error) {
       console.error('❌ Erro ao salvar dados de tracking:', error);
@@ -136,12 +153,17 @@ export const getTrackingDataByIdentifiers = async (phone: string) => {
       ip_address: currentIP
     });
     
-    // Buscar por fingerprint, session ou IP nas últimas 4 horas usando uma função RPC
-    const { data: trackingData, error } = await supabase.rpc('get_tracking_by_identifiers', {
-      p_browser_fingerprint: currentBrowserFingerprint,
-      p_session_id: currentSessionId,
-      p_ip_address: currentIP
-    });
+    // Buscar nas últimas 4 horas
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    
+    // Buscar por fingerprint, session ou IP usando query direta
+    const { data: trackingData, error } = await supabase
+      .from('tracking_sessions')
+      .select('*')
+      .gte('created_at', fourHoursAgo)
+      .or(`browser_fingerprint.eq.${currentBrowserFingerprint},session_id.eq.${currentSessionId},ip_address.eq.${currentIP}`)
+      .order('created_at', { ascending: false })
+      .limit(1);
     
     if (error) {
       console.error('❌ Erro ao buscar tracking data:', error);

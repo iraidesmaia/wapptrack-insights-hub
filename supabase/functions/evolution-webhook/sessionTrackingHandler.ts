@@ -31,28 +31,34 @@ export const getTrackingDataBySession = async (supabase: any, deviceData: any): 
     
     // Primeira tentativa: por IP e User Agent
     let trackingData = null;
-    let { data, error } = await supabase
-      .rpc('select_from_tracking_sessions', {
-        where_clause: `ip_address = '${deviceData.ip_address}' AND user_agent = '${deviceData.user_agent?.replace(/'/g, "''")}' AND created_at >= '${fourHoursAgo}'`,
-        order_by: 'created_at DESC',
-        limit_count: 1
-      });
     
-    if (!error && data && data.length > 0) {
-      trackingData = data;
-      console.log('✅ Encontrado por IP + User Agent:', trackingData[0].campaign_id);
+    if (deviceData.ip_address && deviceData.user_agent) {
+      const { data, error } = await supabase
+        .from('tracking_sessions')
+        .select('*')
+        .eq('ip_address', deviceData.ip_address)
+        .eq('user_agent', deviceData.user_agent)
+        .gte('created_at', fourHoursAgo)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (!error && data && data.length > 0) {
+        trackingData = data;
+        console.log('✅ Encontrado por IP + User Agent:', trackingData[0].campaign_id);
+      }
     }
     
     // Segunda tentativa: só por IP se não encontrou
-    if (!trackingData || trackingData.length === 0) {
+    if ((!trackingData || trackingData.length === 0) && deviceData.ip_address) {
       console.log('🔍 Tentando busca apenas por IP...');
       
       const { data: ipData, error: ipError } = await supabase
-        .rpc('select_from_tracking_sessions', {
-          where_clause: `ip_address = '${deviceData.ip_address}' AND created_at >= '${fourHoursAgo}'`,
-          order_by: 'created_at DESC',
-          limit_count: 1
-        });
+        .from('tracking_sessions')
+        .select('*')
+        .eq('ip_address', deviceData.ip_address)
+        .gte('created_at', fourHoursAgo)
+        .order('created_at', { ascending: false })
+        .limit(1);
       
       if (!ipError && ipData && ipData.length > 0) {
         trackingData = ipData;
@@ -65,11 +71,12 @@ export const getTrackingDataBySession = async (supabase: any, deviceData: any): 
       console.log('🔍 Tentando busca por browser fingerprint...');
       
       const { data: fingerprintData, error: fingerprintError } = await supabase
-        .rpc('select_from_tracking_sessions', {
-          where_clause: `browser_fingerprint = '${browserFingerprint}' AND created_at >= '${fourHoursAgo}'`,
-          order_by: 'created_at DESC',
-          limit_count: 1
-        });
+        .from('tracking_sessions')
+        .select('*')
+        .eq('browser_fingerprint', browserFingerprint)
+        .gte('created_at', fourHoursAgo)
+        .order('created_at', { ascending: false })
+        .limit(1);
       
       if (!fingerprintError && fingerprintData && fingerprintData.length > 0) {
         trackingData = fingerprintData;

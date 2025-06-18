@@ -944,6 +944,64 @@ export type Database = {
         Args: { pending_lead_id: string }
         Returns: Json
       }
+      get_tracking_by_identifiers: {
+        Args: {
+          p_browser_fingerprint?: string
+          p_session_id?: string
+          p_ip_address?: string
+        }
+        Returns: {
+          id: string
+          session_id: string
+          browser_fingerprint: string
+          ip_address: string
+          user_agent: string
+          campaign_id: string
+          utm_source: string
+          utm_medium: string
+          utm_campaign: string
+          utm_content: string
+          utm_term: string
+          created_at: string
+        }[]
+      }
+      insert_tracking_session: {
+        Args: {
+          session_id: string
+          browser_fingerprint?: string
+          ip_address?: string
+          user_agent?: string
+          screen_resolution?: string
+          language?: string
+          timezone?: string
+          referrer?: string
+          current_url?: string
+          campaign_id?: string
+          utm_source?: string
+          utm_medium?: string
+          utm_campaign?: string
+          utm_content?: string
+          utm_term?: string
+        }
+        Returns: undefined
+      }
+      select_from_tracking_sessions: {
+        Args: { where_clause?: string; order_by?: string; limit_count?: number }
+        Returns: {
+          id: string
+          session_id: string
+          browser_fingerprint: string
+          ip_address: string
+          user_agent: string
+          campaign_id: string
+          utm_source: string
+          utm_medium: string
+          utm_campaign: string
+          utm_content: string
+          utm_term: string
+          created_at: string
+        }[]
+      }
       update_otp_expiry: {
         Args: Record<PropertyKey, never> | { new_expiry_minutes: number }
         Returns: undefined
