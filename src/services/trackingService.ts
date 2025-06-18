@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 
@@ -92,7 +91,7 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       campaign: pendingLeadData.campaign_name || 'Formulário Direto',
       campaign_id: pendingLeadData.campaign_id,
       user_id: campaignUserId, // ✅ INCLUIR USER_ID DA CAMPANHA
-      status: 'new',
+      status: 'new' as const,
       first_contact_date: new Date().toISOString(),
       notes: 'Lead criado automaticamente a partir de formulário',
       utm_source: pendingLeadData.utm_source,
@@ -110,9 +109,10 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       country: deviceData?.country || '',
       city: deviceData?.city || '',
       screen_resolution: deviceData?.screen_resolution || '',
-      timezone: deviceData?.timezone || '',
+      timezone: deviceData?.timezone || '',  
       language: deviceData?.language || '',
-      custom_fields: deviceData ? { device_info: deviceData } : null
+      // ✅ CORRIGIR TIPO JSON - converter deviceData para JSON compatível
+      custom_fields: deviceData ? JSON.parse(JSON.stringify({ device_info: deviceData })) : null
     };
 
     console.log('💾 Criando lead com user_id da campanha:', newLeadData);
