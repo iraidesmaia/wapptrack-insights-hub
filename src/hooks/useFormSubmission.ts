@@ -37,7 +37,7 @@ export const useFormSubmission = (
       throw new Error('ID da campanha não encontrado');
     }
 
-    console.log('📝 Processing form submission (PUBLIC - NO AUTH REQUIRED)...', {
+    console.log('📝 Processing form submission (PUBLIC + AUTO CONVERSION)...', {
       campaignId,
       phone,
       name,
@@ -121,8 +121,8 @@ export const useFormSubmission = (
     const utms = collectUrlParameters();
     console.log('🌐 UTMs obtidos da URL:', utms);
 
-    // ✅ PROCESSAMENTO PÚBLICO - SEM AUTENTICAÇÃO OBRIGATÓRIA
-    console.log('📱 Processando formulário público via trackRedirect...');
+    // ✅ PROCESSAMENTO PÚBLICO COM CONVERSÃO AUTOMÁTICA
+    console.log('📱 Processando formulário público via trackRedirect com conversão automática...');
     
     try {
       const result = await trackRedirect(
@@ -139,7 +139,7 @@ export const useFormSubmission = (
         }
       );
       
-      console.log('✅ trackRedirect executado com sucesso (modo público):', result);
+      console.log('✅ trackRedirect executado com conversão automática (modo público):', result);
       
       // Get target WhatsApp number
       const targetPhone = result.targetPhone || campaign?.whatsapp_number;
@@ -166,10 +166,10 @@ export const useFormSubmission = (
       
       console.log('↗️ Redirecting to WhatsApp with URL:', whatsappUrl);
       
-      toast.success('Redirecionando para o WhatsApp...');
+      toast.success('Lead salvo! Redirecionando para o WhatsApp...');
       window.location.href = whatsappUrl;
       
-      console.log('✅ WhatsApp redirect initiated (public form)');
+      console.log('✅ WhatsApp redirect initiated (public form with auto conversion)');
     } catch (error) {
       console.error('❌ Error in trackRedirect or WhatsApp redirect:', error);
       throw new Error('Erro ao processar redirecionamento');

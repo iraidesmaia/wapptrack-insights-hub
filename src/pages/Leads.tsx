@@ -10,6 +10,7 @@ import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
+import PendingLeadConverter from '@/components/leads/PendingLeadConverter';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -211,6 +212,8 @@ const Leads = () => {
             </Button>
           </div>
         </div>
+
+        <PendingLeadConverter />
 
         <div className="flex items-center">
           <Input

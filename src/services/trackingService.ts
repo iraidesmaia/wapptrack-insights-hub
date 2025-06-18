@@ -49,8 +49,94 @@ const saveDirectClickUtms = async (
 };
 
 /**
+ * ✅ NOVA FUNÇÃO PARA CONVERSÃO AUTOMÁTICA
+ */
+const convertPendingLeadToLead = async (pendingLeadData: any) => {
+  try {
+    console.log('🔄 Convertendo pending_lead para lead automaticamente:', pendingLeadData);
+
+    // Buscar user_id da campanha
+    let campaignUserId = null;
+    if (pendingLeadData.campaign_id) {
+      const { data: campaign, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('user_id')
+        .eq('id', pendingLeadData.campaign_id)
+        .single();
+
+      if (campaign && !campaignError) {
+        campaignUserId = campaign.user_id;
+        console.log('✅ User ID da campanha encontrado:', campaignUserId);
+      }
+    }
+
+    // Buscar dados do dispositivo
+    const deviceData = await getDeviceDataByPhone(pendingLeadData.phone);
+
+    // Verificar se já existe lead para este telefone
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('phone', pendingLeadData.phone)
+      .limit(1);
+
+    if (existingLead && existingLead.length > 0) {
+      console.log('⚠️ Lead já existe para este telefone, pulando conversão automática');
+      return false;
+    }
+
+    // Criar novo lead com user_id da campanha
+    const newLeadData = {
+      name: pendingLeadData.name,
+      phone: pendingLeadData.phone,
+      campaign: pendingLeadData.campaign_name || 'Formulário Direto',
+      campaign_id: pendingLeadData.campaign_id,
+      user_id: campaignUserId, // ✅ INCLUIR USER_ID DA CAMPANHA
+      status: 'new',
+      first_contact_date: new Date().toISOString(),
+      notes: 'Lead criado automaticamente a partir de formulário',
+      utm_source: pendingLeadData.utm_source,
+      utm_medium: pendingLeadData.utm_medium,
+      utm_campaign: pendingLeadData.utm_campaign,
+      utm_content: pendingLeadData.utm_content,
+      utm_term: pendingLeadData.utm_term,
+      // Incluir dados do dispositivo se disponíveis
+      location: deviceData?.location || '',
+      ip_address: deviceData?.ip_address || '',
+      browser: deviceData?.browser || '',
+      os: deviceData?.os || '',
+      device_type: deviceData?.device_type || '',
+      device_model: deviceData?.device_model || '',
+      country: deviceData?.country || '',
+      city: deviceData?.city || '',
+      screen_resolution: deviceData?.screen_resolution || '',
+      timezone: deviceData?.timezone || '',
+      language: deviceData?.language || '',
+      custom_fields: deviceData ? { device_info: deviceData } : null
+    };
+
+    console.log('💾 Criando lead com user_id da campanha:', newLeadData);
+
+    const { error: insertError } = await supabase
+      .from('leads')
+      .insert(newLeadData);
+
+    if (insertError) {
+      console.error('❌ Erro ao converter pending_lead para lead:', insertError);
+      return false;
+    }
+
+    console.log('✅ Pending lead convertido para lead automaticamente com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro em conversão automática:', error);
+    return false;
+  }
+};
+
+/**
  * Função principal para rastrear redirecionamentos e salvar leads
- * ✅ MODIFICADA PARA FUNCIONAR SEM AUTENTICAÇÃO OBRIGATÓRIA
+ * ✅ MODIFICADA PARA INCLUIR CONVERSÃO AUTOMÁTICA
  */
 export const trackRedirect = async (
   campaignId: string, 
@@ -68,7 +154,7 @@ export const trackRedirect = async (
   }
 ): Promise<{targetPhone?: string}> => {
   try {
-    console.log('➡️ trackRedirect chamado com (MODO PÚBLICO):', {
+    console.log('➡️ trackRedirect chamado com (MODO PÚBLICO + CONVERSÃO AUTOMÁTICA):', {
       campaignId,
       phone,
       name,
@@ -92,7 +178,7 @@ export const trackRedirect = async (
     if (campaignError || !campaign) {
       console.log(`❌ Campaign with ID ${campaignId} not found. Creating default lead.`);
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
         const utmsToSave = {
           utm_source: utms.utm_source,
@@ -104,42 +190,6 @@ export const trackRedirect = async (
         await saveDirectClickUtms(phone, utmsToSave);
       }
       
-      // ✅ CRIAR PENDING LEAD PÚBLICO (sem user_id)
-      if (phone && eventType !== 'whatsapp') {
-        console.log('📝 Criando pending lead público (sem autenticação)');
-        
-        // 🎯 BUSCAR DADOS DO DISPOSITIVO
-        let deviceData = null;
-        if (phone) {
-          console.log('📱 Buscando dados do dispositivo para telefone no fallback:', phone);
-          deviceData = await getDeviceDataByPhone(phone);
-        }
-        
-        const pendingData = {
-          name: name || 'Lead via Tracking',
-          phone,
-          campaign_id: campaignId,
-          campaign_name: "Default Campaign",
-          status: 'pending',
-          utm_source: utms?.utm_source || '',
-          utm_medium: utms?.utm_medium || '',
-          utm_campaign: utms?.utm_campaign || '',
-          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || '',
-          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
-        };
-        
-        console.log('💾 Salvando pending lead público:', pendingData);
-
-        const { error: pendingError } = await supabase
-          .from('pending_leads')
-          .insert(pendingData);
-
-        if (pendingError) {
-          console.error('❌ Error creating public pending lead:', pendingError);
-        } else {
-          console.log('✅ Pending lead público criado com sucesso:', pendingData);
-        }
-      }
       return { targetPhone: '5585998372658' };
     }
 
@@ -199,7 +249,7 @@ export const trackRedirect = async (
           if (pendingLeadError) {
             console.error('❌ Erro ao criar pending_lead público:', pendingLeadError);
           } else {
-            console.log('✅ pending_lead público salva com sucesso:', pendingData);
+            console.log('✅ pending_lead público salvo com sucesso:', pendingData);
           }
         } catch (pendingSaveErr) {
           console.error("❌ Erro ao gravar pending_lead público:", pendingSaveErr);
@@ -209,24 +259,9 @@ export const trackRedirect = async (
       return { targetPhone: campaign.whatsapp_number };
     }
 
-    // ⭐️ PARA CAMPANHAS DE FORMULÁRIO, CRIAR PENDING LEAD (PÚBLICO)
+    // ⭐️ PARA CAMPANHAS DE FORMULÁRIO, CRIAR PENDING LEAD E TENTAR CONVERSÃO AUTOMÁTICA
     if ((type === 'lead' || type === 'contact') && phone) {
-      console.log('📝 Campanha de formulário - Criar pending lead (PÚBLICO)');
-      
-      // 🎯 BUSCAR DADOS DO DISPOSITIVO ANTES DE CRIAR O PENDING LEAD
-      let deviceData = null;
-      if (phone) {
-        console.log('📱 Buscando dados do dispositivo para telefone no trackRedirect:', phone);
-        deviceData = await getDeviceDataByPhone(phone);
-        
-        if (deviceData) {
-          console.log('✅ Dados do dispositivo encontrados no trackRedirect:', {
-            device_type: deviceData.device_type,
-            browser: deviceData.browser,
-            location: deviceData.location
-          });
-        }
-      }
+      console.log('📝 Campanha de formulário - Criar pending lead e tentar conversão automática');
       
       const pendingData = {
         name: name || 'Lead via Tracking',
@@ -243,14 +278,32 @@ export const trackRedirect = async (
       
       console.log('📝 Salvando novo pending lead de formulário (PÚBLICO):', pendingData);
 
-      const { error: pendingError } = await supabase
+      const { data: insertedPendingLead, error: pendingError } = await supabase
         .from('pending_leads')
-        .insert(pendingData);
+        .insert(pendingData)
+        .select()
+        .single();
 
       if (pendingError) {
         console.error('❌ Error creating form pending lead:', pendingError);
       } else {
         console.log('✅ Pending lead de formulário criado com sucesso:', pendingData);
+        
+        // ✅ TENTAR CONVERSÃO AUTOMÁTICA IMEDIATA
+        console.log('🔄 Tentando conversão automática imediata...');
+        const conversionSuccess = await convertPendingLeadToLead(insertedPendingLead);
+        
+        if (conversionSuccess) {
+          console.log('✅ Conversão automática realizada com sucesso!');
+          
+          // Marcar pending_lead como convertido
+          await supabase
+            .from('pending_leads')
+            .update({ status: 'converted' })
+            .eq('id', insertedPendingLead.id);
+        } else {
+          console.log('⚠️ Conversão automática falhou, pending_lead permanece para conversão via webhook');
+        }
       }
     } else {
       console.log("🔎 Não é fluxo de lead/contact ou telefone não informado:", {
@@ -261,7 +314,7 @@ export const trackRedirect = async (
 
     return { targetPhone: campaign.whatsapp_number };
   } catch (error) {
-    console.error('❌ Error tracking redirect (PUBLIC MODE):', error);
+    console.error('❌ Error tracking redirect (PUBLIC MODE WITH AUTO CONVERSION):', error);
     return { targetPhone: '5585998372658' };
   }
 };
