@@ -1,4 +1,3 @@
-
 // Função para coletar parâmetros UTM da URL atual
 export const collectUrlParameters = () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -113,10 +112,13 @@ export const collectSessionData = (): SessionData => {
     localStorage.setItem('visitor_id', visitorId);
   }
   
+  // Use modern performance.now() instead of deprecated navigationStart
+  const pageLoadTime = performance.now();
+  
   return {
     sessionId,
     visitorId,
-    timeOnPage: Date.now() - (window.performance?.navigationStart || 0),
+    timeOnPage: pageLoadTime,
     scrollDepth: Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100) || 0,
     pageViews: parseInt(sessionStorage.getItem('page_views') || '1'),
     engagementScore: calculateEngagementScore(),
@@ -125,13 +127,16 @@ export const collectSessionData = (): SessionData => {
 };
 
 export const collectContextData = (): ContextData => {
+  // Use modern performance timing API
+  const loadTime = performance.now();
+  
   return {
     currentUrl: window.location.href,
     sourceUrl: document.referrer,
     referrer: document.referrer,
     title: document.title,
     path: window.location.pathname,
-    loadTime: window.performance?.loadEventEnd - window.performance?.navigationStart || 0
+    loadTime
   };
 };
 
@@ -208,7 +213,7 @@ function generateVisitorId(): string {
 }
 
 function calculateEngagementScore(): number {
-  const timeOnPage = Date.now() - (window.performance?.navigationStart || 0);
+  const timeOnPage = performance.now();
   const scrollDepth = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100) || 0;
   const clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
   
