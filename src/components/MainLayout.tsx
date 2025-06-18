@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -69,9 +70,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
-        .maybeSingle();
+        .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error loading company settings:', error);
       } else if (data) {
         // Ensure theme is properly typed
@@ -104,6 +105,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     logo: companySettings?.logo_url || defaultCompanyBranding.logo,
     title: companySettings?.company_name || defaultCompanyBranding.title,
     subtitle: companySettings?.company_subtitle || defaultCompanyBranding.subtitle
+  };
+
+  // Get user display name - use email as fallback since Supabase User doesn't have name
+  const getUserDisplayName = () => {
+    return user?.email || 'Usuário';
+  };
+
+  // Get user initial for avatar
+  const getUserInitial = () => {
+    const email = user?.email;
+    return email ? email.charAt(0).toUpperCase() : 'U';
   };
 
   const BrandingSection = ({ isMobile = false }: { isMobile?: boolean }) => (
@@ -184,11 +196,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.name?.[0] || user?.email?.[0] || 'U'}
+                  {getUserInitial()}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.name || user?.email}
+                    {getUserDisplayName()}
                   </p>
                 </div>
               </div>
@@ -242,11 +254,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.name?.[0] || user?.email?.[0] || 'U'}
+                  {getUserInitial()}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.name || user?.email}
+                    {getUserDisplayName()}
                   </p>
                 </div>
               </div>

@@ -66,7 +66,7 @@ export const usePhoneFixer = () => {
         return leadsData;
       } else {
         toast.info('Nenhum número problemático encontrado para correção');
-        // Transform the raw Supabase data to match Lead interface
+        // Transform the raw Supabase data to match Lead interface, handling Json type properly
         const transformedLeads: Lead[] = (allLeads || []).map(lead => ({
           id: lead.id,
           created_at: lead.created_at,
@@ -78,12 +78,40 @@ export const usePhoneFixer = () => {
           notes: lead.notes,
           first_contact_date: lead.first_contact_date,
           last_contact_date: lead.last_contact_date,
-          custom_fields: lead.custom_fields,
+          // Handle Json type properly - convert to Record<string, any> or default to empty object
+          custom_fields: (typeof lead.custom_fields === 'object' && lead.custom_fields !== null) 
+            ? lead.custom_fields as Record<string, any> 
+            : {},
           whatsapp_delivery_attempts: lead.whatsapp_delivery_attempts,
           last_whatsapp_attempt: lead.last_whatsapp_attempt,
           last_message: lead.last_message,
           evolution_message_id: lead.evolution_message_id,
-          evolution_status: lead.evolution_status
+          evolution_status: lead.evolution_status,
+          user_id: lead.user_id,
+          email: lead.email,
+          source: lead.source,
+          lead_score: lead.lead_score,
+          utm_source: lead.utm_source,
+          utm_medium: lead.utm_medium,
+          utm_campaign: lead.utm_campaign,
+          utm_content: lead.utm_content,
+          utm_term: lead.utm_term,
+          location: lead.location,
+          ip_address: lead.ip_address,
+          browser: lead.browser,
+          os: lead.os,
+          device_type: lead.device_type,
+          device_model: lead.device_model,
+          tracking_method: lead.tracking_method,
+          ad_account: lead.ad_account,
+          ad_set_name: lead.ad_set_name,
+          ad_name: lead.ad_name,
+          initial_message: lead.initial_message,
+          country: lead.country,
+          city: lead.city,
+          screen_resolution: lead.screen_resolution,
+          timezone: lead.timezone,
+          language: lead.language
         }));
         return transformedLeads;
       }
