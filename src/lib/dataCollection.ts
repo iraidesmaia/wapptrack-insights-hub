@@ -437,12 +437,12 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
     
     // Importar dinamicamente o serviço para evitar circular dependency
     const { saveDeviceData } = await import('@/services/deviceDataService');
-    const result = await saveDeviceData(completeDeviceData);
     
-    if (result.success) {
-      console.log('✅ Dados do dispositivo salvos com sucesso');
-    } else {
-      console.error('❌ Erro ao salvar dados do dispositivo:', result.error);
+    try {
+      const result = await saveDeviceData(completeDeviceData);
+      console.log('✅ Dados do dispositivo salvos com sucesso:', result);
+    } catch (error) {
+      console.error('❌ Erro ao salvar dados do dispositivo:', error);
     }
     
     return completeDeviceData;
