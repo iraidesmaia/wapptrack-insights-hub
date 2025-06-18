@@ -17,6 +17,8 @@ const getDefaultUtmVariables = () => ({
   utm_campaign: "{{campaign.name}}",
   utm_content: "{{ad.name}}",
   utm_term: "{{placement}}",
+  gclid: "",
+  fbclid: "",
 });
 
 const Campaigns = () => {
@@ -61,6 +63,8 @@ const Campaigns = () => {
     utm_campaign: "",
     utm_content: "",
     utm_term: "",
+    gclid: "",
+    fbclid: "",
   });
   const [showCustomUtm, setShowCustomUtm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -75,6 +79,8 @@ const Campaigns = () => {
         utm_campaign: selectedCampaign.utm_campaign || "{{campaign.name}}",
         utm_content: selectedCampaign.utm_content || "{{ad.name}}",
         utm_term: selectedCampaign.utm_term || "{{placement}}",
+        gclid: "",
+        fbclid: "",
       });
     }
   }, [selectedCampaign]);
@@ -202,7 +208,7 @@ const Campaigns = () => {
     return `${currentUrl}/ir?id=${campaign.id}`;
   };
 
-  // Função para gerar URL com UTMs customizados (para testes, opcional)
+  // Função para gerar URL com UTMs customizados (incluindo gclid e fbclid)
   const getCustomUtmTrackingUrl = (campaign: Campaign, utms: Partial<Record<string, string>>) => {
     const currentUrl = window.location.origin;
     const params = new URLSearchParams();
@@ -212,6 +218,8 @@ const Campaigns = () => {
     if (utms.utm_campaign) params.append("utm_campaign", utms.utm_campaign);
     if (utms.utm_content) params.append("utm_content", utms.utm_content);
     if (utms.utm_term) params.append("utm_term", utms.utm_term);
+    if (utms.gclid) params.append("gclid", utms.gclid);
+    if (utms.fbclid) params.append("fbclid", utms.fbclid);
     return `${currentUrl}/ir?${params.toString()}`;
   };
 
@@ -264,29 +272,41 @@ const Campaigns = () => {
               {showCustomUtm ? "Fechar UTMs customizados" : "Gerar link com UTMs customizados"}
             </Button>
             {showCustomUtm && (
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input className="border px-2 py-1 rounded" placeholder="utm_source"
-                  value={customUtms.utm_source}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_source: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_medium"
-                  value={customUtms.utm_medium}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_medium: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_campaign"
-                  value={customUtms.utm_campaign}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_campaign: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_content"
-                  value={customUtms.utm_content}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_content: e.target.value })}
-                />
-                <input className="border px-2 py-1 rounded" placeholder="utm_term"
-                  value={customUtms.utm_term}
-                  onChange={e => setCustomUtms({ ...customUtms, utm_term: e.target.value })}
-                />
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <input className="border px-2 py-1 rounded" placeholder="utm_source"
+                    value={customUtms.utm_source}
+                    onChange={e => setCustomUtms({ ...customUtms, utm_source: e.target.value })}
+                  />
+                  <input className="border px-2 py-1 rounded" placeholder="utm_medium"
+                    value={customUtms.utm_medium}
+                    onChange={e => setCustomUtms({ ...customUtms, utm_medium: e.target.value })}
+                  />
+                  <input className="border px-2 py-1 rounded" placeholder="utm_campaign"
+                    value={customUtms.utm_campaign}
+                    onChange={e => setCustomUtms({ ...customUtms, utm_campaign: e.target.value })}
+                  />
+                  <input className="border px-2 py-1 rounded" placeholder="utm_content"
+                    value={customUtms.utm_content}
+                    onChange={e => setCustomUtms({ ...customUtms, utm_content: e.target.value })}
+                  />
+                  <input className="border px-2 py-1 rounded" placeholder="utm_term"
+                    value={customUtms.utm_term}
+                    onChange={e => setCustomUtms({ ...customUtms, utm_term: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <input className="border px-2 py-1 rounded" placeholder="gclid (Google Ads)"
+                    value={customUtms.gclid}
+                    onChange={e => setCustomUtms({ ...customUtms, gclid: e.target.value })}
+                  />
+                  <input className="border px-2 py-1 rounded" placeholder="fbclid (Facebook Ads)"
+                    value={customUtms.fbclid}
+                    onChange={e => setCustomUtms({ ...customUtms, fbclid: e.target.value })}
+                  />
+                </div>
                 <Button
-                  className="col-span-1 md:col-span-2"
+                  className="w-full"
                   variant="outline"
                   onClick={() => copyToClipboard(getCustomUtmTrackingUrl(selectedCampaign, customUtms), "Link com UTMs copiado")}
                 >
