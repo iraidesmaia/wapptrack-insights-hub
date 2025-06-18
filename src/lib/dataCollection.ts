@@ -18,6 +18,9 @@ export interface UrlParameters {
   creative_id?: string;
   placement?: string;
   site_source_name?: string;
+  facebook_ad_id?: string;
+  facebook_adset_id?: string;
+  facebook_campaign_id?: string;
 }
 
 export interface DeviceData {
@@ -131,7 +134,7 @@ export const collectUrlParameters = (): UrlParameters => {
     utm_content: allParams.get('utm_content') || undefined,
     utm_term: allParams.get('utm_term') || undefined,
     fbclid: allParams.get('fbclid') || undefined,
-    gclid: allParams.get('gclid') || undefined, // 🎯 ADICIONADO GCLID
+    gclid: allParams.get('gclid') || undefined,
     ttclid: allParams.get('ttclid') || undefined,
     _fbc: allParams.get('_fbc') || localStorage.getItem('_fbc') || undefined,
     _fbp: allParams.get('_fbp') || localStorage.getItem('_fbp') || undefined,
@@ -143,6 +146,9 @@ export const collectUrlParameters = (): UrlParameters => {
     creative_id: allParams.get('creative_id') || undefined,
     placement: allParams.get('placement') || undefined,
     site_source_name: allParams.get('site_source_name') || undefined,
+    facebook_ad_id: allParams.get('facebook_ad_id') || undefined,
+    facebook_adset_id: allParams.get('facebook_adset_id') || undefined,
+    facebook_campaign_id: allParams.get('facebook_campaign_id') || undefined,
   };
 };
 
@@ -399,7 +405,12 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       console.warn('Não foi possível obter dados de geolocalização:', error);
     }
 
-    // 🎯 INCLUIR GCLID NOS PARÂMETROS SALVOS
+    // 🎯 PRIORIZAR PARÂMETROS CORRETOS (sem prefixo primeiro, depois com prefixo)
+    const getFacebookAdId = () => urlParams.ad_id || urlParams.facebook_ad_id;
+    const getFacebookAdsetId = () => urlParams.adset_id || urlParams.facebook_adset_id;
+    const getFacebookCampaignId = () => urlParams.campaign_id || urlParams.facebook_campaign_id;
+
+    // 🎯 INCLUIR TODOS OS PARÂMETROS NOS UTMs SALVOS
     const urlParamsString = [
       urlParams.utm_source ? `utm_source=${urlParams.utm_source}` : '',
       urlParams.utm_medium ? `utm_medium=${urlParams.utm_medium}` : '',
@@ -407,7 +418,10 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       urlParams.utm_content ? `utm_content=${urlParams.utm_content}` : '',
       urlParams.utm_term ? `utm_term=${urlParams.utm_term}` : '',
       urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : '',
-      urlParams.gclid ? `gclid=${urlParams.gclid}` : '', // 🎯 GCLID INCLUÍDO
+      urlParams.gclid ? `gclid=${urlParams.gclid}` : '',
+      getFacebookAdId() ? `ad_id=${getFacebookAdId()}` : '',
+      getFacebookAdsetId() ? `adset_id=${getFacebookAdsetId()}` : '',
+      getFacebookCampaignId() ? `campaign_id=${getFacebookCampaignId()}` : '',
     ].filter(Boolean).join(', ');
 
     // Montar objeto completo para salvar
@@ -429,11 +443,23 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       utm_source: urlParams.utm_source,
       utm_medium: urlParams.utm_medium,
       utm_campaign: urlParams.utm_campaign,
-      utm_content: urlParams.utm_content || (urlParams.gclid ? `gclid=${urlParams.gclid}` : undefined), // 🎯 INCLUIR GCLID
-      utm_term: urlParams.utm_term || (urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : undefined)
+      utm_content: urlParams.utm_content || (urlParams.gclid ? `gclid=${urlParams.gclid}` : undefined),
+      utm_term: urlParams.utm_term || (urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : undefined),
+      // 🎯 INCLUIR PARÂMETROS DO FACEBOOK ADS (PRIORIZANDO FORMATO CORRETO)
+      facebook_ad_id: getFacebookAdId(),
+      facebook_adset_id: getFacebookAdsetId(),
+      facebook_campaign_id: getFacebookCampaignId()
     };
 
-    console.log('📱 Dados do dispositivo coletados com GCLID:', completeDeviceData);
+    console.log('📱 Dados do dispositivo coletados com parâmetros Facebook (ambos formatos):', {
+      ad_id: getFacebookAdId(),
+      facebook_ad_id: urlParams.facebook_ad_id,
+      adset_id: getFacebookAdsetId(),
+      facebook_adset_id: urlParams.facebook_adset_id,
+      campaign_id: getFacebookCampaignId(),
+      facebook_campaign_id: urlParams.facebook_campaign_id,
+      phone: completeDeviceData.phone
+    });
     
     // Importar dinamicamente o serviço para evitar circular dependency
     const { saveDeviceData } = await import('@/services/deviceDataService');

@@ -1,5 +1,4 @@
 
-
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -118,9 +117,21 @@ export const useFormSubmission = (
       }
     }
 
-    // Coleta UTMs atuais da URL
+    // 🎯 COLETA UTMs E PARÂMETROS FACEBOOK ATUALIZADOS (AMBOS FORMATOS)
     const utms = collectUrlParameters();
-    console.log('🌐 UTMs obtidos da URL:', utms);
+    console.log('🌐 UTMs e parâmetros Facebook obtidos da URL (ambos formatos):', {
+      utm_source: utms.utm_source,
+      utm_medium: utms.utm_medium,
+      utm_campaign: utms.utm_campaign,
+      utm_content: utms.utm_content,
+      utm_term: utms.utm_term,
+      ad_id: utms.ad_id,
+      facebook_ad_id: utms.facebook_ad_id,
+      adset_id: utms.adset_id,
+      facebook_adset_id: utms.facebook_adset_id,
+      campaign_id: utms.campaign_id,
+      facebook_campaign_id: utms.facebook_campaign_id
+    });
 
     // ✅ PROCESSAMENTO PÚBLICO COM CONVERSÃO AUTOMÁTICA
     console.log('📱 Processando formulário público via trackRedirect com conversão automática...');
@@ -182,4 +193,3 @@ export const useFormSubmission = (
     updateLeadWhatsAppStatus
   };
 };
-

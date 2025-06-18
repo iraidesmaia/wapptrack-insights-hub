@@ -19,20 +19,37 @@ export interface DeviceDataCapture {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
-  // Novos campos do Facebook Ads
+  // 🎯 PARÂMETROS DO FACEBOOK ADS (SUPORTE A AMBOS OS FORMATOS)
   facebook_ad_id?: string;
   facebook_adset_id?: string;
   facebook_campaign_id?: string;
 }
 
-// 🎯 FUNÇÃO PARA EXTRAIR PARÂMETROS DO FACEBOOK ADS DA URL
+// 🎯 FUNÇÃO ATUALIZADA PARA EXTRAIR PARÂMETROS (AMBOS FORMATOS)
 const extractFacebookAdsParams = () => {
   const urlParams = new URLSearchParams(window.location.search);
   
+  // Priorizar parâmetros sem prefixo, depois com prefixo
+  const getFacebookAdId = () => urlParams.get('ad_id') || urlParams.get('facebook_ad_id') || '';
+  const getFacebookAdsetId = () => urlParams.get('adset_id') || urlParams.get('facebook_adset_id') || '';
+  const getFacebookCampaignId = () => urlParams.get('campaign_id') || urlParams.get('facebook_campaign_id') || '';
+
+  console.log('🎯 Parâmetros Facebook capturados:', {
+    ad_id_found: urlParams.get('ad_id'),
+    facebook_ad_id_found: urlParams.get('facebook_ad_id'),
+    final_ad_id: getFacebookAdId(),
+    adset_id_found: urlParams.get('adset_id'),
+    facebook_adset_id_found: urlParams.get('facebook_adset_id'),
+    final_adset_id: getFacebookAdsetId(),
+    campaign_id_found: urlParams.get('campaign_id'),
+    facebook_campaign_id_found: urlParams.get('facebook_campaign_id'),
+    final_campaign_id: getFacebookCampaignId()
+  });
+  
   return {
-    facebook_ad_id: urlParams.get('ad_id') || '',
-    facebook_adset_id: urlParams.get('adset_id') || '',
-    facebook_campaign_id: urlParams.get('campaign_id') || '' // Este é o campaign_id do Facebook, não o nosso interno
+    facebook_ad_id: getFacebookAdId(),
+    facebook_adset_id: getFacebookAdsetId(),
+    facebook_campaign_id: getFacebookCampaignId()
   };
 };
 
@@ -67,7 +84,7 @@ export const captureDeviceData = async (phone?: string): Promise<DeviceDataCaptu
     referrer: document.referrer,
     // Capturar UTMs da URL atual
     ...extractUtmParams(),
-    // 🎯 CAPTURAR PARÂMETROS DO FACEBOOK ADS
+    // 🎯 CAPTURAR PARÂMETROS DO FACEBOOK ADS (AMBOS FORMATOS)
     ...extractFacebookAdsParams()
   };
 
@@ -92,7 +109,7 @@ export const captureDeviceData = async (phone?: string): Promise<DeviceDataCaptu
     data.city = '';
   }
 
-  console.log('📱 Dados do dispositivo capturados (incluindo Facebook Ads):', {
+  console.log('📱 Dados do dispositivo capturados (suporte a ambos formatos Facebook):', {
     device_type: data.device_type,
     facebook_ad_id: data.facebook_ad_id,
     facebook_adset_id: data.facebook_adset_id,
@@ -111,7 +128,7 @@ export const saveDeviceData = async (deviceData: DeviceDataCapture & { phone?: s
       return null;
     }
 
-    console.log('💾 Salvando dados do dispositivo com parâmetros do Facebook:', {
+    console.log('💾 Salvando dados do dispositivo com parâmetros Facebook (ambos formatos):', {
       phone: deviceData.phone,
       facebook_ad_id: deviceData.facebook_ad_id,
       facebook_adset_id: deviceData.facebook_adset_id,
@@ -140,7 +157,7 @@ export const saveDeviceData = async (deviceData: DeviceDataCapture & { phone?: s
         utm_campaign: deviceData.utm_campaign,
         utm_content: deviceData.utm_content,
         utm_term: deviceData.utm_term,
-        // 🎯 INCLUIR PARÂMETROS DO FACEBOOK ADS
+        // 🎯 SALVAR PARÂMETROS DO FACEBOOK ADS
         facebook_ad_id: deviceData.facebook_ad_id,
         facebook_adset_id: deviceData.facebook_adset_id,
         facebook_campaign_id: deviceData.facebook_campaign_id
@@ -150,7 +167,7 @@ export const saveDeviceData = async (deviceData: DeviceDataCapture & { phone?: s
 
     if (error) throw error;
 
-    console.log('✅ Dados do dispositivo salvos com parâmetros do Facebook:', data);
+    console.log('✅ Dados do dispositivo salvos com parâmetros Facebook (ambos formatos):', data);
     return data;
   } catch (error) {
     console.error('❌ Erro ao salvar dados do dispositivo:', error);
