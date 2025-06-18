@@ -1,6 +1,7 @@
 
 import { getUtmsFromDirectClick } from './utmHandler.ts';
 import { getDeviceDataByPhone } from './deviceDataHandler.ts';
+import { getTrackingDataBySession } from './sessionTrackingHandler.ts';
 import { createPhoneVariations } from './phoneNormalizer.ts';
 
 // 🎯 NOVA FUNÇÃO PARA ENVIAR EVENTO LEAD PARA FACEBOOK
@@ -108,45 +109,86 @@ export const handleDirectLead = async (params: {
                           message.message?.extendedTextMessage?.text || 
                           'Mensagem não disponível';
     
-    // 🎯 TENTAR BUSCAR UTMs DE CLICK DIRETO
-    const directUtms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
-    
-    // 📱 BUSCAR DADOS DO DISPOSITIVO
+    // 📱 BUSCAR DADOS DO DISPOSITIVO PRIMEIRO
     const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
     
-    // 🔍 BUSCAR CAMPANHA PELO utm_campaign E USAR O NOME DA CAMPANHA DO BANCO
+    // 🆕 BUSCAR DADOS DE TRACKING POR CORRELAÇÃO DE SESSÃO
+    let trackingData = null;
+    if (deviceData) {
+      trackingData = await getTrackingDataBySession(supabase, deviceData);
+      console.log('📊 Dados de tracking por correlação:', trackingData);
+    }
+    
+    // 🎯 BUSCAR UTMs DE CLICK DIRETO (método antigo como fallback)
+    const directUtms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
+    
+    // 🔍 DETERMINAR CAMPANHA E UTMs FINAIS
     let campaignName = 'WhatsApp Orgânico';
     let campaignId = null;
     let campaignData = null;
+    let finalUtms = null;
     
-    if (directUtms && directUtms.utm_campaign) {
-      console.log(`🔍 Buscando campanha com utm_campaign: ${directUtms.utm_campaign}`);
+    // Prioridade: tracking por correlação > UTMs diretos
+    if (trackingData && trackingData.campaign_id) {
+      console.log(`🎯 Usando dados de tracking correlacionados - Campaign ID: ${trackingData.campaign_id}`);
       
-      // Buscar campanha pelo utm_campaign no banco de dados
+      // Buscar campanha pelo ID do tracking
+      const { data: campaignById, error: campaignByIdError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', trackingData.campaign_id)
+        .limit(1);
+      
+      if (!campaignByIdError && campaignById && campaignById.length > 0) {
+        campaignData = campaignById[0];
+        campaignName = campaignData.name;
+        campaignId = campaignData.id;
+        finalUtms = {
+          utm_source: trackingData.utm_source,
+          utm_medium: trackingData.utm_medium,
+          utm_campaign: trackingData.utm_campaign,
+          utm_content: trackingData.utm_content,
+          utm_term: trackingData.utm_term
+        };
+        console.log(`✅ Campanha encontrada via tracking correlacionado:`, {
+          campaign_id: campaignId,
+          campaign_name: campaignName,
+          match_type: trackingData.match_type
+        });
+      }
+    }
+    
+    // Fallback para método antigo se não encontrou via correlação
+    if (!campaignData && directUtms && directUtms.utm_campaign) {
+      console.log(`🔍 Fallback: Buscando campanha com utm_campaign: ${directUtms.utm_campaign}`);
+      
       const { data: campaignResult, error: campaignError } = await supabase
         .from('campaigns')
         .select('*')
         .eq('utm_campaign', directUtms.utm_campaign)
         .limit(1);
       
-      if (campaignError) {
-        console.error('❌ Erro ao buscar campanha:', campaignError);
-      } else if (campaignResult && campaignResult.length > 0) {
-        // 🎯 USAR O NOME DA CAMPANHA DO BANCO DE DADOS
+      if (!campaignError && campaignResult && campaignResult.length > 0) {
         campaignData = campaignResult[0];
         campaignName = campaignData.name;
         campaignId = campaignData.id;
-        console.log(`✅ Campanha encontrada no banco:`, {
+        finalUtms = directUtms;
+        console.log(`✅ Campanha encontrada via UTM fallback:`, {
           utm_campaign: directUtms.utm_campaign,
           campaign_name: campaignName,
-          campaign_id: campaignId,
-          conversion_api_enabled: campaignData.conversion_api_enabled
+          campaign_id: campaignId
         });
-      } else {
-        console.log(`❌ Nenhuma campanha encontrada com utm_campaign: ${directUtms.utm_campaign}`);
       }
-    } else {
-      console.log('📋 Nenhum utm_campaign encontrado, usando campanha padrão');
+    }
+    
+    // Se ainda não encontrou, usar padrão
+    if (!finalUtms) {
+      finalUtms = {
+        utm_source: 'whatsapp',
+        utm_medium: 'organic',
+        utm_campaign: 'organic'
+      };
+      console.log('📋 Usando UTMs padrão (orgânico)');
     }
     
     // 🎯 CRIAR VARIAÇÕES DO TELEFONE PARA BUSCA FLEXÍVEL
@@ -175,7 +217,7 @@ export const handleDirectLead = async (params: {
         tem_device_data: !!existingLead[0].device_type
       });
       
-      // 🎯 ATUALIZAR LEAD EXISTENTE - MUDANÇA PRINCIPAL AQUI
+      // 🎯 ATUALIZAR LEAD EXISTENTE
       const updateData: any = {
         last_contact_date: new Date().toISOString(),
         evolution_message_id: message.key?.id,
@@ -186,7 +228,7 @@ export const handleDirectLead = async (params: {
       let shouldSendFacebookEvent = false;
       if (existingLead[0].status === 'new') {
         updateData.status = 'lead';
-        shouldSendFacebookEvent = true; // 🎯 MARCAR PARA ENVIAR EVENTO FACEBOOK
+        shouldSendFacebookEvent = true;
         console.log('🔄 Atualizando status de "new" para "lead" - lead confirmado via WhatsApp');
       }
       
@@ -245,7 +287,7 @@ export const handleDirectLead = async (params: {
             supabase,
             leadData: leadDataForFb,
             campaignData,
-            utms: directUtms,
+            utms: finalUtms,
             deviceData
           });
         }
@@ -254,12 +296,7 @@ export const handleDirectLead = async (params: {
       console.log('🆕 Criando novo lead direto (nenhum lead existente encontrado)...');
       
       // Determinar tipo de lead baseado na presença de UTMs
-      const isDirectClick = !!directUtms;
-      const leadUtms = directUtms || {
-        utm_source: 'whatsapp',
-        utm_medium: isDirectClick ? 'direct' : 'organic',
-        utm_campaign: isDirectClick ? 'direct_click' : 'organic'
-      };
+      const isDirectClick = !!(trackingData || directUtms);
       
       // Criar novo lead direto com primeira mensagem e dados do dispositivo
       const newLeadData = {
@@ -273,12 +310,12 @@ export const handleDirectLead = async (params: {
         last_contact_date: new Date().toISOString(),
         evolution_message_id: message.key?.id,
         evolution_status: message.status,
-        notes: `Lead criado automaticamente via WhatsApp ${isDirectClick ? 'direto' : 'orgânico'}`,
-        utm_source: leadUtms.utm_source,
-        utm_medium: leadUtms.utm_medium,
-        utm_campaign: leadUtms.utm_campaign,
-        utm_content: leadUtms.utm_content,
-        utm_term: leadUtms.utm_term,
+        notes: `Lead criado automaticamente via WhatsApp ${isDirectClick ? 'direto (correlacionado)' : 'orgânico'}`,
+        utm_source: finalUtms.utm_source,
+        utm_medium: finalUtms.utm_medium,
+        utm_campaign: finalUtms.utm_campaign,
+        utm_content: finalUtms.utm_content,
+        utm_term: finalUtms.utm_term,
         // 📱 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
         location: deviceData?.location || '',
         ip_address: deviceData?.ip_address || '',
@@ -294,11 +331,11 @@ export const handleDirectLead = async (params: {
       };
 
       console.log(`🆕 Criando novo lead direto:`, {
-        utm_campaign_do_meta: directUtms?.utm_campaign,
-        nome_campanha_do_banco: campaignName,
+        metodo_atribuicao: trackingData ? 'tracking_correlacionado' : directUtms ? 'utm_direto' : 'organico',
         campaign_id: campaignId,
+        nome_campanha_do_banco: campaignName,
         status: newLeadData.status,
-        utms: leadUtms,
+        utms: finalUtms,
         tem_dados_dispositivo: !!deviceData
       });
 
@@ -319,7 +356,7 @@ export const handleDirectLead = async (params: {
             supabase,
             leadData: insertedLead,
             campaignData,
-            utms: directUtms,
+            utms: finalUtms,
             deviceData
           });
         }

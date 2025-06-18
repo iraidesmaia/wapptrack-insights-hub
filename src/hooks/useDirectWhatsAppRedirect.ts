@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters } from '@/lib/dataCollection';
+import { saveTrackingData } from '@/services/sessionTrackingService';
 
 type UTMVars = {
   utm_source?: string;
@@ -53,11 +54,25 @@ export const useDirectWhatsAppRedirect = (
       const currentUtms = options?.utms || collectUrlParameters();
       console.log('🌐 UTMs para redirecionamento direto:', currentUtms);
 
-      // ✅ SALVAR O REDIRECIONAMENTO DIRETO (PÚBLICO - SEM AUTENTICAÇÃO OBRIGATÓRIA)
+      // 🆕 SALVAR DADOS DE TRACKING COM IDENTIFICADORES ÚNICOS
+      try {
+        const trackingResult = await saveTrackingData(currentUtms, campaignId!);
+        if (trackingResult.success) {
+          console.log('✅ Dados de tracking salvos:', {
+            session_id: trackingResult.session_id,
+            browser_fingerprint: trackingResult.browser_fingerprint,
+            campaign_id: campaignId
+          });
+        }
+      } catch (trackingError) {
+        console.warn('⚠️ Erro ao salvar tracking data, continuando...:', trackingError);
+      }
+
+      // ✅ SALVAR O REDIRECIONAMENTO DIRETO (PÚBLICO - SEM TELEFONE)
       try {
         const result = await trackRedirect(
           campaignId!, 
-          options?.phone || 'Redirecionamento Direto',
+          'Redirecionamento Direto', // Sem telefone ainda
           options?.name || 'Visitante',
           campaignData.event_type,
           currentUtms
