@@ -108,7 +108,7 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
 
     console.log('✅ Nenhum lead existente encontrado, prosseguindo com a criação');
 
-    // Criar novo lead com dados mais robustos
+    // Criar novo lead com dados mais robustos - TIPOS CORRIGIDOS
     const newLeadData = {
       name: pendingLeadData.name || 'Lead Automático',
       phone: pendingLeadData.phone,
@@ -135,8 +135,8 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       screen_resolution: deviceData?.screen_resolution || '',
       timezone: deviceData?.timezone || '',  
       language: deviceData?.language || '',
-      // ✅ INCLUIR CUSTOM_FIELDS APENAS SE DEVICEDATA EXISTIR
-      custom_fields: deviceData ? { device_info: deviceData } : null
+      // ✅ CORRIGIDO: USAR JSON VÁLIDO PARA CUSTOM_FIELDS
+      custom_fields: deviceData ? JSON.parse(JSON.stringify({ device_info: deviceData })) : null
     };
 
     console.log('💾 [CONVERSÃO AUTOMÁTICA] Tentando inserir lead:', {
@@ -147,43 +147,26 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
       tem_device_data: !!deviceData
     });
 
-    // ✅ USAR RPC CALL PARA BYPASS POTENCIAIS PROBLEMAS DE RLS
-    const { data: insertedLead, error: insertError } = await supabase.rpc('create_lead_from_pending', {
-      lead_data: newLeadData
-    });
-
-    // Se RPC não existir, usar insert normal
-    if (insertError && insertError.message?.includes('function')) {
-      console.log('⚠️ RPC não encontrada, usando insert normal');
-      
-      const { data: directInsert, error: directError } = await supabase
-        .from('leads')
-        .insert(newLeadData)
-        .select()
-        .single();
-
-      if (directError) {
-        console.error('❌ [CONVERSÃO AUTOMÁTICA] ERRO DETALHADO ao inserir lead:', {
-          error: directError,
-          code: directError.code,
-          message: directError.message,
-          details: directError.details,
-          hint: directError.hint
-        });
-        console.error('❌ [CONVERSÃO AUTOMÁTICA] DADOS que causaram erro:', newLeadData);
-        return false;
-      }
-
-      console.log('✅ [CONVERSÃO AUTOMÁTICA] Lead criado com sucesso via insert direto:', directInsert?.id);
-      return true;
-    }
+    // ✅ USAR INSERT DIRETO COM TIPOS CORRIGIDOS
+    const { data: insertedLead, error: insertError } = await supabase
+      .from('leads')
+      .insert(newLeadData)
+      .select()
+      .single();
 
     if (insertError) {
-      console.error('❌ [CONVERSÃO AUTOMÁTICA] ERRO via RPC:', insertError);
+      console.error('❌ [CONVERSÃO AUTOMÁTICA] ERRO DETALHADO ao inserir lead:', {
+        error: insertError,
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint
+      });
+      console.error('❌ [CONVERSÃO AUTOMÁTICA] DADOS que causaram erro:', newLeadData);
       return false;
     }
 
-    console.log('✅ [CONVERSÃO AUTOMÁTICA] Lead criado com sucesso via RPC:', insertedLead);
+    console.log('✅ [CONVERSÃO AUTOMÁTICA] Lead criado com sucesso:', insertedLead?.id);
     return true;
   } catch (error) {
     console.error('❌ [CONVERSÃO AUTOMÁTICA] Erro CATCH geral:', {
@@ -358,7 +341,7 @@ export const trackRedirect = async (
         console.log('✅ [FORMULÁRIO] Pending lead criado:', insertedPendingLead.id);
         
         // ✅ AGUARDAR ANTES DA CONVERSÃO PARA GARANTIR COMMIT
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         console.log('🔄 [FORMULÁRIO] Iniciando conversão automática...');
         
