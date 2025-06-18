@@ -78,12 +78,37 @@ export const usePhoneFixer = () => {
           notes: lead.notes,
           first_contact_date: lead.first_contact_date,
           last_contact_date: lead.last_contact_date,
-          custom_fields: lead.custom_fields,
+          // Corrigir custom_fields para aceitar Json
+          custom_fields: (typeof lead.custom_fields === 'object' && lead.custom_fields !== null) 
+            ? lead.custom_fields as Record<string, string>
+            : {},
           whatsapp_delivery_attempts: lead.whatsapp_delivery_attempts,
           last_whatsapp_attempt: lead.last_whatsapp_attempt,
           last_message: lead.last_message,
           evolution_message_id: lead.evolution_message_id,
-          evolution_status: lead.evolution_status
+          evolution_status: lead.evolution_status,
+          // Adicionar novos campos
+          utm_source: lead.utm_source,
+          utm_medium: lead.utm_medium,
+          utm_campaign: lead.utm_campaign,
+          utm_content: lead.utm_content,
+          utm_term: lead.utm_term,
+          location: lead.location,
+          ip_address: lead.ip_address,
+          browser: lead.browser,
+          os: lead.os,
+          device_type: lead.device_type,
+          device_model: lead.device_model,
+          country: lead.country,
+          city: lead.city,
+          screen_resolution: lead.screen_resolution,
+          timezone: lead.timezone,
+          language: lead.language,
+          tracking_method: lead.tracking_method,
+          ad_account: lead.ad_account,
+          ad_set_name: lead.ad_set_name,
+          ad_name: lead.ad_name,
+          initial_message: lead.initial_message
         }));
         return transformedLeads;
       }

@@ -79,20 +79,30 @@ const LeadDetailDialog = ({ lead, isOpen, onClose, onSave, onOpenWhatsApp }: Lea
     }
   };
 
-  // Extrair dados do dispositivo tanto do custom_fields quanto dos novos campos diretos
-  const deviceInfo = lead.custom_fields?.device_info || {
-    ip_address: lead.ip_address,
-    browser: lead.browser,
-    os: lead.os,
-    device_type: lead.device_type,
-    device_model: lead.device_model,
-    location: lead.location,
-    country: lead.country,
-    city: lead.city,
-    screen_resolution: lead.screen_resolution,
-    timezone: lead.timezone,
-    language: lead.language
+  // Corrigir a lógica de device_info
+  const getDeviceInfo = () => {
+    // Se custom_fields.device_info é um objeto, usar ele
+    if (lead.custom_fields?.device_info && typeof lead.custom_fields.device_info === 'object') {
+      return lead.custom_fields.device_info as any;
+    }
+    
+    // Caso contrário, usar os campos diretos do lead
+    return {
+      ip_address: lead.ip_address,
+      browser: lead.browser,
+      os: lead.os,
+      device_type: lead.device_type,
+      device_model: lead.device_model,
+      location: lead.location,
+      country: lead.country,
+      city: lead.city,
+      screen_resolution: lead.screen_resolution,
+      timezone: lead.timezone,
+      language: lead.language
+    };
   };
+
+  const deviceInfo = getDeviceInfo();
 
   // Verificar se há dados de dispositivo válidos
   const hasDeviceData = deviceInfo && (

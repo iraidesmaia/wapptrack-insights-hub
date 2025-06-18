@@ -49,7 +49,7 @@ export interface Campaign {
   utm_term?: string;
   pixel_id?: string;
   whatsapp_number?: string;
-  event_type?: string;
+  event_type?: 'contact' | 'lead' | 'page_view' | 'sale';
   custom_message?: string;
   company_title?: string;
   company_subtitle?: string;
@@ -94,10 +94,10 @@ export interface Sale {
 export interface DashboardStats {
   totalLeads: number;
   monthlyLeads: number;
-  monthlyLeadsTrend?: number;
+  monthlyLeadsTrend?: TrendData;
   confirmedSales: number;
   monthlyRevenue: number;
-  monthlyRevenueTrend?: number;
+  monthlyRevenueTrend?: TrendData;
   pendingConversations: number;
   conversionRate: number;
 }
@@ -121,4 +121,28 @@ export interface TimelineDataPoint {
   leads: number;
   sales: number;
   revenue: number;
+}
+
+export interface TrendData {
+  trend: 'up' | 'down' | 'flat';
+  percentage: number;
+}
+
+export interface MonthlyStats {
+  leads: number;
+  revenue: number;
+  sales: number;
+}
+
+export type Theme = 'light' | 'dark' | 'system';
+
+export interface CompanySettings {
+  id: string;
+  company_name: string;
+  company_subtitle: string;
+  logo_url?: string;
+  theme: Theme;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
