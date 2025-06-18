@@ -1,115 +1,67 @@
+
+import { DashboardStats, CampaignPerformance, MonthlyStats, TimelineDataPoint, TrendData } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
-export const getDashboardStats = async () => {
+export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date): Promise<DashboardStats> => {
   try {
-    // RLS garantirá que apenas dados do usuário logado sejam retornados
-    const { data: leads, error: leadsError } = await supabase
+    const startISO = startDate.toISOString();
+    const endISO = endDate.toISOString();
+
+    // Fetch leads count for the period
+    const { count: periodLeads, error: leadsError } = await supabase
       .from('leads')
-      .select('id, status, created_at');
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startISO)
+      .lte('created_at', endISO);
 
     if (leadsError) throw leadsError;
 
-    const { data: campaigns, error: campaignsError } = await supabase
-      .from('campaigns')
-      .select('id, active');
-
-    if (campaignsError) throw campaignsError;
-
-    const { data: sales, error: salesError } = await supabase
+    // Fetch sales data for the period
+    const { data: salesData, error: salesError } = await supabase
       .from('sales')
-      .select('value, date');
+      .select('value')
+      .gte('date', startISO)
+      .lte('date', endISO);
 
     if (salesError) throw salesError;
 
-    // Calcular estatísticas
-    const totalLeads = leads?.length || 0;
-    const activeCampaigns = campaigns?.filter(c => c.active)?.length || 0;
-    const totalRevenue = sales?.reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
-    const confirmedSales = sales?.length || 0;
-    const conversionRate = totalLeads > 0 ? ((sales?.length || 0) / totalLeads) * 100 : 0;
+    const periodSales = salesData?.length || 0;
+    const periodRevenue = salesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+    const conversionRate = periodLeads > 0 ? periodSales / periodLeads : 0;
 
-    // Leads de hoje
+    // Calculate today's leads
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todaysLeads = leads?.filter(lead => {
-      const leadDate = new Date(lead.created_at);
-      return leadDate >= today;
-    }).length || 0;
-
-    // Conversas pendentes (leads com status 'new' ou 'contacted')
-    const pendingConversations = leads?.filter(lead => 
-      lead.status === 'new' || lead.status === 'contacted'
-    ).length || 0;
-
-    // Leads do mês atual
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthlyLeads = leads?.filter(lead => {
-      const leadDate = new Date(lead.created_at);
-      return leadDate >= startOfMonth;
-    }).length || 0;
-
-    // Receita do mês atual
-    const monthlyRevenue = sales?.filter(sale => {
-      const saleDate = new Date(sale.date);
-      return saleDate >= startOfMonth;
-    }).reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
-
-    return {
-      totalLeads,
-      totalSales: confirmedSales,
-      totalRevenue,
-      conversionRate: parseFloat(conversionRate.toFixed(2)),
-      todaysLeads,
-      confirmedSales,
-      pendingConversations,
-      monthlyLeads,
-      monthlyRevenue
-    };
-  } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    return {
-      totalLeads: 0,
-      totalSales: 0,
-      totalRevenue: 0,
-      conversionRate: 0,
-      todaysLeads: 0,
-      confirmedSales: 0,
-      pendingConversations: 0,
-      monthlyLeads: 0,
-      monthlyRevenue: 0
-    };
-  }
-};
-
-export const getDashboardStatsByPeriod = async (days: number = 30) => {
-  try {
-    const dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - days);
-
-    // RLS garantirá que apenas dados do usuário logado sejam retornados
-    const { data: leads, error: leadsError } = await supabase
+    const { count: todaysLeads, error: todayLeadsError } = await supabase
       .from('leads')
-      .select('id, status, created_at')
-      .gte('created_at', dateFrom.toISOString());
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', today.toISOString());
 
-    if (leadsError) throw leadsError;
+    if (todayLeadsError) throw todayLeadsError;
 
-    const { data: sales, error: salesError } = await supabase
-      .from('sales')
-      .select('value, date')
-      .gte('date', dateFrom.toISOString());
+    // Calculate pending conversations
+    const { count: pendingConversations, error: pendingError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['new', 'contacted']);
 
-    if (salesError) throw salesError;
+    if (pendingError) throw pendingError;
 
-    const totalLeads = leads?.length || 0;
-    const totalSales = sales?.reduce((sum, sale) => sum + (sale.value || 0), 0) || 0;
-    const conversionRate = totalLeads > 0 ? ((sales?.length || 0) / totalLeads) * 100 : 0;
+    // Get monthly stats for trends
+    const monthlyStats = await getMonthlyStats();
 
     return {
-      totalLeads,
-      totalSales,
-      conversionRate: parseFloat(conversionRate.toFixed(2)),
-      period: `${days} dias`
+      totalLeads: periodLeads || 0,
+      totalSales: periodSales,
+      conversionRate,
+      totalRevenue: periodRevenue,
+      todaysLeads: todaysLeads || 0,
+      confirmedSales: periodSales,
+      pendingConversations: pendingConversations || 0,
+      monthlyLeads: monthlyStats.currentMonth.leads,
+      monthlyRevenue: monthlyStats.currentMonth.revenue,
+      monthlyLeadsTrend: monthlyStats.trends.leads,
+      monthlyRevenueTrend: monthlyStats.trends.revenue
     };
   } catch (error) {
     console.error("Error fetching dashboard stats by period:", error);
@@ -117,153 +69,297 @@ export const getDashboardStatsByPeriod = async (days: number = 30) => {
       totalLeads: 0,
       totalSales: 0,
       conversionRate: 0,
-      period: `${days} dias`
+      totalRevenue: 0,
+      todaysLeads: 0,
+      confirmedSales: 0,
+      pendingConversations: 0,
+      monthlyLeads: 0,
+      monthlyRevenue: 0,
+      monthlyLeadsTrend: { trend: 'flat', percentage: 0 },
+      monthlyRevenueTrend: { trend: 'flat', percentage: 0 }
     };
   }
 };
 
-export const getCampaignPerformance = async () => {
+export const getMonthlyStats = async (): Promise<MonthlyStats & { trends: { leads: TrendData; revenue: TrendData; sales: TrendData } }> => {
   try {
-    // RLS garantirá que apenas dados do usuário logado sejam retornados
-    const { data: leads, error: leadsError } = await supabase
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Current month leads
+    const { count: currentLeads, error: currentLeadsError } = await supabase
       .from('leads')
-      .select('campaign, status, created_at');
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', currentMonthStart.toISOString())
+      .lte('created_at', currentMonthEnd.toISOString());
 
-    if (leadsError) throw leadsError;
+    if (currentLeadsError) throw currentLeadsError;
 
-    const { data: sales, error: salesError } = await supabase
+    // Previous month leads
+    const { count: previousLeads, error: previousLeadsError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', previousMonthStart.toISOString())
+      .lte('created_at', previousMonthEnd.toISOString());
+
+    if (previousLeadsError) throw previousLeadsError;
+
+    // Current month sales
+    const { data: currentSalesData, error: currentSalesError } = await supabase
       .from('sales')
-      .select('campaign, value');
+      .select('value')
+      .gte('date', currentMonthStart.toISOString())
+      .lte('date', currentMonthEnd.toISOString());
 
-    if (salesError) throw salesError;
+    if (currentSalesError) throw currentSalesError;
 
-    const campaignStats: Record<string, any> = {};
+    // Previous month sales
+    const { data: previousSalesData, error: previousSalesError } = await supabase
+      .from('sales')
+      .select('value')
+      .gte('date', previousMonthStart.toISOString())
+      .lte('date', previousMonthEnd.toISOString());
 
-    // Agrupar leads por campanha
-    leads?.forEach(lead => {
-      if (!campaignStats[lead.campaign]) {
-        campaignStats[lead.campaign] = {
-          name: lead.campaign,
-          leads: 0,
-          sales: 0,
-          revenue: 0,
-          conversionRate: 0
-        };
+    if (previousSalesError) throw previousSalesError;
+
+    const currentRevenue = currentSalesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+    const previousRevenue = previousSalesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+    const currentSales = currentSalesData?.length || 0;
+    const previousSales = previousSalesData?.length || 0;
+
+    // Calculate trends
+    const leadsTrend = calculateTrend(currentLeads || 0, previousLeads || 0);
+    const revenueTrend = calculateTrend(currentRevenue, previousRevenue);
+    const salesTrend = calculateTrend(currentSales, previousSales);
+
+    return {
+      currentMonth: {
+        leads: currentLeads || 0,
+        revenue: currentRevenue
+      },
+      previousMonth: {
+        leads: previousLeads || 0,
+        revenue: previousRevenue
+      },
+      trends: {
+        leads: leadsTrend,
+        revenue: revenueTrend,
+        sales: salesTrend
       }
-      campaignStats[lead.campaign].leads++;
-    });
-
-    // Agrupar vendas por campanha
-    sales?.forEach(sale => {
-      if (campaignStats[sale.campaign]) {
-        campaignStats[sale.campaign].sales++;
-        campaignStats[sale.campaign].revenue += sale.value || 0;
-      }
-    });
-
-    // Calcular taxa de conversão
-    Object.values(campaignStats).forEach((campaign: any) => {
-      campaign.conversionRate = campaign.leads > 0 
-        ? parseFloat(((campaign.sales / campaign.leads) * 100).toFixed(2))
-        : 0;
-    });
-
-    return Object.values(campaignStats);
+    };
   } catch (error) {
-    console.error("Error fetching campaign performance:", error);
-    return [];
+    console.error("Error fetching monthly stats:", error);
+    return {
+      currentMonth: { leads: 0, revenue: 0 },
+      previousMonth: { leads: 0, revenue: 0 },
+      trends: {
+        leads: { trend: 'flat', percentage: 0 },
+        revenue: { trend: 'flat', percentage: 0 },
+        sales: { trend: 'flat', percentage: 0 }
+      }
+    };
   }
 };
 
-export const getMonthlyStats = async () => {
+export const getTimelineData = async (startDate: Date, endDate: Date): Promise<TimelineDataPoint[]> => {
   try {
-    const currentDate = new Date();
-    const last6Months = [];
+    const data: TimelineDataPoint[] = [];
+    const currentDate = new Date(startDate);
     
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 1);
-      
-      // RLS garantirá que apenas dados do usuário logado sejam retornados
-      const { data: leads, error: leadsError } = await supabase
+    while (currentDate <= endDate) {
+      const dayStart = new Date(currentDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(currentDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      // Get leads for this day
+      const { count: leadsCount, error: leadsError } = await supabase
         .from('leads')
-        .select('id')
-        .gte('created_at', date.toISOString())
-        .lt('created_at', nextMonth.toISOString());
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dayStart.toISOString())
+        .lte('created_at', dayEnd.toISOString());
 
       if (leadsError) throw leadsError;
 
-      const { data: sales, error: salesError } = await supabase
+      // Get sales for this day
+      const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select('value')
-        .gte('date', date.toISOString())
-        .lt('date', nextMonth.toISOString());
+        .gte('date', dayStart.toISOString())
+        .lte('date', dayEnd.toISOString());
 
       if (salesError) throw salesError;
 
-      last6Months.push({
-        month: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-        leads: leads?.length || 0,
-        sales: sales?.length || 0,
-        revenue: sales?.reduce((sum, sale) => sum + (sale.value || 0), 0) || 0
+      const salesCount = salesData?.length || 0;
+      const revenue = salesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+
+      data.push({
+        date: currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        leads: leadsCount || 0,
+        sales: salesCount,
+        revenue
       });
+
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return last6Months;
+    return data;
   } catch (error) {
-    console.error("Error fetching monthly stats:", error);
+    console.error("Error fetching timeline data:", error);
     return [];
   }
 };
 
-export const getTimelineData = async () => {
-  try {
-    const dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - 30);
+const calculateTrend = (current: number, previous: number): TrendData => {
+  if (previous === 0) {
+    return {
+      trend: current > 0 ? 'up' : 'flat',
+      percentage: current > 0 ? 100 : 0
+    };
+  }
 
-    // RLS garantirá que apenas dados do usuário logado sejam retornados
-    const { data: leads, error: leadsError } = await supabase
+  const percentage = ((current - previous) / previous) * 100;
+  
+  return {
+    trend: percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'flat',
+    percentage: Math.abs(percentage)
+  };
+};
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  try {
+    // Fetch total leads count
+    const { count: totalLeads, error: leadsError } = await supabase
       .from('leads')
-      .select('created_at')
-      .gte('created_at', dateFrom.toISOString())
-      .order('created_at');
+      .select('*', { count: 'exact', head: true });
 
     if (leadsError) throw leadsError;
 
-    const { data: sales, error: salesError } = await supabase
+    // Fetch total sales count and revenue
+    const { data: salesData, error: salesError } = await supabase
       .from('sales')
-      .select('date')
-      .gte('date', dateFrom.toISOString())
-      .order('date');
+      .select('value');
 
     if (salesError) throw salesError;
 
-    const timeline: Record<string, any> = {};
+    const totalSales = salesData?.length || 0;
+    const totalRevenue = salesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+    const conversionRate = totalLeads > 0 ? totalSales / totalLeads : 0;
 
-    // Processar leads
-    leads?.forEach(lead => {
-      const date = new Date(lead.created_at).toLocaleDateString('pt-BR');
-      if (!timeline[date]) {
-        timeline[date] = { date, leads: 0, sales: 0 };
-      }
-      timeline[date].leads++;
-    });
+    // Calculate today's leads
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Processar vendas
-    sales?.forEach(sale => {
-      const date = new Date(sale.date).toLocaleDateString('pt-BR');
-      if (!timeline[date]) {
-        timeline[date] = { date, leads: 0, sales: 0 };
-      }
-      timeline[date].sales++;
-    });
+    const { count: todaysLeads, error: todayLeadsError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', today.toISOString());
 
-    return Object.values(timeline).sort((a: any, b: any) => 
-      new Date(a.date.split('/').reverse().join('-')).getTime() - 
-      new Date(b.date.split('/').reverse().join('-')).getTime()
-    );
+    if (todayLeadsError) throw todayLeadsError;
+
+    // Calculate confirmed sales (last 7 days)
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 7);
+
+    const { count: confirmedSales, error: confirmedSalesError } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .gte('date', last7Days.toISOString());
+
+    if (confirmedSalesError) throw confirmedSalesError;
+
+    // Calculate pending conversations
+    const { count: pendingConversations, error: pendingError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['new', 'contacted']);
+
+    if (pendingError) throw pendingError;
+
+    // Get monthly stats for trends
+    const monthlyStats = await getMonthlyStats();
+
+    return {
+      totalLeads: totalLeads || 0,
+      totalSales,
+      conversionRate,
+      totalRevenue,
+      todaysLeads: todaysLeads || 0,
+      confirmedSales: confirmedSales || 0,
+      pendingConversations: pendingConversations || 0,
+      monthlyLeads: monthlyStats.currentMonth.leads,
+      monthlyRevenue: monthlyStats.currentMonth.revenue,
+      monthlyLeadsTrend: monthlyStats.trends.leads,
+      monthlyRevenueTrend: monthlyStats.trends.revenue
+    };
   } catch (error) {
-    console.error("Error fetching timeline data:", error);
+    console.error("Error fetching dashboard stats:", error);
+    return {
+      totalLeads: 0,
+      totalSales: 0,
+      conversionRate: 0,
+      totalRevenue: 0,
+      todaysLeads: 0,
+      confirmedSales: 0,
+      pendingConversations: 0,
+      monthlyLeads: 0,
+      monthlyRevenue: 0,
+      monthlyLeadsTrend: { trend: 'flat', percentage: 0 },
+      monthlyRevenueTrend: { trend: 'flat', percentage: 0 }
+    };
+  }
+};
+
+export const getCampaignPerformance = async (): Promise<CampaignPerformance[]> => {
+  try {
+    const { data: campaigns, error: campaignsError } = await supabase
+      .from('campaigns')
+      .select('*');
+
+    if (campaignsError) throw campaignsError;
+
+    if (!campaigns) return [];
+
+    const performanceData: CampaignPerformance[] = [];
+
+    for (const campaign of campaigns) {
+      const campaignName = campaign.name;
+
+      const { count: leadsCount, error: leadsError } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign', campaignName);
+
+      if (leadsError) throw leadsError;
+
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales')
+        .select('value')
+        .eq('campaign', campaignName);
+
+      if (salesError) throw salesError;
+
+      const salesCount = salesData?.length || 0;
+      const revenue = salesData?.reduce((sum, sale) => sum + sale.value, 0) || 0;
+      
+      performanceData.push({
+        campaignId: campaign.id,
+        campaignName,
+        leads: leadsCount || 0,
+        sales: salesCount,
+        revenue,
+        conversionRate: leadsCount > 0 ? salesCount / leadsCount : 0
+      });
+    }
+
+    return performanceData;
+
+  } catch (error) {
+    console.error("Error fetching campaign performance:", error);
     return [];
   }
 };

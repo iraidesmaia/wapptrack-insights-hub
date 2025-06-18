@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -185,11 +184,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                  {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.email || 'Usuário'}
+                    {user?.name || user?.email}
                   </p>
                 </div>
               </div>
@@ -243,11 +242,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                  {user?.name?.[0] || user?.email?.[0] || 'U'}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.email || 'Usuário'}
+                    {user?.name || user?.email}
                   </p>
                 </div>
               </div>

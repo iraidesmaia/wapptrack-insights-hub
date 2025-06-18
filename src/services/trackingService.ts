@@ -34,8 +34,9 @@ const saveDirectClickUtms = async (
 
     console.log('💾 Salvando UTMs para click direto:', clickData);
 
+    // ✅ USAR QUERY RAW PARA EVITAR ERRO DE TIPOS
     const { error } = await supabase
-      .from('utm_clicks')
+      .from('utm_clicks' as any)
       .insert(clickData);
 
     if (error) {

@@ -15,7 +15,6 @@ export type Database = {
           advanced_matching_enabled: boolean | null
           auto_create_leads: boolean | null
           cancellation_keywords: string[] | null
-          client_id: string | null
           company_subtitle: string | null
           company_title: string | null
           conversion_api_enabled: boolean | null
@@ -41,7 +40,6 @@ export type Database = {
           server_side_api_enabled: boolean | null
           test_event_code: string | null
           tracking_domain: string | null
-          user_id: string
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -55,7 +53,6 @@ export type Database = {
           advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
-          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -81,7 +78,6 @@ export type Database = {
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
           tracking_domain?: string | null
-          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -95,7 +91,6 @@ export type Database = {
           advanced_matching_enabled?: boolean | null
           auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
-          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -121,7 +116,6 @@ export type Database = {
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
           tracking_domain?: string | null
-          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -130,140 +124,10 @@ export type Database = {
           webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "campaigns_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_evolution_settings: {
-        Row: {
-          client_id: string
-          created_at: string
-          evolution_api_key: string | null
-          evolution_base_url: string | null
-          evolution_instance_name: string | null
-          id: string
-          updated_at: string
-          user_id: string
-          webhook_callback_url: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-          webhook_callback_url?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-          webhook_callback_url?: string | null
-          webhook_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_evolution_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_variables: {
-        Row: {
-          client_id: string
-          created_at: string
-          description: string | null
-          id: string
-          updated_at: string
-          user_id: string
-          variable_name: string
-          variable_type: string | null
-          variable_value: string | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-          variable_name: string
-          variable_type?: string | null
-          variable_value?: string | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-          variable_name?: string
-          variable_type?: string | null
-          variable_value?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_variables_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clients: {
-        Row: {
-          active: boolean
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          updated_at?: string
-          user_id?: string
-        }
         Relationships: []
       }
       company_settings: {
         Row: {
-          client_id: string | null
           company_name: string
           company_subtitle: string
           created_at: string
@@ -271,10 +135,8 @@ export type Database = {
           logo_url: string | null
           theme: string | null
           updated_at: string
-          user_id: string
         }
         Insert: {
-          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
@@ -282,10 +144,8 @@ export type Database = {
           logo_url?: string | null
           theme?: string | null
           updated_at?: string
-          user_id?: string
         }
         Update: {
-          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
@@ -293,17 +153,8 @@ export type Database = {
           logo_url?: string | null
           theme?: string | null
           updated_at?: string
-          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "company_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       device_data: {
         Row: {
@@ -503,7 +354,6 @@ export type Database = {
           campaign: string
           campaign_id: string | null
           city: string | null
-          client_id: string | null
           country: string | null
           created_at: string | null
           custom_fields: Json | null
@@ -528,7 +378,6 @@ export type Database = {
           status: string | null
           timezone: string | null
           tracking_method: string | null
-          user_id: string
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
@@ -544,7 +393,6 @@ export type Database = {
           campaign: string
           campaign_id?: string | null
           city?: string | null
-          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
@@ -569,7 +417,6 @@ export type Database = {
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
-          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -585,7 +432,6 @@ export type Database = {
           campaign?: string
           campaign_id?: string | null
           city?: string | null
-          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
@@ -610,7 +456,6 @@ export type Database = {
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
-          user_id?: string
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
@@ -624,13 +469,6 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -713,48 +551,35 @@ export type Database = {
       sales: {
         Row: {
           campaign: string
-          client_id: string | null
           date: string | null
           id: string
           lead_id: string | null
           lead_name: string
           notes: string | null
           product: string | null
-          user_id: string
           value: number
         }
         Insert: {
           campaign: string
-          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
           lead_name: string
           notes?: string | null
           product?: string | null
-          user_id?: string
           value: number
         }
         Update: {
           campaign?: string
-          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
           lead_name?: string
           notes?: string | null
           product?: string | null
-          user_id?: string
           value?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sales_lead_id_fkey"
             columns: ["lead_id"]
