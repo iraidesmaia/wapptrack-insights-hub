@@ -7,7 +7,6 @@ import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters } from '@/lib/dataCollection';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useFormSubmission = (
   campaignId: string | null,
@@ -38,20 +37,11 @@ export const useFormSubmission = (
       throw new Error('ID da campanha não encontrado');
     }
 
-    // Verificar se usuário está autenticado
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('❌ Usuário não autenticado');
-      toast.error('Você precisa estar logado para enviar formulários');
-      throw new Error('Usuário não autenticado');
-    }
-
-    console.log('📝 Processing form submission...', {
+    console.log('📝 Processing form submission (PUBLIC - NO AUTH REQUIRED)...', {
       campaignId,
       phone,
       name,
-      campaign: campaign?.name,
-      userId: user.id
+      campaign: campaign?.name
     });
 
     // Track enhanced lead event BEFORE processing
@@ -84,7 +74,7 @@ export const useFormSubmission = (
             lead_email: email,
             timestamp: new Date().toISOString(),
             event_type: campaign?.event_type,
-            user_id: user.id
+            user_id: 'public_form' // Identificador para formulários públicos
           };
           
           await sendWebhookData(config.webhook_url, webhookData);
@@ -131,8 +121,8 @@ export const useFormSubmission = (
     const utms = collectUrlParameters();
     console.log('🌐 UTMs obtidos da URL:', utms);
 
-    // ✅ GARANTIR QUE O LEAD SEJA SALVO SEMPRE
-    console.log('📱 Processando via trackRedirect...');
+    // ✅ PROCESSAMENTO PÚBLICO - SEM AUTENTICAÇÃO OBRIGATÓRIA
+    console.log('📱 Processando formulário público via trackRedirect...');
     
     try {
       const result = await trackRedirect(
@@ -149,7 +139,7 @@ export const useFormSubmission = (
         }
       );
       
-      console.log('✅ trackRedirect executado com sucesso:', result);
+      console.log('✅ trackRedirect executado com sucesso (modo público):', result);
       
       // Get target WhatsApp number
       const targetPhone = result.targetPhone || campaign?.whatsapp_number;
@@ -179,7 +169,7 @@ export const useFormSubmission = (
       toast.success('Redirecionando para o WhatsApp...');
       window.location.href = whatsappUrl;
       
-      console.log('✅ WhatsApp redirect initiated');
+      console.log('✅ WhatsApp redirect initiated (public form)');
     } catch (error) {
       console.error('❌ Error in trackRedirect or WhatsApp redirect:', error);
       throw new Error('Erro ao processar redirecionamento');

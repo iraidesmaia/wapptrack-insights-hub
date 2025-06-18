@@ -78,7 +78,6 @@ export const usePhoneFixer = () => {
           notes: lead.notes,
           first_contact_date: lead.first_contact_date,
           last_contact_date: lead.last_contact_date,
-          // Handle Json type properly - convert to Record<string, any> or default to empty object
           custom_fields: (typeof lead.custom_fields === 'object' && lead.custom_fields !== null) 
             ? lead.custom_fields as Record<string, any> 
             : {},
@@ -88,9 +87,10 @@ export const usePhoneFixer = () => {
           evolution_message_id: lead.evolution_message_id,
           evolution_status: lead.evolution_status,
           user_id: lead.user_id,
-          email: lead.email,
-          source: lead.source,
-          lead_score: lead.lead_score,
+          // Usar campos que existem no banco de dados
+          email: '', // Campo não existe no banco, usar string vazia
+          source: '', // Campo não existe no banco, usar string vazia
+          lead_score: 0, // Campo não existe no banco, usar 0
           utm_source: lead.utm_source,
           utm_medium: lead.utm_medium,
           utm_campaign: lead.utm_campaign,
