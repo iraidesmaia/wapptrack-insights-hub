@@ -1,86 +1,97 @@
 
-import { toast } from "sonner";
-
-export const correctPhoneNumber = (phone: string): string => {
-  let correctedPhone = phone;
-
-  console.log(`Corrigindo número: ${phone}`);
-
-  // Caso específico do número problemático
-  if (phone === '5585998732658') {
-    correctedPhone = '558598372658';
-    console.log(`Correção específica aplicada: ${phone} -> ${correctedPhone}`);
-    return correctedPhone;
-  }
-
-  // Remover 9 duplicado em números brasileiros
-  if (phone.startsWith('55') && phone.length === 13) {
-    const withoutCountryCode = phone.slice(2);
-    if (withoutCountryCode.length === 11 && withoutCountryCode[2] === '9' && withoutCountryCode[3] === '9') {
-      correctedPhone = '55' + withoutCountryCode.slice(0, 2) + withoutCountryCode.slice(3);
-      console.log(`Removendo 9 duplicado: ${phone} -> ${correctedPhone}`);
-      return correctedPhone;
-    }
-  }
-
-  return correctedPhone;
-};
-
-export const shouldCorrectPhone = (phone: string): boolean => {
-  return correctPhoneNumber(phone) !== phone;
-};
-
-// Nova função para criar todas as variações de busca de um número
+// Função para criar variações do telefone para busca no banco
 export const createPhoneSearchVariations = (phone: string): string[] => {
-  const originalPhone = phone;
-  const correctedPhone = correctPhoneNumber(phone);
+  const cleanPhone = phone.replace(/\D/g, '');
   const variations = new Set<string>();
   
-  // Adicionar número original e corrigido
-  variations.add(originalPhone);
-  variations.add(correctedPhone);
+  // Adicionar o número original limpo
+  variations.add(cleanPhone);
   
-  // Para cada número (original e corrigido), criar variações
-  [originalPhone, correctedPhone].forEach(num => {
-    // Variação sem código do país (se começar com 55)
-    if (num.startsWith('55') && num.length >= 12) {
-      const withoutCountry = num.slice(2);
-      variations.add(withoutCountry);
-      
-      // Se tem 11 dígitos (DDD + 9 dígitos), tentar sem o 9 extra
-      if (withoutCountry.length === 11 && withoutCountry[2] === '9') {
-        const without9 = withoutCountry.slice(0, 2) + withoutCountry.slice(3);
-        variations.add(without9);
-        variations.add('55' + without9);
-      }
-      
-      // Se tem 10 dígitos (DDD + 8 dígitos), tentar com 9 extra
-      if (withoutCountry.length === 10) {
-        const with9 = withoutCountry.slice(0, 2) + '9' + withoutCountry.slice(2);
-        variations.add(with9);
-        variations.add('55' + with9);
-      }
+  // Se tem 11 dígitos (celular com 9)
+  if (cleanPhone.length === 11) {
+    // Versão sem o 9 (formato antigo)
+    const withoutNine = cleanPhone.slice(0, 2) + cleanPhone.slice(3);
+    variations.add(withoutNine);
+    
+    // Com código do país
+    variations.add('55' + cleanPhone);
+    variations.add('55' + withoutNine);
+  }
+  
+  // Se tem 10 dígitos (celular sem 9 ou fixo)
+  if (cleanPhone.length === 10) {
+    // Versão com o 9 (formato novo para celular)
+    const withNine = cleanPhone.slice(0, 2) + '9' + cleanPhone.slice(2);
+    variations.add(withNine);
+    
+    // Com código do país
+    variations.add('55' + cleanPhone);
+    variations.add('55' + withNine);
+  }
+  
+  // Se tem 13 dígitos (com código do país)
+  if (cleanPhone.length === 13 && cleanPhone.startsWith('55')) {
+    const withoutCountryCode = cleanPhone.slice(2);
+    variations.add(withoutCountryCode);
+    
+    // Se o número sem código tem 11 dígitos
+    if (withoutCountryCode.length === 11) {
+      const withoutNine = withoutCountryCode.slice(0, 2) + withoutCountryCode.slice(3);
+      variations.add(withoutNine);
+      variations.add('55' + withoutNine);
     }
     
-    // Variação com código do país (se não começar com 55)
-    if (!num.startsWith('55')) {
-      variations.add('55' + num);
-      
-      // Se tem 10 dígitos, tentar com 9 extra
-      if (num.length === 10) {
-        const with9 = num.slice(0, 2) + '9' + num.slice(2);
-        variations.add(with9);
-        variations.add('55' + with9);
-      }
-      
-      // Se tem 11 dígitos e terceiro dígito é 9, tentar sem o 9
-      if (num.length === 11 && num[2] === '9') {
-        const without9 = num.slice(0, 2) + num.slice(3);
-        variations.add(without9);
-        variations.add('55' + without9);
-      }
+    // Se o número sem código tem 10 dígitos
+    if (withoutCountryCode.length === 10) {
+      const withNine = withoutCountryCode.slice(0, 2) + '9' + withoutCountryCode.slice(2);
+      variations.add(withNine);
+      variations.add('55' + withNine);
     }
-  });
+  }
+  
+  // Se tem 12 dígitos (com código do país, sem 9)
+  if (cleanPhone.length === 12 && cleanPhone.startsWith('55')) {
+    const withoutCountryCode = cleanPhone.slice(2);
+    variations.add(withoutCountryCode);
+    
+    // Versão com 9
+    const withNine = withoutCountryCode.slice(0, 2) + '9' + withoutCountryCode.slice(2);
+    variations.add(withNine);
+    variations.add('55' + withNine);
+  }
   
   return Array.from(variations);
+};
+
+// Função para verificar se um número precisa de correção
+export const shouldCorrectPhone = (phone: string): boolean => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Números que precisam de correção:
+  // - 10 dígitos iniciando com DDD válido (11-99) e segundo dígito 8 ou 9
+  if (cleanPhone.length === 10) {
+    const ddd = parseInt(cleanPhone.slice(0, 2));
+    const firstDigit = cleanPhone[2];
+    
+    // DDD válido e primeiro dígito do número é 8 ou 9 (indica celular)
+    if (ddd >= 11 && ddd <= 99 && (firstDigit === '8' || firstDigit === '9')) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// Função para corrigir número de telefone
+export const correctPhoneNumber = (phone: string): string => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Se tem 10 dígitos e é celular, adicionar o 9
+  if (shouldCorrectPhone(cleanPhone)) {
+    const ddd = cleanPhone.slice(0, 2);
+    const number = cleanPhone.slice(2);
+    return ddd + '9' + number;
+  }
+  
+  return cleanPhone;
 };
