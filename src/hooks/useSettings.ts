@@ -28,9 +28,12 @@ export const useSettings = () => {
 
   const loadSettings = async () => {
     try {
+      // Usar order by e limit para pegar apenas a primeira configuração
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
@@ -234,27 +237,21 @@ export const useSettings = () => {
         updated_at: new Date().toISOString()
       };
 
-      let result;
-      
-      if (settings && settings.id) {
-        result = await supabase
-          .from('company_settings')
-          .update(updateData)
-          .eq('id', settings.id)
-          .select();
-      } else {
-        result = await supabase
-          .from('company_settings')
-          .insert([updateData])
-          .select();
+      // Usar upsert (INSERT ... ON CONFLICT DO UPDATE) para evitar problemas de constraint
+      const { data, error } = await supabase
+        .from('company_settings')
+        .upsert([updateData], {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        })
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
       }
 
-      if (result.error) {
-        console.error('Supabase error:', result.error);
-        throw result.error;
-      }
-
-      console.log('Settings saved successfully:', result.data);
+      console.log('Settings saved successfully:', data);
       toast.success('Configurações salvas com sucesso!');
       
       await loadSettings();
