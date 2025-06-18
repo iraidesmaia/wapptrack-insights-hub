@@ -1,5 +1,6 @@
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
+import type { ConversionResult } from '@/types/supabase-functions';
 
 /**
  * ✅ NOVA FUNÇÃO PARA SALVAR UTMs DE CLICKS DIRETOS
@@ -71,11 +72,13 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
 
     console.log('📋 [CONVERSÃO AUTOMÁTICA] Resultado da conversão:', result);
 
-    if (result?.success) {
-      console.log('✅ [CONVERSÃO AUTOMÁTICA] Sucesso:', result.message);
+    const typedResult = result as ConversionResult;
+
+    if (typedResult?.success) {
+      console.log('✅ [CONVERSÃO AUTOMÁTICA] Sucesso:', typedResult.message);
       return true;
     } else {
-      console.error('❌ [CONVERSÃO AUTOMÁTICA] Falha na conversão:', result?.error);
+      console.error('❌ [CONVERSÃO AUTOMÁTICA] Falha na conversão:', typedResult?.error);
       return false;
     }
   } catch (error) {
@@ -132,7 +135,7 @@ export const trackRedirect = async (
     if (campaignError || !campaign) {
       console.log(`❌ Campaign with ID ${campaignId} not found. Creating default lead.`);
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      // 🎯 SALVAR UTMS PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
         const utmsToSave = {
           utm_source: utms.utm_source,
@@ -158,7 +161,7 @@ export const trackRedirect = async (
         authenticated: isAuthenticated
       });
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      // 🎯 SALVAR UTMS PARA POSSÍVEL CLICK DIRETO
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
         const utmsToSave = {
           utm_source: utms.utm_source,

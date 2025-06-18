@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { BatchConversionResult } from '@/types/supabase-functions';
 
 export const usePendingLeadConverter = () => {
   const [isConverting, setIsConverting] = useState(false);
@@ -21,7 +22,8 @@ export const usePendingLeadConverter = () => {
 
       console.log('📋 Resultado da conversão:', result);
 
-      const { total_converted, total_errors, details } = result;
+      const typedResult = result as BatchConversionResult;
+      const { total_converted, total_errors, details } = typedResult;
 
       if (total_converted > 0) {
         toast.success(`${total_converted} pending_leads convertidos para leads com sucesso!`);
