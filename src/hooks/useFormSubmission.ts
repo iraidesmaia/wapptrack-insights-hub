@@ -1,4 +1,5 @@
 
+
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -178,6 +179,7 @@ export const useFormSubmission = (
 
   return {
     handleFormSubmit,
-    updateLea dWhatsAppStatus
+    updateLeadWhatsAppStatus
   };
 };
+
