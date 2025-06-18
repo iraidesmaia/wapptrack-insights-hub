@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 
@@ -63,6 +62,8 @@ export const trackRedirect = async (
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
+    gclid?: string // 🎯 ADICIONADO GCLID
+    fbclid?: string // 🎯 ADICIONADO FBCLID
   }
 ): Promise<{targetPhone?: string}> => {
   try {
@@ -85,9 +86,16 @@ export const trackRedirect = async (
     if (campaignError || !campaign) {
       console.log(`Campaign with ID ${campaignId} not found. Using default campaign.`);
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
-        await saveDirectClickUtms(phone, utms);
+        const utmsToSave = {
+          utm_source: utms.utm_source,
+          utm_medium: utms.utm_medium,
+          utm_campaign: utms.utm_campaign,
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+        };
+        await saveDirectClickUtms(phone, utmsToSave);
       }
       
       // Fallback: criar lead genérico se não for redirecionamento direto
@@ -106,7 +114,11 @@ export const trackRedirect = async (
           phone,
           campaign: defaultCampaign,
           status: 'new',
-          ...utms,
+          utm_source: utms?.utm_source,
+          utm_medium: utms?.utm_medium,
+          utm_campaign: utms?.utm_campaign,
+          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
+          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
           // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
           location: deviceData?.location || '',
           ip_address: deviceData?.ip_address || '',
@@ -151,9 +163,16 @@ export const trackRedirect = async (
         utms
       });
       
-      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO
+      // 🎯 SALVAR UTMs PARA POSSÍVEL CLICK DIRETO (incluindo GCLID)
       if (phone && phone !== 'Redirecionamento Direto' && utms) {
-        await saveDirectClickUtms(phone, utms);
+        const utmsToSave = {
+          utm_source: utms.utm_source,
+          utm_medium: utms.utm_medium,
+          utm_campaign: utms.utm_campaign,
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
+        };
+        await saveDirectClickUtms(phone, utmsToSave);
       }
       
       // Para redirect_type: 'whatsapp', salvar em pending_leads COM os UTMs corretos
@@ -187,8 +206,8 @@ export const trackRedirect = async (
             utm_source: utms?.utm_source || null,
             utm_medium: utms?.utm_medium || null,
             utm_campaign: utms?.utm_campaign || null,
-            utm_content: utms?.utm_content || null,
-            utm_term: utms?.utm_term || null,
+            utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : null), // 🎯 GCLID
+            utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : null), // 🎯 FBCLID
             status: 'pending'
           };
           
@@ -255,7 +274,11 @@ export const trackRedirect = async (
           campaign: campaign.name,
           campaign_id: campaign.id,
           status: 'new', // ⭐️ Status inicial como 'new' para formulários
-          ...utms,
+          utm_source: utms?.utm_source,
+          utm_medium: utms?.utm_medium,
+          utm_campaign: utms?.utm_campaign,
+          utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : undefined), // 🎯 GCLID
+          utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : undefined), // 🎯 FBCLID
           // 🎯 INCLUIR DADOS DO DISPOSITIVO SE DISPONÍVEIS
           location: deviceData?.location || '',
           ip_address: deviceData?.ip_address || '',

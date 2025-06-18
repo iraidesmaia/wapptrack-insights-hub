@@ -12,7 +12,7 @@ import Leads from "./pages/Leads";
 import Campaigns from "./pages/Campaigns";
 import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
-import Auth from "./pages/Auth";
+import Login from "./pages/Login";
 import Redirect from "./pages/Redirect";
 import NotFound from "./pages/NotFound";
 
@@ -28,8 +28,7 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/login" element={<Navigate to="/auth" replace />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/ir" element={<Redirect />} />
               
               <Route path="/dashboard" element={

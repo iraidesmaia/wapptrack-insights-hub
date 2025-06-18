@@ -1,7 +1,6 @@
 import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
-import { createPhoneSearchVariations } from "@/lib/phoneCorrection";
 
 export const getLeads = async (): Promise<Lead[]> => {
   try {
@@ -77,116 +76,9 @@ export const getLeads = async (): Promise<Lead[]> => {
   }
 };
 
-export const findLeadByPhoneVariations = async (phone: string): Promise<Lead | null> => {
-  try {
-    console.log('🔍 Buscando lead existente para telefone:', phone);
-    
-    // Criar variações do telefone para busca
-    const phoneVariations = createPhoneSearchVariations(phone);
-    console.log('📞 Variações de telefone para busca:', phoneVariations);
-    
-    // Buscar lead existente com qualquer variação do telefone
-    const { data: existingLead, error } = await supabase
-      .from('leads')
-      .select('*')
-      .in('phone', phoneVariations)
-      .limit(1);
-
-    if (error) {
-      console.error('❌ Erro ao buscar lead existente:', error);
-      return null;
-    }
-
-    if (existingLead && existingLead.length > 0) {
-      const lead = existingLead[0];
-      console.log('✅ Lead existente encontrado:', {
-        id: lead.id,
-        name: lead.name,
-        phone: lead.phone,
-        created_at: lead.created_at
-      });
-      
-      return {
-        id: lead.id,
-        name: lead.name,
-        phone: lead.phone,
-        campaign: lead.campaign,
-        status: lead.status as Lead['status'],
-        created_at: lead.created_at,
-        custom_fields: lead.custom_fields as Record<string, string>,
-        notes: lead.notes,
-        first_contact_date: lead.first_contact_date,
-        last_contact_date: lead.last_contact_date,
-        last_message: lead.last_message || null,
-        utm_source: lead.utm_source || '',
-        utm_medium: lead.utm_medium || '',
-        utm_campaign: lead.utm_campaign || '',
-        utm_content: lead.utm_content || '',
-        utm_term: lead.utm_term || '',
-        location: lead.location || '',
-        ip_address: lead.ip_address || '',
-        browser: lead.browser || '',
-        os: lead.os || '',
-        device_type: lead.device_type || '',
-        device_model: lead.device_model || '',
-        tracking_method: lead.tracking_method || 'direct',
-        ad_account: lead.ad_account || '',
-        ad_set_name: lead.ad_set_name || '',
-        ad_name: lead.ad_name || '',
-        initial_message: lead.initial_message || '',
-        country: lead.country || '',
-        city: lead.city || '',
-        screen_resolution: lead.screen_resolution || '',
-        timezone: lead.timezone || '',
-        language: lead.language || ''
-      };
-    }
-
-    console.log('❌ Nenhum lead existente encontrado para as variações:', phoneVariations);
-    return null;
-  } catch (error) {
-    console.error('❌ Erro ao buscar lead por variações de telefone:', error);
-    return null;
-  }
-};
-
 export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Lead> => {
   try {
     console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone);
-    
-    // 🎯 VERIFICAR SE JÁ EXISTE LEAD COM ESTE TELEFONE
-    const existingLead = await findLeadByPhoneVariations(lead.phone);
-    
-    if (existingLead) {
-      console.log('🔒 Lead já existe, preservando nome original e atualizando apenas dados necessários:', {
-        leadId: existingLead.id,
-        nomeOriginal: existingLead.name,
-        nomeNovo: lead.name,
-        nomePreservado: existingLead.name
-      });
-      
-      // Atualizar apenas last_contact_date e preservar tudo do lead original
-      const { data, error } = await supabase
-        .from('leads')
-        .update({
-          last_contact_date: new Date().toISOString()
-        })
-        .eq('id', existingLead.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Erro ao atualizar lead existente:', error);
-        throw error;
-      }
-
-      console.log('✅ Lead existente atualizado preservando nome original:', {
-        id: data.id,
-        nomePreservado: data.name
-      });
-
-      return existingLead;
-    }
     
     // 🎯 BUSCAR DADOS DO DISPOSITIVO SALVOS PARA ESTE TELEFONE
     let deviceData = null;

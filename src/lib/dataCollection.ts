@@ -1,36 +1,4 @@
-// Função para coletar parâmetros UTM da URL atual
-export const collectUrlParameters = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  return {
-    utm_source: urlParams.get('utm_source') || undefined,
-    utm_medium: urlParams.get('utm_medium') || undefined,
-    utm_campaign: urlParams.get('utm_campaign') || undefined,
-    utm_content: urlParams.get('utm_content') || undefined,
-    utm_term: urlParams.get('utm_term') || undefined,
-    fbclid: urlParams.get('fbclid') || undefined,
-    gclid: urlParams.get('gclid') || undefined,
-    ttclid: urlParams.get('ttclid') || undefined
-  };
-};
-
-// Função para coletar dados da URL para tracking
-export const collectTrackingData = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  return {
-    utm_source: urlParams.get('utm_source'),
-    utm_medium: urlParams.get('utm_medium'), 
-    utm_campaign: urlParams.get('utm_campaign'),
-    utm_content: urlParams.get('utm_content'),
-    utm_term: urlParams.get('utm_term'),
-    gclid: urlParams.get('gclid'),
-    fbclid: urlParams.get('fbclid'),
-    referrer: document.referrer
-  };
-};
-
-// Tipos para tracking avançado
+// Comprehensive data collection utilities for maximum tracking
 export interface UrlParameters {
   utm_source?: string;
   utm_medium?: string;
@@ -40,191 +8,533 @@ export interface UrlParameters {
   fbclid?: string;
   gclid?: string;
   ttclid?: string;
+  _fbc?: string;
+  _fbp?: string;
+  ref?: string;
+  source?: string;
+  campaign_id?: string;
+  ad_id?: string;
+  adset_id?: string;
+  creative_id?: string;
+  placement?: string;
+  site_source_name?: string;
 }
 
 export interface DeviceData {
   userAgent: string;
-  deviceType: string;
+  platform: string;
+  deviceType: 'mobile' | 'tablet' | 'desktop';
   browserName: string;
+  browserVersion: string;
   operatingSystem: string;
   screenResolution: string;
-  language: string;
+  screenWidth: number;
+  screenHeight: number;
+  windowWidth: number;
+  windowHeight: number;
+  colorDepth: number;
+  pixelRatio: number;
   timezone: string;
+  language: string;
+  languages: string[];
+  cookieEnabled: boolean;
+  onlineStatus: boolean;
+  connectionType?: string;
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
 }
 
 export interface SessionData {
   sessionId: string;
   visitorId: string;
+  startTime: number;
+  currentTime: number;
   timeOnPage: number;
-  scrollDepth: number;
   pageViews: number;
-  engagementScore: number;
+  scrollDepth: number;
+  maxScrollDepth: number;
   clickCount: number;
+  formInteractions: number;
+  mouseMovements: number;
+  keystrokes: number;
+  idleTime: number;
+  engagementScore: number;
+}
+
+export interface GeolocationData {
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+  country?: string;
+  region?: string;
+  city?: string;
+  timezone?: string;
+  ipAddress?: string;
 }
 
 export interface ContextData {
-  currentUrl: string;
-  sourceUrl: string;
   referrer: string;
+  sourceUrl: string;
+  currentUrl: string;
   title: string;
+  domain: string;
   path: string;
+  hash: string;
+  search: string;
+  timestamp: number;
   loadTime: number;
+  domReady: number;
+  firstPaint?: number;
+  firstContentfulPaint?: number;
+  largestContentfulPaint?: number;
+  cumulativeLayoutShift?: number;
+  firstInputDelay?: number;
 }
 
 export interface FacebookData {
   fbc?: string;
   fbp?: string;
-  advancedMatchingData?: Record<string, any>;
+  fbclid?: string;
+  eventId?: string;
+  clickId?: string;
+  browserId?: string;
+  sessionId?: string;
+  advancedMatchingData?: {
+    email?: string;
+    phone?: string;
+    firstName?: string;
+    lastName?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    dateOfBirth?: string;
+    gender?: string;
+  };
 }
 
-export interface GeolocationData {
-  latitude: number;
-  longitude: number;
-  country: string;
-  region: string;
-  city: string;
-  ipAddress: string;
-}
+// URL Parameter Collection
+export const collectUrlParameters = (): UrlParameters => {
+  const params = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.substring(1);
+  const hashParams = new URLSearchParams(hash);
+  
+  const allParams = new URLSearchParams();
+  params.forEach((value, key) => allParams.set(key, value));
+  hashParams.forEach((value, key) => allParams.set(key, value));
+  
+  return {
+    utm_source: allParams.get('utm_source') || undefined,
+    utm_medium: allParams.get('utm_medium') || undefined,
+    utm_campaign: allParams.get('utm_campaign') || undefined,
+    utm_content: allParams.get('utm_content') || undefined,
+    utm_term: allParams.get('utm_term') || undefined,
+    fbclid: allParams.get('fbclid') || undefined,
+    gclid: allParams.get('gclid') || undefined, // 🎯 ADICIONADO GCLID
+    ttclid: allParams.get('ttclid') || undefined,
+    _fbc: allParams.get('_fbc') || localStorage.getItem('_fbc') || undefined,
+    _fbp: allParams.get('_fbp') || localStorage.getItem('_fbp') || undefined,
+    ref: allParams.get('ref') || undefined,
+    source: allParams.get('source') || undefined,
+    campaign_id: allParams.get('campaign_id') || undefined,
+    ad_id: allParams.get('ad_id') || undefined,
+    adset_id: allParams.get('adset_id') || undefined,
+    creative_id: allParams.get('creative_id') || undefined,
+    placement: allParams.get('placement') || undefined,
+    site_source_name: allParams.get('site_source_name') || undefined,
+  };
+};
 
-// Implementações das funções
+// Device Data Collection
 export const collectDeviceData = (): DeviceData => {
   const userAgent = navigator.userAgent;
   
+  const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
+    if (/tablet|ipad|playbook|silk/i.test(userAgent)) return 'tablet';
+    if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(userAgent)) return 'mobile';
+    return 'desktop';
+  };
+
+  const getBrowserInfo = () => {
+    let browserName = 'Unknown';
+    let browserVersion = 'Unknown';
+    
+    if (userAgent.includes('Chrome')) {
+      browserName = 'Chrome';
+      const match = userAgent.match(/Chrome\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (userAgent.includes('Firefox')) {
+      browserName = 'Firefox';
+      const match = userAgent.match(/Firefox\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      browserName = 'Safari';
+      const match = userAgent.match(/Safari\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (userAgent.includes('Edge')) {
+      browserName = 'Edge';
+      const match = userAgent.match(/Edge\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    }
+    
+    return { browserName, browserVersion };
+  };
+
+  const getOperatingSystem = (): string => {
+    if (userAgent.includes('Windows NT 10.0')) return 'Windows 10';
+    if (userAgent.includes('Windows NT 6.3')) return 'Windows 8.1';
+    if (userAgent.includes('Windows NT 6.2')) return 'Windows 8';
+    if (userAgent.includes('Windows NT 6.1')) return 'Windows 7';
+    if (userAgent.includes('Windows')) return 'Windows';
+    if (userAgent.includes('Mac OS X')) {
+      const match = userAgent.match(/Mac OS X (\d+[._]\d+)/);
+      return match ? `macOS ${match[1].replace('_', '.')}` : 'macOS';
+    }
+    if (userAgent.includes('Linux')) return 'Linux';
+    if (userAgent.includes('Android')) {
+      const match = userAgent.match(/Android (\d+[._]\d+)/);
+      return match ? `Android ${match[1].replace('_', '.')}` : 'Android';
+    }
+    if (userAgent.includes('iOS')) return 'iOS';
+    return 'Unknown';
+  };
+
+  const getConnectionInfo = () => {
+    // @ts-ignore - experimental API
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return {
+      connectionType: connection?.type || 'unknown',
+      effectiveType: connection?.effectiveType || 'unknown',
+      downlink: connection?.downlink || 0,
+      rtt: connection?.rtt || 0,
+    };
+  };
+
+  const { browserName, browserVersion } = getBrowserInfo();
+  const connectionInfo = getConnectionInfo();
+
   return {
     userAgent,
-    deviceType: /Mobile|Android|iPhone|iPad/.test(userAgent) ? 'mobile' : 'desktop',
-    browserName: getBrowserName(userAgent),
-    operatingSystem: getOperatingSystem(userAgent),
+    platform: navigator.platform,
+    deviceType: getDeviceType(),
+    browserName,
+    browserVersion,
+    operatingSystem: getOperatingSystem(),
     screenResolution: `${screen.width}x${screen.height}`,
+    screenWidth: screen.width,
+    screenHeight: screen.height,
+    windowWidth: window.innerWidth,
+    windowHeight: window.innerHeight,
+    colorDepth: screen.colorDepth,
+    pixelRatio: window.devicePixelRatio,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     language: navigator.language,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    languages: navigator.languages ? Array.from(navigator.languages) : [navigator.language],
+    cookieEnabled: navigator.cookieEnabled,
+    onlineStatus: navigator.onLine,
+    connectionType: connectionInfo.connectionType,
+    effectiveType: connectionInfo.effectiveType,
+    downlink: connectionInfo.downlink,
+    rtt: connectionInfo.rtt,
   };
 };
 
+// Session Data Collection
 export const collectSessionData = (): SessionData => {
+  const startTime = parseInt(sessionStorage.getItem('session_start_time') || Date.now().toString());
+  const currentTime = Date.now();
   const sessionId = sessionStorage.getItem('session_id') || generateSessionId();
   const visitorId = localStorage.getItem('visitor_id') || generateVisitorId();
   
-  if (!sessionStorage.getItem('session_id')) {
-    sessionStorage.setItem('session_id', sessionId);
+  // Store session start time if not exists
+  if (!sessionStorage.getItem('session_start_time')) {
+    sessionStorage.setItem('session_start_time', startTime.toString());
   }
-  if (!localStorage.getItem('visitor_id')) {
-    localStorage.setItem('visitor_id', visitorId);
-  }
-  
-  // Use modern performance.now() instead of deprecated navigationStart
-  const pageLoadTime = performance.now();
-  
+
+  const scrollDepth = Math.round((window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1)) * 100);
+  const maxScrollDepth = Math.max(
+    parseInt(sessionStorage.getItem('max_scroll_depth') || '0'),
+    scrollDepth
+  );
+  sessionStorage.setItem('max_scroll_depth', maxScrollDepth.toString());
+
+  const clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
+  const pageViews = parseInt(sessionStorage.getItem('page_views') || '1');
+  const formInteractions = parseInt(sessionStorage.getItem('form_interactions') || '0');
+
   return {
     sessionId,
     visitorId,
-    timeOnPage: pageLoadTime,
-    scrollDepth: Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100) || 0,
-    pageViews: parseInt(sessionStorage.getItem('page_views') || '1'),
-    engagementScore: calculateEngagementScore(),
-    clickCount: parseInt(sessionStorage.getItem('click_count') || '0')
+    startTime,
+    currentTime,
+    timeOnPage: Math.round((currentTime - startTime) / 1000),
+    pageViews,
+    scrollDepth,
+    maxScrollDepth,
+    clickCount,
+    formInteractions,
+    mouseMovements: parseInt(sessionStorage.getItem('mouse_movements') || '0'),
+    keystrokes: parseInt(sessionStorage.getItem('keystrokes') || '0'),
+    idleTime: parseInt(sessionStorage.getItem('idle_time') || '0'),
+    engagementScore: calculateEngagementScore(maxScrollDepth, clickCount, currentTime - startTime),
   };
 };
 
+// Context Data Collection
 export const collectContextData = (): ContextData => {
-  // Use modern performance timing API
-  const loadTime = performance.now();
-  
+  const loadTime = performance.timing ? 
+    performance.timing.loadEventEnd - performance.timing.navigationStart : 0;
+  const domReady = performance.timing ? 
+    performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart : 0;
+
+  // Performance metrics
+  let perfMetrics = {};
+  if ('getEntriesByType' in performance) {
+    const paintEntries = performance.getEntriesByType('paint');
+    const navigationEntries = performance.getEntriesByType('navigation');
+    
+    perfMetrics = {
+      firstPaint: paintEntries.find(entry => entry.name === 'first-paint')?.startTime,
+      firstContentfulPaint: paintEntries.find(entry => entry.name === 'first-contentful-paint')?.startTime,
+    };
+  }
+
   return {
-    currentUrl: window.location.href,
-    sourceUrl: document.referrer,
     referrer: document.referrer,
+    sourceUrl: window.location.href,
+    currentUrl: window.location.href,
     title: document.title,
+    domain: window.location.hostname,
     path: window.location.pathname,
-    loadTime
+    hash: window.location.hash,
+    search: window.location.search,
+    timestamp: Date.now(),
+    loadTime,
+    domReady,
+    ...perfMetrics,
   };
 };
 
-export const collectFacebookData = (): FacebookData => {
-  const fbc = getCookie('_fbc');
-  const fbp = getCookie('_fbp');
+// Facebook Data Collection
+export const collectFacebookData = (additionalData?: any): FacebookData => {
+  // Get Facebook cookies/parameters
+  const fbc = localStorage.getItem('_fbc') || getCookie('_fbc');
+  const fbp = localStorage.getItem('_fbp') || getCookie('_fbp');
+  const fbclid = new URLSearchParams(window.location.search).get('fbclid');
   
+  // Store Facebook parameters in localStorage for persistence
+  if (fbclid && !fbc) {
+    const fbcValue = `fb.1.${Date.now()}.${fbclid}`;
+    localStorage.setItem('_fbc', fbcValue);
+  }
+  
+  if (!fbp) {
+    const fbpValue = `fb.1.${Date.now()}.${Math.random().toString(36).substring(2)}`;
+    localStorage.setItem('_fbp', fbpValue);
+  }
+
   return {
-    fbc,
-    fbp,
-    advancedMatchingData: {}
+    fbc: fbc || undefined,
+    fbp: fbp || localStorage.getItem('_fbp') || undefined,
+    fbclid: fbclid || undefined,
+    eventId: generateEventId(),
+    clickId: fbclid || undefined,
+    browserId: localStorage.getItem('_fbp') || undefined,
+    sessionId: sessionStorage.getItem('session_id') || undefined,
+    advancedMatchingData: additionalData || undefined,
   };
 };
 
+// Geolocation Data Collection
 export const collectGeolocationData = (): Promise<GeolocationData> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    const defaultData: GeolocationData = {
+      country: 'BR', // Default to Brazil
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'));
+      resolve(defaultData);
       return;
     }
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
+          ...defaultData,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          country: '',
-          region: '',
-          city: '',
-          ipAddress: ''
+          accuracy: position.coords.accuracy,
         });
       },
-      (error) => reject(error)
+      () => {
+        resolve(defaultData);
+      },
+      { timeout: 5000, enableHighAccuracy: false }
     );
   });
 };
 
-export const initializeEventTracking = () => {
-  // Incrementar page views
-  const pageViews = parseInt(sessionStorage.getItem('page_views') || '0') + 1;
-  sessionStorage.setItem('page_views', pageViews.toString());
-  
-  // Track clicks
-  document.addEventListener('click', () => {
-    const clickCount = parseInt(sessionStorage.getItem('click_count') || '0') + 1;
-    sessionStorage.setItem('click_count', clickCount.toString());
-  });
+// Nova função para integrar com o sistema de device_data
+export const captureAndSaveDeviceData = async (phone?: string) => {
+  try {
+    console.log('📱 Capturando dados do dispositivo...');
+    
+    // Coletar todos os dados disponíveis
+    const urlParams = collectUrlParameters();
+    const deviceData = collectDeviceData();
+    const sessionData = collectSessionData();
+    const contextData = collectContextData();
+    const facebookData = collectFacebookData();
+    
+    let locationData: GeolocationData = {
+      country: 'Brasil',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    
+    try {
+      locationData = await collectGeolocationData();
+    } catch (error) {
+      console.warn('Não foi possível obter dados de geolocalização:', error);
+    }
+
+    // 🎯 INCLUIR GCLID NOS PARÂMETROS SALVOS
+    const urlParamsString = [
+      urlParams.utm_source ? `utm_source=${urlParams.utm_source}` : '',
+      urlParams.utm_medium ? `utm_medium=${urlParams.utm_medium}` : '',
+      urlParams.utm_campaign ? `utm_campaign=${urlParams.utm_campaign}` : '',
+      urlParams.utm_content ? `utm_content=${urlParams.utm_content}` : '',
+      urlParams.utm_term ? `utm_term=${urlParams.utm_term}` : '',
+      urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : '',
+      urlParams.gclid ? `gclid=${urlParams.gclid}` : '', // 🎯 GCLID INCLUÍDO
+    ].filter(Boolean).join(', ');
+
+    // Montar objeto completo para salvar
+    const completeDeviceData = {
+      phone,
+      ip_address: 'Detectando...', // Será obtido via API externa
+      user_agent: deviceData.userAgent,
+      browser: deviceData.browserName,
+      os: deviceData.operatingSystem,
+      device_type: deviceData.deviceType,
+      device_model: deviceData.deviceType, // Usar como modelo básico
+      location: locationData.country ? `${locationData.city || 'N/A'}, ${locationData.country}` : 'Não disponível',
+      country: locationData.country || 'Brasil',
+      city: locationData.city || 'Não disponível',
+      referrer: contextData.referrer,
+      screen_resolution: deviceData.screenResolution,
+      timezone: deviceData.timezone,
+      language: deviceData.language,
+      utm_source: urlParams.utm_source,
+      utm_medium: urlParams.utm_medium,
+      utm_campaign: urlParams.utm_campaign,
+      utm_content: urlParams.utm_content || (urlParams.gclid ? `gclid=${urlParams.gclid}` : undefined), // 🎯 INCLUIR GCLID
+      utm_term: urlParams.utm_term || (urlParams.fbclid ? `fbclid=${urlParams.fbclid}` : undefined)
+    };
+
+    console.log('📱 Dados do dispositivo coletados com GCLID:', completeDeviceData);
+    
+    // Importar dinamicamente o serviço para evitar circular dependency
+    const { saveDeviceData } = await import('@/services/deviceDataService');
+    const result = await saveDeviceData(completeDeviceData);
+    
+    if (result.success) {
+      console.log('✅ Dados do dispositivo salvos com sucesso');
+    } else {
+      console.error('❌ Erro ao salvar dados do dispositivo:', result.error);
+    }
+    
+    return completeDeviceData;
+  } catch (error) {
+    console.error('❌ Erro ao capturar e salvar dados do dispositivo:', error);
+    return null;
+  }
 };
 
-// Funções auxiliares
-function getBrowserName(userAgent: string): string {
-  if (userAgent.includes('Chrome')) return 'Chrome';
-  if (userAgent.includes('Firefox')) return 'Firefox';
-  if (userAgent.includes('Safari')) return 'Safari';
-  if (userAgent.includes('Edge')) return 'Edge';
-  return 'Unknown';
-}
+// Utility functions
+export const generateSessionId = (): string => {
+  const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  sessionStorage.setItem('session_id', sessionId);
+  return sessionId;
+};
 
-function getOperatingSystem(userAgent: string): string {
-  if (userAgent.includes('Windows')) return 'Windows';
-  if (userAgent.includes('Mac')) return 'macOS';
-  if (userAgent.includes('Linux')) return 'Linux';
-  if (userAgent.includes('Android')) return 'Android';
-  if (userAgent.includes('iOS')) return 'iOS';
-  return 'Unknown';
-}
+export const generateVisitorId = (): string => {
+  const visitorId = `vis_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  localStorage.setItem('visitor_id', visitorId);
+  return visitorId;
+};
 
-function generateSessionId(): string {
-  return 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-}
+export const generateEventId = (): string => {
+  return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+};
 
-function generateVisitorId(): string {
-  return 'vis_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-}
-
-function calculateEngagementScore(): number {
-  const timeOnPage = performance.now();
-  const scrollDepth = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100) || 0;
-  const clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
-  
-  return Math.min(100, Math.round((timeOnPage / 1000) * 0.1 + scrollDepth * 0.5 + clickCount * 10));
-}
-
-function getCookie(name: string): string | undefined {
+const getCookie = (name: string): string | null => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift();
-  }
-  return undefined;
-}
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+};
+
+const calculateEngagementScore = (scrollDepth: number, clicks: number, timeOnPage: number): number => {
+  let score = 0;
+  
+  // Scroll depth score (0-30 points)
+  score += Math.min(scrollDepth * 0.3, 30);
+  
+  // Click score (0-25 points)
+  score += Math.min(clicks * 5, 25);
+  
+  // Time on page score (0-45 points)
+  const timeMinutes = timeOnPage / 60000;
+  if (timeMinutes > 5) score += 45;
+  else if (timeMinutes > 2) score += 30;
+  else if (timeMinutes > 1) score += 20;
+  else if (timeMinutes > 0.5) score += 10;
+  
+  return Math.round(Math.min(score, 100));
+};
+
+// Initialize event listeners for tracking
+export const initializeEventTracking = () => {
+  let clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
+  let mouseMovements = parseInt(sessionStorage.getItem('mouse_movements') || '0');
+  let keystrokes = parseInt(sessionStorage.getItem('keystrokes') || '0');
+
+  // Track clicks
+  document.addEventListener('click', () => {
+    clickCount++;
+    sessionStorage.setItem('click_count', clickCount.toString());
+  });
+
+  // Track mouse movements (throttled)
+  let mouseMoveThrottle: NodeJS.Timeout;
+  document.addEventListener('mousemove', () => {
+    if (mouseMoveThrottle) return;
+    mouseMoveThrottle = setTimeout(() => {
+      mouseMovements++;
+      sessionStorage.setItem('mouse_movements', mouseMovements.toString());
+      mouseMoveThrottle = null as any;
+    }, 100);
+  });
+
+  // Track keystrokes
+  document.addEventListener('keydown', () => {
+    keystrokes++;
+    sessionStorage.setItem('keystrokes', keystrokes.toString());
+  });
+
+  // Track form interactions
+  document.addEventListener('focus', (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      let formInteractions = parseInt(sessionStorage.getItem('form_interactions') || '0');
+      formInteractions++;
+      sessionStorage.setItem('form_interactions', formInteractions.toString());
+    }
+  }, true);
+
+  // Update page views
+  let pageViews = parseInt(sessionStorage.getItem('page_views') || '0');
+  pageViews++;
+  sessionStorage.setItem('page_views', pageViews.toString());
+};
