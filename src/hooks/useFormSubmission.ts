@@ -7,6 +7,7 @@ import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters } from '@/lib/dataCollection';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useFormSubmission = (
   campaignId: string | null,
@@ -37,11 +38,20 @@ export const useFormSubmission = (
       throw new Error('ID da campanha não encontrado');
     }
 
+    // Verificar se usuário está autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('❌ Usuário não autenticado');
+      toast.error('Você precisa estar logado para enviar formulários');
+      throw new Error('Usuário não autenticado');
+    }
+
     console.log('📝 Processing form submission...', {
       campaignId,
       phone,
       name,
-      campaign: campaign?.name
+      campaign: campaign?.name,
+      userId: user.id
     });
 
     // Track enhanced lead event BEFORE processing
@@ -73,7 +83,8 @@ export const useFormSubmission = (
             lead_phone: phone,
             lead_email: email,
             timestamp: new Date().toISOString(),
-            event_type: campaign?.event_type
+            event_type: campaign?.event_type,
+            user_id: user.id
           };
           
           await sendWebhookData(config.webhook_url, webhookData);

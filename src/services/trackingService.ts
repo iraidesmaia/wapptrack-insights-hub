@@ -75,6 +75,13 @@ export const trackRedirect = async (
       utms
     });
 
+    // Verificar se usuário está autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('⚠️ Usuário não autenticado, continuando sem salvar lead');
+      return { targetPhone: '5585998372658' };
+    }
+
     // Busca a campanha por ID
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -114,6 +121,7 @@ export const trackRedirect = async (
           phone,
           campaign: defaultCampaign,
           status: 'new',
+          user_id: user.id,
           utm_source: utms?.utm_source || '',
           utm_medium: utms?.utm_medium || '',
           utm_campaign: utms?.utm_campaign || '',
@@ -137,6 +145,7 @@ export const trackRedirect = async (
           nome: leadData.name,
           device_type: leadData.device_type,
           location: leadData.location,
+          user_id: leadData.user_id,
           tem_dados_dispositivo: !!deviceData
         });
 
@@ -222,11 +231,12 @@ export const trackRedirect = async (
     if ((type === 'lead' || type === 'contact') && phone) {
       console.log('📝 Campanha de formulário - Criar lead imediatamente');
       
-      // Verificar se já existe lead para este telefone
+      // Verificar se já existe lead para este telefone do mesmo usuário
       const { data: existingLead, error: checkError } = await supabase
         .from('leads')
         .select('id, name')
         .eq('phone', phone)
+        .eq('user_id', user.id)
         .limit(1);
 
       if (checkError) {
@@ -255,6 +265,7 @@ export const trackRedirect = async (
           campaign: campaign.name,
           campaign_id: campaign.id,
           status: 'new',
+          user_id: user.id,
           utm_source: utms?.utm_source || '',
           utm_medium: utms?.utm_medium || '',
           utm_campaign: utms?.utm_campaign || '',
@@ -278,6 +289,7 @@ export const trackRedirect = async (
           nome: leadData.name,
           device_type: leadData.device_type,
           location: leadData.location,
+          user_id: leadData.user_id,
           tem_dados_dispositivo: !!deviceData
         });
 

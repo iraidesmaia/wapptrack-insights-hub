@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name?: string;
@@ -18,10 +19,10 @@ export interface Lead {
   notes?: string;
   first_contact_date?: string;
   last_contact_date?: string;
-  custom_fields?: any;
+  custom_fields?: Record<string, any>;
   whatsapp_delivery_attempts?: number;
   last_whatsapp_attempt?: string;
-  last_message?: string;
+  last_message?: string | null;
   lead_score?: number;
   utm_source?: string;
   utm_medium?: string;
@@ -49,6 +50,8 @@ export interface Lead {
   // Campos Evolution API
   evolution_message_id?: string;
   evolution_status?: string;
+  // Campo de usuário para RLS
+  user_id?: string;
 }
 
 export interface Campaign {
@@ -83,6 +86,8 @@ export interface Campaign {
   data_processing_options?: string[];
   data_processing_options_country?: number;
   data_processing_options_state?: number;
+  // Campo de usuário para RLS
+  user_id?: string;
 }
 
 export interface Sale {
@@ -98,6 +103,8 @@ export interface Sale {
   status?: string;
   notes?: string;
   campaign: string;
+  // Campo de usuário para RLS
+  user_id?: string;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -110,6 +117,7 @@ export interface CompanySettings {
   theme?: Theme;
   created_at?: string;
   updated_at?: string;
+  user_id?: string;
 }
 
 export interface DateRange {

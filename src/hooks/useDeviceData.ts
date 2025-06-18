@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { captureDeviceData, saveDeviceData, type DeviceDataCapture } from '@/services/deviceDataService';
 
-export const useDeviceData = () => {
+export const useDeviceData = (phone?: string) => {
   const [deviceData, setDeviceData] = useState<DeviceDataCapture | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -11,8 +11,14 @@ export const useDeviceData = () => {
     const loadDeviceData = async () => {
       setIsLoading(true);
       try {
-        const data = await captureDeviceData();
+        const data = await captureDeviceData(phone);
         setDeviceData(data);
+        
+        // Salvar automaticamente se tiver telefone
+        if (phone) {
+          await saveDeviceData(data);
+          console.log('📱 Dados do dispositivo capturados e salvos automaticamente para:', phone);
+        }
       } catch (error) {
         console.error('Erro ao capturar dados do dispositivo:', error);
       } finally {
@@ -21,16 +27,16 @@ export const useDeviceData = () => {
     };
 
     loadDeviceData();
-  }, []);
+  }, [phone]);
 
   // Função para capturar e salvar dados com telefone
-  const captureAndSave = async (phone?: string) => {
+  const captureAndSave = async (phoneNumber?: string) => {
     setIsLoading(true);
     try {
-      const data = await captureDeviceData(phone);
+      const data = await captureDeviceData(phoneNumber);
       setDeviceData(data);
       
-      if (phone) {
+      if (phoneNumber) {
         await saveDeviceData(data);
       }
       
