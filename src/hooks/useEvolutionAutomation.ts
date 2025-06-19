@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -33,6 +34,7 @@ export const useEvolutionAutomation = () => {
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<EvolutionAutoInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [lastConnectionStatus, setLastConnectionStatus] = useState<string | null>(null);
 
   const cleanInstanceName = (companyName: string): string => {
     return companyName
@@ -84,6 +86,47 @@ export const useEvolutionAutomation = () => {
     
     return null;
   };
+
+  const resetInstanceState = useCallback(() => {
+    console.log('Resetando estado da instância para configuração inicial');
+    setInstance(null);
+    setQrCode(null);
+    setLastConnectionStatus(null);
+  }, []);
+
+  const deleteInstanceFromDatabase = useCallback(async (instanceId: string) => {
+    try {
+      console.log('Deletando instância do banco:', instanceId);
+      const { error } = await supabase
+        .from('evolution_auto_instances')
+        .delete()
+        .eq('id', instanceId);
+
+      if (error) {
+        console.error('Erro ao deletar instância:', error);
+        return false;
+      }
+
+      console.log('Instância deletada com sucesso do banco');
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar instância:', error);
+      return false;
+    }
+  }, []);
+
+  const handleDisconnection = useCallback(async (currentInstance: EvolutionAutoInstance) => {
+    console.log('Instância desconectada, resetando para configuração inicial');
+    
+    // Deletar a instância do banco de dados
+    const deleted = await deleteInstanceFromDatabase(currentInstance.id);
+    
+    if (deleted) {
+      // Resetar todo o estado local
+      resetInstanceState();
+      toast.info('Instância desconectada. Configure uma nova instância.');
+    }
+  }, [deleteInstanceFromDatabase, resetInstanceState]);
 
   const createAutomaticInstance = async (client_id?: string) => {
     setLoading(true);
@@ -152,6 +195,7 @@ export const useEvolutionAutomation = () => {
 
       setInstance(savedInstance);
       setQrCode(extractedQrCode);
+      setLastConnectionStatus(savedInstance.connection_status);
       
       toast.success('Instância Evolution criada com sucesso via n8n!');
       
@@ -176,6 +220,63 @@ export const useEvolutionAutomation = () => {
     }
   };
 
+  const generateNewQrCode = useCallback(async () => {
+    if (!instance) return;
+
+    setLoading(true);
+    try {
+      console.log('Gerando novo QR code para instância:', instance.instance_name);
+
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instanceName: instance.instance_name
+        })
+      });
+
+      if (!n8nResponse.ok) {
+        throw new Error(`Falha ao gerar novo QR: ${n8nResponse.status}`);
+      }
+
+      const n8nData: N8nWebhookResponse = await n8nResponse.json();
+      
+      if (!n8nData.success) {
+        throw new Error(n8nData.error || 'Falha ao gerar novo QR code');
+      }
+
+      const newQrCode = extractQrCode(n8nData);
+      
+      if (newQrCode) {
+        // Atualizar no banco
+        const { error } = await supabase
+          .from('evolution_auto_instances')
+          .update({ 
+            qr_code_base64: newQrCode,
+            connection_status: 'waiting_scan',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', instance.id);
+
+        if (!error) {
+          setQrCode(newQrCode);
+          setInstance(prev => prev ? { ...prev, qr_code_base64: newQrCode, connection_status: 'waiting_scan' } : null);
+          setLastConnectionStatus('waiting_scan');
+          toast.success('Novo QR Code gerado com sucesso!');
+        }
+      } else {
+        throw new Error('QR Code não foi gerado na resposta');
+      }
+    } catch (error: any) {
+      console.error('Erro ao gerar novo QR:', error);
+      toast.error(`Erro ao gerar novo QR: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [instance]);
+
   const checkInstanceStatus = async (instanceId: string) => {
     try {
       const { data, error } = await supabase
@@ -186,7 +287,31 @@ export const useEvolutionAutomation = () => {
 
       if (error) throw error;
 
+      // Verificar se houve mudança no status de conexão
+      if (data && lastConnectionStatus && lastConnectionStatus !== data.connection_status) {
+        console.log('Status mudou de', lastConnectionStatus, 'para', data.connection_status);
+        
+        // Se estava conectado e agora desconectou
+        if (lastConnectionStatus === 'open' && data.connection_status !== 'open') {
+          await handleDisconnection(data);
+          return null; // Retorna null para indicar que foi resetado
+        }
+        
+        // Se era waiting_scan e agora conectou
+        if (lastConnectionStatus === 'waiting_scan' && data.connection_status === 'open') {
+          toast.success('WhatsApp conectado com sucesso!');
+        }
+      }
+
       setInstance(data);
+      setLastConnectionStatus(data.connection_status);
+      
+      // Se o status for waiting_scan e não temos QR code, tentar buscar
+      if (data.connection_status === 'waiting_scan' && !data.qr_code_base64) {
+        console.log('Status waiting_scan mas sem QR code, gerando novo...');
+        setTimeout(() => generateNewQrCode(), 1000);
+      }
+      
       return data;
     } catch (error) {
       console.error('Error checking instance status:', error);
@@ -215,8 +340,17 @@ export const useEvolutionAutomation = () => {
       }
 
       if (data) {
+        console.log('Instância carregada:', data);
         setInstance(data);
         setQrCode(data.qr_code_base64);
+        setLastConnectionStatus(data.connection_status);
+        
+        // Se a instância existe mas não está conectada, verificar se precisa gerar novo QR
+        if (data.connection_status === 'waiting_scan' && !data.qr_code_base64) {
+          console.log('Instância aguardando scan mas sem QR, gerando novo...');
+          setTimeout(() => generateNewQrCode(), 1000);
+        }
+        
         return data;
       }
 
@@ -234,6 +368,8 @@ export const useEvolutionAutomation = () => {
     createAutomaticInstance,
     checkInstanceStatus,
     loadExistingInstance,
+    generateNewQrCode,
+    resetInstanceState,
     setQrCode
   };
 };
