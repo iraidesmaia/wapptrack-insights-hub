@@ -10,6 +10,7 @@ import GlobalKeywordsSettings from '@/components/campaigns/GlobalKeywordsSetting
 import CampaignForm from '@/components/campaigns/CampaignForm';
 import CampaignTable from '@/components/campaigns/CampaignTable';
 import CampaignFilters from '@/components/campaigns/CampaignFilters';
+import { useProject } from '@/context/ProjectContext';
 
 const getDefaultUtmVariables = () => ({
   utm_source: "{{site_source_name}}",
@@ -68,6 +69,7 @@ const Campaigns = () => {
   });
   const [showCustomUtm, setShowCustomUtm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const { currentProject } = useProject();
 
   // Atualiza os UTMs conforme a campanha selecionada
   useEffect(() => {
@@ -86,10 +88,12 @@ const Campaigns = () => {
   }, [selectedCampaign]);
 
   useEffect(() => {
+    if (!currentProject) return;
+    
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const campaignsData = await getCampaigns();
+        const campaignsData = await getCampaigns(currentProject.id);
         setCampaigns(campaignsData);
       } catch (error) {
         console.error('Error fetching campaigns data:', error);
@@ -100,7 +104,7 @@ const Campaigns = () => {
     };
 
     fetchData();
-  }, []);
+  }, [currentProject]);
 
   const filteredCampaigns = campaigns.filter((campaign) => {
     const searchLower = searchTerm.toLowerCase();
@@ -153,6 +157,11 @@ const Campaigns = () => {
   };
 
   const handleSaveCampaign = async () => {
+    if (!currentProject) {
+      toast.error('Projeto não selecionado');
+      return;
+    }
+
     try {
       // Validate required fields
       if (!currentCampaign.name) {
@@ -161,7 +170,10 @@ const Campaigns = () => {
       }
 
       if (dialogMode === 'add') {
-        const newCampaign = await addCampaign(currentCampaign as Omit<Campaign, 'id' | 'created_at'>);
+        const newCampaign = await addCampaign({ 
+          ...currentCampaign as Omit<Campaign, 'id' | 'created_at'>, 
+          project_id: currentProject.id 
+        });
         setCampaigns([...campaigns, newCampaign]);
         toast.success('Campanha adicionada com sucesso');
       } else {
@@ -226,6 +238,16 @@ const Campaigns = () => {
   const handleCopyTrackingUrl = (campaign: Campaign) => {
     copyToClipboard(getTrackingUrl(campaign), 'URL de rastreamento copiada');
   };
+
+  if (!currentProject) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Selecione um projeto para visualizar as campanhas</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

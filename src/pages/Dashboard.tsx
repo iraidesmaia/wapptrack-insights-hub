@@ -39,13 +39,45 @@ const Dashboard = () => {
     try {
       setIsLoading(true);
       const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStatsByPeriod(currentProject.id, dateRange.startDate, dateRange.endDate),
+        getDashboardStatsByPeriod(currentProject.id, dateRange.startDate.toISOString(), dateRange.endDate.toISOString()),
         getCampaignPerformance(currentProject.id),
-        getTimelineData(currentProject.id, dateRange.startDate, dateRange.endDate)
+        getTimelineData(currentProject.id, dateRange.startDate.toISOString(), dateRange.endDate.toISOString())
       ]);
-      setStats(dashboardStats);
-      setCampaignPerformance(campaignData);
-      setTimelineData(timeline);
+      
+      // Transform campaign data to match expected interface
+      const transformedCampaignData: CampaignPerformance[] = campaignData.map(item => ({
+        campaignId: item.campaign || '',
+        campaignName: item.campaign || '',
+        leads: item.leads || 0,
+        sales: item.sales || 0,
+        revenue: item.revenue || 0,
+        conversionRate: item.conversionRate || 0
+      }));
+      
+      // Transform timeline data to match expected interface
+      const transformedTimelineData: TimelineDataPoint[] = timeline.map(item => ({
+        date: item.date,
+        leads: item.leads,
+        sales: item.sales,
+        revenue: 0 // Add default revenue since it's required
+      }));
+      
+      // Transform dashboard stats to match expected interface
+      const transformedStats: DashboardStats = {
+        totalLeads: dashboardStats.totalLeads || 0,
+        todaysLeads: 0, // Add default value
+        confirmedSales: dashboardStats.totalSales || 0,
+        pendingConversations: 0, // Add default value
+        monthlyLeads: dashboardStats.totalLeads || 0,
+        monthlyRevenue: dashboardStats.totalRevenue || 0,
+        conversionRate: dashboardStats.conversionRate || 0,
+        monthlyLeadsTrend: 0, // Add default value
+        monthlyRevenueTrend: 0 // Add default value
+      };
+      
+      setStats(transformedStats);
+      setCampaignPerformance(transformedCampaignData);
+      setTimelineData(transformedTimelineData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

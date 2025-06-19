@@ -213,15 +213,16 @@ export const getMonthlyStats = async (projectId: string): Promise<MonthlyStats[]
   }
 };
 
-export const getTimelineData = async (projectId: string): Promise<TimelineData[]> => {
+export const getTimelineData = async (projectId: string, startDate: string, endDate: string): Promise<TimelineData[]> => {
   try {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     
     const timelineData: TimelineData[] = [];
     
-    for (let i = 0; i < 30; i++) {
-      const currentDate = new Date(thirtyDaysAgo.getTime() + (i * 24 * 60 * 60 * 1000));
+    for (let i = 0; i < days; i++) {
+      const currentDate = new Date(start.getTime() + (i * 24 * 60 * 60 * 1000));
       const nextDate = new Date(currentDate.getTime() + (24 * 60 * 60 * 1000));
       
       const dateStr = currentDate.toISOString().split('T')[0];
