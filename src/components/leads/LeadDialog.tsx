@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Lead, Campaign } from '@/types';
 import { Button } from "@/components/ui/button";
@@ -32,9 +31,6 @@ const LeadDialog: React.FC<LeadDialogProps> = ({
   onPhoneChange,
   onSelectChange
 }) => {
-  // Filter out any undefined campaigns and ensure we have valid campaign objects
-  const validCampaigns = campaigns.filter(campaign => campaign && campaign.name);
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -89,7 +85,7 @@ const LeadDialog: React.FC<LeadDialogProps> = ({
                 <SelectValue placeholder="Selecione uma campanha" />
               </SelectTrigger>
               <SelectContent>
-                {validCampaigns.map((campaign) => (
+                {campaigns.map((campaign) => (
                   <SelectItem key={campaign.id} value={campaign.name}>
                     {campaign.name}
                   </SelectItem>

@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name?: string;
@@ -10,9 +11,8 @@ export interface Lead {
   name: string;
   phone: string;
   campaign: string;
-  campaign_id?: string; // Added missing field
   status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'lead' | 'to_recover';
-  created_at?: string;
+  created_at: string;
   custom_fields?: Record<string, string>;
   notes?: string;
   first_contact_date?: string;
@@ -27,7 +27,7 @@ export interface Lead {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
-  client_id?: string;
+  // Campos de dispositivo e localização
   location?: string;
   ip_address?: string;
   browser?: string;
@@ -44,10 +44,10 @@ export interface Lead {
   screen_resolution?: string;
   timezone?: string;
   language?: string;
+  // 🎯 NOVOS CAMPOS DO FACEBOOK ADS
   facebook_ad_id?: string;
   facebook_adset_id?: string;
   facebook_campaign_id?: string;
-  user_id?: string;
 }
 
 export interface Campaign {
@@ -82,7 +82,6 @@ export interface Campaign {
   conversion_keywords?: string[];
   cancellation_keywords?: string[];
   created_at?: string;
-  client_id?: string; // 🎯 ADICIONADO para isolamento por projeto
 }
 
 export interface Sale {
@@ -94,7 +93,6 @@ export interface Sale {
   campaign: string;
   product?: string;
   notes?: string;
-  client_id?: string; // 🎯 ADICIONADO para isolamento por projeto
 }
 
 export type CompanySettings = {
@@ -158,14 +156,4 @@ export interface MonthlyStats {
     leads: number;
     revenue: number;
   };
-}
-
-export interface Client {
-  id: string;
-  name: string;
-  description?: string;
-  active: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
 }

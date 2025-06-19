@@ -16,7 +16,6 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import type { CompanySettings, Theme } from '@/types';
-import ProjectSelector from './ProjectSelector';
 
 type MainLayoutProps = {
   children: React.ReactNode;
@@ -280,19 +279,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Main content area */}
         <main className="flex-1 lg:ml-64 py-6">
-          {/* Project Selector Header */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-            <div className="flex items-center justify-between bg-card p-4 rounded-lg border border-border">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Projeto Ativo</h2>
-                <p className="text-sm text-muted-foreground">
-                  Selecione um projeto para visualizar seus dados
-                </p>
-              </div>
-              <ProjectSelector />
-            </div>
-          </div>
-
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}
           </div>

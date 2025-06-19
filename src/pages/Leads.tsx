@@ -13,10 +13,8 @@ import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import PendingLeadConverter from '@/components/leads/PendingLeadConverter';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { useProject } from '@/context/ProjectContext';
 
 const Leads = () => {
-  const { activeProject } = useProject();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,15 +38,15 @@ const Leads = () => {
     handleSaveFromDetailDialog,
     handleDeleteLead,
     openWhatsApp
-  } = useLeadOperations(leads, setLeads, activeProject?.id);
+  } = useLeadOperations(leads, setLeads);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Iniciando busca de dados...', { activeProject: activeProject?.id });
+      console.log('🔄 Iniciando busca de dados...');
       
       const [leadsData, campaignsData] = await Promise.all([
-        getLeads(activeProject?.id), // 🎯 Passar o ID do projeto ativo
+        getLeads(),
         getCampaigns()
       ]);
       
@@ -58,8 +56,6 @@ const Leads = () => {
       const processedLeads = leadsData.map(lead => {
         console.log(`🔍 Processando lead ${lead.name}:`, {
           id: lead.id,
-          client_id: lead.client_id,
-          project_name: activeProject?.name,
           last_message: lead.last_message,
           last_message_type: typeof lead.last_message,
           last_message_raw: JSON.stringify(lead.last_message)
@@ -71,21 +67,16 @@ const Leads = () => {
         };
       });
       
-      console.log('✅ Leads processados para projeto:', {
-        projectId: activeProject?.id,
-        projectName: activeProject?.name,
-        totalLeads: processedLeads.length,
-        leads: processedLeads.map(lead => ({
-          name: lead.name,
-          phone: lead.phone,
-          client_id: lead.client_id,
-          last_message: lead.last_message,
-          status: lead.status
-        }))
-      });
-      
+      console.log('✅ Leads processados:', processedLeads);
       setLeads(processedLeads);
       setCampaigns(campaignsData);
+      
+      console.log('📊 Estado final dos leads:', processedLeads.map(lead => ({
+        name: lead.name,
+        phone: lead.phone,
+        last_message: lead.last_message,
+        status: lead.status
+      })));
     } catch (error) {
       console.error('Error fetching leads data:', error);
       toast.error('Erro ao carregar dados dos leads');
@@ -98,7 +89,7 @@ const Leads = () => {
     fetchData();
 
     // Configurar escuta em tempo real para mudanças na tabela de leads
-    console.log('🎧 Configurando escuta em tempo real para leads...', { activeProject: activeProject?.id });
+    console.log('🎧 Configurando escuta em tempo real para leads...');
     const channel = supabase
       .channel('leads-changes')
       .on(
@@ -115,51 +106,62 @@ const Leads = () => {
           if (payload.eventType === 'INSERT') {
             console.log('➕ Novo lead adicionado:', payload.new);
             const newLead = payload.new as Lead;
+            console.log('➕ Detalhes da mensagem no INSERT:', {
+              last_message: newLead.last_message,
+              type: typeof newLead.last_message,
+              raw: JSON.stringify(newLead.last_message)
+            });
             
-            // 🎯 Verificar se o lead pertence ao projeto ativo
-            if (!activeProject?.id || newLead.client_id === activeProject.id) {
-              console.log('➕ Lead pertence ao projeto ativo, adicionando à lista');
-              const processedLead = {
-                ...newLead,
-                last_message: newLead.last_message || null
-              };
-              
-              setLeads(prev => {
-                const newLeads = [processedLead, ...prev];
-                console.log('➕ Estado atualizado após INSERT:', newLeads.length, 'leads');
-                return newLeads;
-              });
-              toast.success(`Novo lead adicionado: ${processedLead.name}`);
-            } else {
-              console.log('➕ Lead não pertence ao projeto ativo, ignorando');
-            }
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...newLead,
+              last_message: newLead.last_message || null
+            };
+            console.log('➕ Lead processado para insert:', processedLead);
+            
+            setLeads(prev => {
+              const newLeads = [processedLead, ...prev];
+              console.log('➕ Estado atualizado após INSERT:', newLeads);
+              return newLeads;
+            });
+            toast.success(`Novo lead adicionado: ${processedLead.name}`);
           } 
           else if (payload.eventType === 'UPDATE') {
             console.log('📝 Lead atualizado:', payload.new);
-            const updatedLead = payload.new as Lead;
+            console.log('📝 Lead anterior:', payload.old);
             
-            // 🎯 Verificar se o lead pertence ao projeto ativo
-            if (!activeProject?.id || updatedLead.client_id === activeProject.id) {
-              const processedLead = {
-                ...updatedLead,
-                last_message: updatedLead.last_message || null
-              };
-              
-              setLeads(prev => {
-                const updatedLeads = prev.map(lead => 
-                  lead.id === processedLead.id ? processedLead : lead
-                );
-                console.log('📝 Estado atualizado após UPDATE');
-                return updatedLeads;
-              });
-              
-              // Se uma mensagem foi adicionada, mostrar notificação
-              if (processedLead.last_message) {
-                console.log('💬 Nova mensagem detectada:', processedLead.last_message);
-                toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
-              }
-            } else {
-              console.log('📝 Lead atualizado não pertence ao projeto ativo, ignorando');
+            const updatedLead = payload.new as Lead;
+            const oldLead = payload.old as Lead;
+            
+            console.log('📝 Comparação de mensagens:', {
+              old_message: oldLead.last_message,
+              new_message: updatedLead.last_message,
+              old_type: typeof oldLead.last_message,
+              new_type: typeof updatedLead.last_message,
+              old_raw: JSON.stringify(oldLead.last_message),
+              new_raw: JSON.stringify(updatedLead.last_message)
+            });
+            
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...updatedLead,
+              last_message: updatedLead.last_message || null
+            };
+            
+            console.log('📝 Lead processado para update:', processedLead);
+            
+            setLeads(prev => {
+              const updatedLeads = prev.map(lead => 
+                lead.id === processedLead.id ? processedLead : lead
+              );
+              console.log('📝 Estado atualizado após UPDATE:', updatedLeads);
+              return updatedLeads;
+            });
+            
+            // Se uma mensagem foi adicionada, mostrar notificação
+            if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
+              console.log('💬 Nova mensagem detectada:', processedLead.last_message);
+              toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
             }
           }
           else if (payload.eventType === 'DELETE') {
@@ -177,7 +179,7 @@ const Leads = () => {
       console.log('🔌 Removendo escuta em tempo real...');
       supabase.removeChannel(channel);
     };
-  }, [activeProject?.id]); // 🎯 Recarregar quando o projeto ativo mudar
+  }, []);
 
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchTerm.toLowerCase();
@@ -190,17 +192,11 @@ const Leads = () => {
     );
   });
 
-  console.log('🎯 Leads filtrados sendo passados para a tabela:', {
-    projectId: activeProject?.id,
-    projectName: activeProject?.name,
-    totalLeads: filteredLeads.length,
-    leads: filteredLeads.map(lead => ({
-      name: lead.name,
-      client_id: lead.client_id,
-      last_message: lead.last_message,
-      type: typeof lead.last_message
-    }))
-  });
+  console.log('🎯 Leads filtrados sendo passados para a tabela:', filteredLeads.map(lead => ({
+    name: lead.name,
+    last_message: lead.last_message,
+    type: typeof lead.last_message
+  })));
 
   return (
     <MainLayout>
@@ -208,14 +204,7 @@ const Leads = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Leads</h1>
-            <p className="text-muted-foreground">
-              Gerencie todos os seus leads de WhatsApp
-              {activeProject && (
-                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                  Projeto: {activeProject.name}
-                </span>
-              )}
-            </p>
+            <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleOpenAddDialog}>

@@ -4,51 +4,57 @@ import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { getSales, addSale, updateSale, deleteSale } from '@/services/dataService';
-import { Sale } from '@/types';
-import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getSales, addSale, updateSale, deleteSale, getLeads, getCampaigns } from '@/services/dataService';
+import { Sale, Lead, Campaign } from '@/types';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { Plus, Trash2, Edit } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from "sonner";
-import { useProject } from '@/context/ProjectContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Sales = () => {
-  const { activeProject } = useProject();
   const [sales, setSales] = useState<Sale[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [formData, setFormData] = useState({
+  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
+  const [currentSale, setCurrentSale] = useState<Partial<Sale>>({
+    value: 0,
+    date: new Date().toISOString().split('T')[0],
+    lead_id: '',
     lead_name: '',
     campaign: '',
-    value: '',
     product: '',
-    notes: '',
-    date: new Date().toISOString().split('T')[0]
+    notes: ''
   });
 
-  const fetchSales = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Sales - Buscando vendas para projeto:', activeProject?.id);
+      console.log('📊 Sales - Iniciando busca de dados...');
       
-      // 🎯 Passar o ID do projeto ativo para filtrar vendas
-      const salesData = await getSales(activeProject?.id);
+      const [salesData, leadsData, campaignsData] = await Promise.all([
+        getSales(),
+        getLeads(),
+        getCampaigns()
+      ]);
       
-      console.log('✅ Sales - Vendas carregadas:', {
-        projectId: activeProject?.id,
-        projectName: activeProject?.name,
-        totalSales: salesData.length
+      console.log('📊 Sales - Dados carregados:', {
+        salesCount: salesData.length,
+        leadsCount: leadsData.length,
+        campaignsCount: campaignsData.length
       });
       
       setSales(salesData);
+      setLeads(leadsData);
+      setCampaigns(campaignsData);
     } catch (error) {
-      console.error('Error fetching sales:', error);
+      console.error('❌ Sales - Erro ao carregar dados:', error);
       toast.error('Erro ao carregar vendas');
     } finally {
       setIsLoading(false);
@@ -56,63 +62,150 @@ const Sales = () => {
   };
 
   useEffect(() => {
-    fetchSales();
-  }, [activeProject?.id]); // 🎯 Recarregar quando o projeto ativo mudar
+    fetchData();
 
-  const handleOpenDialog = (sale?: Sale) => {
-    if (sale) {
-      setEditingSale(sale);
-      setFormData({
-        lead_name: sale.lead_name,
-        campaign: sale.campaign,
-        value: sale.value.toString(),
-        product: sale.product || '',
-        notes: sale.notes || '',
-        date: sale.date ? new Date(sale.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    // Configurar escuta em tempo real para mudanças na tabela de vendas
+    console.log('🎧 Sales - Configurando escuta em tempo real para vendas...');
+    const channel = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'sales'
+        },
+        (payload) => {
+          console.log('📡 Sales - Mudança detectada na tabela sales:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('➕ Sales - Nova venda adicionada:', payload.new);
+            const newSale = payload.new as Sale;
+            setSales(prev => [newSale, ...prev]);
+            toast.success(`Nova venda criada: ${newSale.lead_name} - ${formatCurrency(newSale.value)}`);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            console.log('📝 Sales - Venda atualizada:', payload.new);
+            const updatedSale = payload.new as Sale;
+            setSales(prev => prev.map(sale => 
+              sale.id === updatedSale.id ? updatedSale : sale
+            ));
+            toast.info(`Venda atualizada: ${updatedSale.lead_name}`);
+          }
+          else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Sales - Venda removida:', payload.old);
+            const deletedSale = payload.old as Sale;
+            setSales(prev => prev.filter(sale => sale.id !== deletedSale.id));
+            toast.info(`Venda removida: ${deletedSale.lead_name}`);
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup: remover a escuta quando o componente for desmontado
+    return () => {
+      console.log('🔌 Sales - Removendo escuta em tempo real...');
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredSales = sales.filter((sale) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      sale.lead_name.toLowerCase().includes(searchLower) ||
+      sale.campaign.toLowerCase().includes(searchLower) ||
+      (sale.product && sale.product.toLowerCase().includes(searchLower)) ||
+      formatCurrency(sale.value).includes(searchLower)
+    );
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'value') {
+      // Handle numeric input
+      const numericValue = parseFloat(value);
+      setCurrentSale({ ...currentSale, [name]: isNaN(numericValue) ? 0 : numericValue });
+    } else {
+      setCurrentSale({ ...currentSale, [name]: value });
+    }
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === 'lead_id') {
+      const selectedLead = leads.find(lead => lead.id === value);
+      setCurrentSale({ 
+        ...currentSale, 
+        [name]: value,
+        lead_name: selectedLead?.name || '',
+        campaign: selectedLead?.campaign || currentSale.campaign || ''
       });
     } else {
-      setEditingSale(null);
-      setFormData({
-        lead_name: '',
-        campaign: '',
-        value: '',
-        product: '',
-        notes: '',
-        date: new Date().toISOString().split('T')[0]
-      });
+      setCurrentSale({ ...currentSale, [name]: value });
     }
+  };
+
+  const handleOpenAddDialog = () => {
+    setCurrentSale({
+      value: 0,
+      date: new Date().toISOString().split('T')[0],
+      lead_id: '',
+      lead_name: '',
+      campaign: '',
+      product: '',
+      notes: ''
+    });
+    setDialogMode('add');
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (sale: Sale) => {
+    // Format the date to YYYY-MM-DD for the input field
+    const formattedDate = sale.date ? new Date(sale.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    
+    setCurrentSale({ 
+      ...sale,
+      date: formattedDate 
+    });
+    setDialogMode('edit');
     setIsDialogOpen(true);
   };
 
   const handleSaveSale = async () => {
     try {
-      if (!formData.lead_name || !formData.campaign || !formData.value) {
+      // Validate required fields
+      if (!currentSale.value || !currentSale.date || !currentSale.lead_id || !currentSale.campaign) {
         toast.error('Preencha todos os campos obrigatórios');
         return;
       }
 
-      const saleData = {
-        lead_name: formData.lead_name,
-        campaign: formData.campaign,
-        value: parseInt(formData.value),
-        product: formData.product,
-        notes: formData.notes,
-        date: new Date(formData.date).toISOString()
-      };
+      // Ensure value is a number
+      const saleValue = typeof currentSale.value === 'string' 
+        ? parseFloat(currentSale.value) 
+        : currentSale.value;
 
-      console.log('💾 Sales - Salvando venda para projeto:', activeProject?.id);
-
-      if (editingSale) {
-        const updatedSale = await updateSale(editingSale.id, saleData);
-        setSales(sales.map(s => s.id === updatedSale.id ? updatedSale : s));
-        toast.success('Venda atualizada com sucesso');
+      if (dialogMode === 'add') {
+        const newSale = await addSale({
+          ...currentSale,
+          value: saleValue,
+          date: new Date(currentSale.date as string).toISOString(),
+        } as Omit<Sale, 'id'>);
+        
+        setSales([...sales, newSale]);
+        toast.success('Venda adicionada com sucesso');
       } else {
-        // 🎯 Passar o ID do projeto ativo ao criar nova venda
-        const newSale = await addSale(saleData, activeProject?.id);
-        setSales([newSale, ...sales]);
-        toast.success('Venda criada com sucesso');
+        if (!currentSale.id) return;
+        
+        const updatedSale = await updateSale(currentSale.id, {
+          ...currentSale,
+          value: saleValue,
+          date: new Date(currentSale.date as string).toISOString(),
+        });
+        
+        setSales(sales.map(sale => sale.id === updatedSale.id ? updatedSale : sale));
+        toast.success('Venda atualizada com sucesso');
       }
-
+      
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error saving sale:', error);
@@ -127,7 +220,7 @@ const Sales = () => {
 
     try {
       await deleteSale(id);
-      setSales(sales.filter(s => s.id !== id));
+      setSales(sales.filter(sale => sale.id !== id));
       toast.success('Venda excluída com sucesso');
     } catch (error) {
       console.error('Error deleting sale:', error);
@@ -135,259 +228,191 @@ const Sales = () => {
     }
   };
 
-  const filteredSales = sales.filter((sale) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      sale.lead_name.toLowerCase().includes(searchLower) ||
-      sale.campaign.toLowerCase().includes(searchLower) ||
-      (sale.product && sale.product.toLowerCase().includes(searchLower))
-    );
-  });
-
-  // Calculate statistics
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.value, 0);
-  const averageTicket = sales.length > 0 ? totalRevenue / sales.length : 0;
-  const thisMonthSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    const now = new Date();
-    return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
-  });
-  const thisMonthRevenue = thisMonthSales.reduce((sum, sale) => sum + sale.value, 0);
-
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Vendas</h1>
-            <p className="text-muted-foreground">
-              Gerencie suas vendas e faturamento
-              {activeProject && (
-                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                  Projeto: {activeProject.name}
-                </span>
-              )}
-            </p>
+            <p className="text-muted-foreground">Gerencie as vendas realizadas para seus leads</p>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
+          <Button onClick={handleOpenAddDialog}>
             <Plus className="mr-2 h-4 w-4" /> Nova Venda
           </Button>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {totalRevenue.toLocaleString('pt-BR')}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {averageTicket.toLocaleString('pt-BR')}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Vendas este Mês</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{thisMonthSales.length}</div>
-              <p className="text-xs text-muted-foreground">
-                R$ {thisMonthRevenue.toLocaleString('pt-BR')}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{sales.length}</div>
-            </CardContent>
-          </Card>
-        </div>
-
         <div className="flex items-center">
           <Input
-            placeholder="Buscar vendas por lead, campanha ou produto..."
+            placeholder="Buscar vendas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-lg"
+            className="max-w-sm"
           />
         </div>
 
-        {/* Sales Table */}
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Lead</TableHead>
-                <TableHead>Campanha</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Carregando vendas...
-                  </TableCell>
-                </TableRow>
-              ) : filteredSales.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhuma venda encontrada
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSales.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.lead_name}</TableCell>
-                    <TableCell>{sale.campaign}</TableCell>
-                    <TableCell>{sale.product || '-'}</TableCell>
-                    <TableCell className="font-bold text-green-600">
-                      R$ {sale.value.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      {sale.date ? format(new Date(sale.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDialog(sale)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteSale(sale.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="table-wrapper overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="p-4 text-left font-medium">Cliente</th>
+                    <th className="p-4 text-right font-medium">Valor</th>
+                    <th className="p-4 text-left font-medium">Campanha</th>
+                    <th className="p-4 text-left font-medium">Produto</th>
+                    <th className="p-4 text-left font-medium">Data</th>
+                    <th className="p-4 text-right font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center">
+                        Carregando vendas...
+                      </td>
+                    </tr>
+                  ) : filteredSales.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center">
+                        Nenhuma venda encontrada
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSales.map((sale) => (
+                      <tr key={sale.id} className="border-b">
+                        <td className="p-4">{sale.lead_name}</td>
+                        <td className="p-4 text-right font-medium">{formatCurrency(sale.value)}</td>
+                        <td className="p-4">{sale.campaign}</td>
+                        <td className="p-4">{sale.product || '-'}</td>
+                        <td className="p-4">{sale.date ? formatDate(sale.date) : '-'}</td>
+                        <td className="p-4 text-right whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEditDialog(sale)}
+                            title="Editar venda"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteSale(sale.id)}
+                            title="Excluir venda"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Sale Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingSale ? 'Editar Venda' : 'Nova Venda'}
+                {dialogMode === 'add' ? 'Adicionar Nova Venda' : 'Editar Venda'}
               </DialogTitle>
+              <DialogDescription>
+                {dialogMode === 'add' 
+                  ? 'Preencha os detalhes para registrar uma nova venda.' 
+                  : 'Atualize os detalhes da venda.'}
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="lead_name" className="text-right">
-                  Lead *
-                </Label>
-                <Input
-                  id="lead_name"
-                  value={formData.lead_name}
-                  onChange={(e) => setFormData({ ...formData, lead_name: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Nome do lead"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="campaign" className="text-right">
-                  Campanha *
-                </Label>
-                <Input
-                  id="campaign"
-                  value={formData.campaign}
-                  onChange={(e) => setFormData({ ...formData, campaign: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Nome da campanha"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="value" className="text-right">
-                  Valor *
-                </Label>
+              <div className="grid gap-2">
+                <Label htmlFor="value">Valor*</Label>
                 <Input
                   id="value"
+                  name="value"
                   type="number"
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Valor da venda"
+                  min="0"
+                  step="0.01"
+                  value={currentSale.value}
+                  onChange={handleInputChange}
+                  placeholder="0.00"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="product" className="text-right">
-                  Produto
-                </Label>
-                <Input
-                  id="product"
-                  value={formData.product}
-                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Nome do produto"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="date" className="text-right">
-                  Data
-                </Label>
+              <div className="grid gap-2">
+                <Label htmlFor="date">Data*</Label>
                 <Input
                   id="date"
+                  name="date"
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="col-span-3"
+                  value={currentSale.date as string}
+                  onChange={handleInputChange}
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="notes" className="text-right">
-                  Observações
-                </Label>
+              <div className="grid gap-2">
+                <Label htmlFor="lead_id">Lead*</Label>
+                <Select 
+                  value={currentSale.lead_id} 
+                  onValueChange={(value) => handleSelectChange('lead_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um lead" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leads.map((lead) => (
+                      <SelectItem key={lead.id} value={lead.id}>
+                        {lead.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="campaign">Campanha*</Label>
+                <Select 
+                  value={currentSale.campaign} 
+                  onValueChange={(value) => handleSelectChange('campaign', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma campanha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.name}>
+                        {campaign.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="product">Produto</Label>
+                <Input
+                  id="product"
+                  name="product"
+                  value={currentSale.product || ''}
+                  onChange={handleInputChange}
+                  placeholder="Nome do produto vendido"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Observações</Label>
                 <Textarea
                   id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Observações adicionais"
+                  name="notes"
+                  value={currentSale.notes || ''}
+                  onChange={handleInputChange}
+                  placeholder="Observações sobre a venda"
                 />
               </div>
             </div>
-            <div className="flex justify-end space-x-2">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleSaveSale}>
-                {editingSale ? 'Atualizar' : 'Criar'} Venda
+                {dialogMode === 'add' ? 'Adicionar' : 'Atualizar'}
               </Button>
-            </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
