@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
+import { useProject } from '@/context/ProjectContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import ProjectSelector from './projects/ProjectSelector';
 import type { CompanySettings, Theme } from '@/types';
 
 type MainLayoutProps = {
@@ -23,6 +25,7 @@ type MainLayoutProps = {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { currentProject } = useProject();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -31,51 +34,53 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigation = [
     { 
       name: 'Dashboard', 
-      href: '/dashboard', 
+      href: `/project/${currentProject?.id}/dashboard`, 
       icon: LayoutDashboard, 
-      current: location.pathname === '/dashboard' 
+      current: location.pathname.includes('/dashboard')
     },
     { 
       name: 'Leads', 
-      href: '/leads', 
+      href: `/project/${currentProject?.id}/leads`, 
       icon: Users, 
-      current: location.pathname === '/leads' 
+      current: location.pathname.includes('/leads')
     },
     { 
       name: 'Links de rastreamento', 
-      href: '/campaigns', 
+      href: `/project/${currentProject?.id}/campaigns`, 
       icon: MessageSquare, 
-      current: location.pathname === '/campaigns' 
+      current: location.pathname.includes('/campaigns')
     },
     { 
       name: 'Vendas', 
-      href: '/sales', 
+      href: `/project/${currentProject?.id}/sales`, 
       icon: DollarSign, 
-      current: location.pathname === '/sales' 
+      current: location.pathname.includes('/sales')
     },
     { 
       name: 'Configurações', 
-      href: '/settings', 
+      href: `/project/${currentProject?.id}/settings`, 
       icon: Settings, 
-      current: location.pathname === '/settings' 
+      current: location.pathname.includes('/settings')
     },
   ];
 
   useEffect(() => {
-    loadCompanySettings();
-  }, []);
+    if (currentProject?.id) {
+      loadCompanySettings();
+    }
+  }, [currentProject?.id]);
 
   const loadCompanySettings = async () => {
     try {
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
+        .eq('project_id', currentProject?.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading company settings:', error);
       } else if (data) {
-        // Ensure theme is properly typed
         const typedData: CompanySettings = {
           ...data,
           theme: (data.theme as Theme) || 'system'
@@ -93,26 +98,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Default company branding configuration
   const defaultCompanyBranding = {
     logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
-    title: "Sua Empresa",
+    title: currentProject?.name || "Sua Empresa",
     subtitle: "Sistema de Marketing"
   };
 
-  // Use company settings if available, otherwise use default
   const companyBranding = {
-    logo: companySettings?.logo_url || defaultCompanyBranding.logo,
-    title: companySettings?.company_name || defaultCompanyBranding.title,
+    logo: companySettings?.logo_url || currentProject?.logo_url || defaultCompanyBranding.logo,
+    title: companySettings?.company_name || currentProject?.name || defaultCompanyBranding.title,
     subtitle: companySettings?.company_subtitle || defaultCompanyBranding.subtitle
   };
 
-  // Get user display name - use email as fallback since Supabase User doesn't have name
   const getUserDisplayName = () => {
     return user?.email || 'Usuário';
   };
 
-  // Get user initial for avatar
   const getUserInitial = () => {
     const email = user?.email;
     return email ? email.charAt(0).toUpperCase() : 'U';
@@ -150,6 +151,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     </div>
   );
 
+  // Não renderizar o layout se não há projeto atual
+  if (!currentProject) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Selecione um Projeto</h1>
+          <p className="text-muted-foreground">Você precisa selecionar um projeto para continuar.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Mobile menu button */}
@@ -169,11 +182,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {/* Sidebar for desktop */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-card border-r border-border">
           <div className="flex flex-col flex-1 h-full">
+            {/* Project Selector */}
+            <ProjectSelector />
+            
+            {/* Branding Section */}
             <div className="flex items-center h-20 flex-shrink-0 border-b border-border">
-              <Link to="/dashboard" className="w-full">
+              <Link to={`/project/${currentProject.id}/dashboard`} className="w-full">
                 <BrandingSection />
               </Link>
             </div>
+            
             <nav className="flex-1 px-2 py-4 space-y-1">
               {navigation.map((item) => (
                 <NavLink
@@ -193,6 +211,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </NavLink>
               ))}
             </nav>
+            
             <div className="px-4 py-4 border-t border-border flex flex-col space-y-2">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
@@ -229,6 +248,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <X />
               </Button>
             </div>
+            
+            {/* Mobile Project Selector */}
+            <ProjectSelector />
+            
             <div className="flex-1 p-4">
               <nav className="space-y-4">
                 {navigation.map((item) => (
@@ -251,6 +274,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ))}
               </nav>
             </div>
+            
             <div className="p-4 border-t border-border">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
