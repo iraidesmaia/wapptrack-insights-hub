@@ -2,15 +2,22 @@ import { Lead } from "../types";
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 
-export const getLeads = async (): Promise<Lead[]> => {
+export const getLeads = async (clientId?: string): Promise<Lead[]> => {
   try {
-    console.log('🔄 leadService.getLeads() - Iniciando busca...');
+    console.log('🔄 leadService.getLeads() - Iniciando busca...', { clientId });
     
-    // Fetch leads from Supabase
-    const { data: leads, error } = await supabase
+    // Build query with optional client_id filter
+    let query = supabase
       .from('leads')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    // Add client_id filter if provided
+    if (clientId) {
+      query = query.eq('client_id', clientId);
+    }
+
+    const { data: leads, error } = await query;
 
     if (error) throw error;
     
@@ -20,6 +27,7 @@ export const getLeads = async (): Promise<Lead[]> => {
     const mappedLeads = (leads || []).map(lead => {
       console.log(`🔍 leadService.getLeads() - Mapeando lead ${lead.name}:`, {
         id: lead.id,
+        client_id: lead.client_id,
         last_message: lead.last_message,
         device_type: lead.device_type,
         location: lead.location,
@@ -69,13 +77,11 @@ export const getLeads = async (): Promise<Lead[]> => {
       };
     });
     
-    console.log('✅ leadService.getLeads() - Leads mapeados com dados do Facebook:', mappedLeads.map(lead => ({
-      name: lead.name,
-      device_type: lead.device_type,
-      location: lead.location,
-      facebook_ad_id: lead.facebook_ad_id,
-      facebook_campaign_id: lead.facebook_campaign_id
-    })));
+    console.log('✅ leadService.getLeads() - Leads mapeados com filtro por projeto:', {
+      clientId,
+      totalLeads: mappedLeads.length,
+      leadsWithProject: mappedLeads.filter(l => l.client_id).length
+    });
     
     return mappedLeads;
   } catch (error) {
@@ -84,9 +90,9 @@ export const getLeads = async (): Promise<Lead[]> => {
   }
 };
 
-export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Lead> => {
+export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>, clientId?: string): Promise<Lead> => {
   try {
-    console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone);
+    console.log('🔄 addLead - Iniciando criação de lead:', lead.name, lead.phone, { clientId });
     
     // 🎯 BUSCAR DADOS DO DISPOSITIVO SALVOS PARA ESTE TELEFONE (incluindo Facebook Ads)
     let deviceData = null;
@@ -125,6 +131,8 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       utm_campaign: lead.utm_campaign || '',
       utm_content: lead.utm_content || '',
       utm_term: lead.utm_term || '',
+      // 🎯 ADICIONAR client_id para associar ao projeto
+      client_id: clientId || null,
       // Dados do dispositivo existentes
       location: deviceData?.location || lead.location || '',
       ip_address: deviceData?.ip_address || lead.ip_address || '',
@@ -148,9 +156,10 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
       facebook_campaign_id: deviceData?.facebook_campaign_id || lead.facebook_campaign_id || ''
     };
 
-    console.log('💾 Dados que serão inseridos no lead (com Facebook Ads):', {
+    console.log('💾 Dados que serão inseridos no lead (com projeto):', {
       nome: leadData.name,
       telefone: leadData.phone,
+      client_id: leadData.client_id,
       device_type: leadData.device_type,
       browser: leadData.browser,
       location: leadData.location,
@@ -170,9 +179,10 @@ export const addLead = async (lead: Omit<Lead, 'id' | 'created_at'>): Promise<Le
 
     if (error) throw error;
 
-    console.log('✅ Lead criado com sucesso com dados do Facebook Ads:', {
+    console.log('✅ Lead criado com sucesso com projeto associado:', {
       id: data.id,
       name: data.name,
+      client_id: data.client_id,
       device_type: data.device_type,
       location: data.location,
       facebook_ad_id: data.facebook_ad_id,

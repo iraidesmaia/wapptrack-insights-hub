@@ -6,7 +6,11 @@ import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } f
 import { correctPhoneNumber, shouldCorrectPhone } from '@/lib/phoneCorrection';
 import { toast } from "sonner";
 
-export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.SetStateAction<Lead[]>>) => {
+export const useLeadOperations = (
+  leads: Lead[], 
+  setLeads: React.Dispatch<React.SetStateAction<Lead[]>>,
+  activeProjectId?: string
+) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
@@ -155,6 +159,7 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       console.log('💾 handleSaveLead - Dados do lead:', {
         mode: dialogMode,
         leadId: currentLead.id,
+        activeProjectId,
         currentStatus: currentLead.status,
         wasConverted
       });
@@ -172,8 +177,8 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
       const leadToSave = { ...currentLead, phone: processedPhone };
 
       if (dialogMode === 'add') {
-        console.log('➕ handleSaveLead - Adicionando novo lead...');
-        const newLead = await addLead(leadToSave as Omit<Lead, 'id' | 'created_at'>);
+        console.log('➕ handleSaveLead - Adicionando novo lead ao projeto:', activeProjectId);
+        const newLead = await addLead(leadToSave as Omit<Lead, 'id' | 'created_at'>, activeProjectId);
         setLeads([newLead, ...leads]);
         updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');
