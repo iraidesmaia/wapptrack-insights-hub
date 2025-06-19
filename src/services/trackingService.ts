@@ -1,7 +1,34 @@
-
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
+import { captureAndSaveDeviceData } from "@/lib/dataCollection";
 import type { ConversionResult } from '@/types/supabase-functions';
+
+/**
+ * ✅ FUNÇÃO PARA SALVAR DADOS COMPLETOS DE DISPOSITIVO E UTMs
+ */
+const saveDeviceAndUtmData = async (
+  phone: string,
+  utms?: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+    gclid?: string;
+    fbclid?: string;
+  }
+) => {
+  try {
+    console.log('📱 Iniciando captura completa de dados do dispositivo para:', phone);
+    
+    // Usar a função completa de captura de dados
+    await captureAndSaveDeviceData(phone);
+    
+    console.log('✅ Dados do dispositivo salvos com sucesso para:', phone);
+  } catch (error) {
+    console.error('❌ Erro ao salvar dados do dispositivo:', error);
+  }
+};
 
 /**
  * ✅ FUNÇÃO ATUALIZADA PARA USAR A FUNÇÃO SUPABASE SEGURA
@@ -48,7 +75,7 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
 
 /**
  * Função principal para rastrear redirecionamentos e salvar leads
- * ✅ MODIFICADA PARA REMOVER DEPENDÊNCIA DA TABELA utm_clicks
+ * ✅ MODIFICADA PARA INCLUIR CAPTURA COMPLETA DE DADOS
  */
 export const trackRedirect = async (
   campaignId: string, 
@@ -78,6 +105,12 @@ export const trackRedirect = async (
     const { data: { user } } = await supabase.auth.getUser();
     const isAuthenticated = !!user;
     console.log('🔐 Status de autenticação:', isAuthenticated ? 'Logado' : 'Público');
+
+    // 🎯 SALVAR DADOS DETALHADOS DO DISPOSITIVO SEMPRE QUE HOUVER TELEFONE
+    if (phone && phone !== 'Redirecionamento Direto') {
+      console.log('📱 Salvando dados detalhados do dispositivo...');
+      await saveDeviceAndUtmData(phone, utms);
+    }
 
     // Busca a campanha por ID
     const { data: campaign, error: campaignError } = await supabase
