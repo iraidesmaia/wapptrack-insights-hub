@@ -17,6 +17,8 @@ import { useProject } from '@/context/ProjectContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import ProjectSelector from './projects/ProjectSelector';
+import ProjectWelcome from './projects/ProjectWelcome';
+import { CreateProjectDialog } from './projects/CreateProjectDialog';
 import type { CompanySettings, Theme } from '@/types';
 
 type MainLayoutProps = {
@@ -25,11 +27,12 @@ type MainLayoutProps = {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { currentProject } = useProject();
+  const { currentProject, showWelcome, refreshProjects } = useProject();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   const navigation = [
     { 
@@ -98,6 +101,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const handleCreateProject = () => {
+    setIsCreateDialogOpen(true);
+  };
+
   const defaultCompanyBranding = {
     logo: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=150&h=150&q=80",
     title: currentProject?.name || "Sua Empresa",
@@ -151,13 +158,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     </div>
   );
 
+  // Mostrar tela de boas-vindas se não há projetos
+  if (showWelcome) {
+    return (
+      <>
+        <ProjectWelcome onCreateProject={handleCreateProject} />
+        <CreateProjectDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+        />
+      </>
+    );
+  }
+
   // Não renderizar o layout se não há projeto atual
   if (!currentProject) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Selecione um Projeto</h1>
-          <p className="text-muted-foreground">Você precisa selecionar um projeto para continuar.</p>
+          <h1 className="text-2xl font-bold mb-4">Carregando Projeto...</h1>
+          <p className="text-muted-foreground">Aguarde enquanto carregamos seus dados.</p>
         </div>
       </div>
     );

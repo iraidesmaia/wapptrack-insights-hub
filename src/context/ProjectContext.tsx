@@ -11,6 +11,7 @@ interface ProjectContextType {
   setCurrentProject: (project: Project) => void;
   refreshProjects: () => Promise<void>;
   isLoading: boolean;
+  showWelcome: boolean;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -31,6 +32,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
   const [currentProject, setCurrentProjectState] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const navigate = useNavigate();
   const { projectId } = useParams();
 
@@ -40,8 +42,16 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
       const fetchedProjects = await getProjects();
       setProjects(fetchedProjects);
       
+      if (fetchedProjects.length === 0) {
+        setShowWelcome(true);
+        setIsLoading(false);
+        return;
+      }
+      
+      setShowWelcome(false);
+      
       // Se há um projectId na URL, encontrar e definir o projeto atual
-      if (projectId && fetchedProjects.length > 0) {
+      if (projectId && projectId !== 'auto' && fetchedProjects.length > 0) {
         const project = fetchedProjects.find(p => p.id === projectId);
         if (project) {
           setCurrentProjectState(project);
@@ -51,11 +61,13 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
           setCurrentProjectState(firstProject);
           navigate(`/project/${firstProject.id}/dashboard`, { replace: true });
         }
-      } else if (fetchedProjects.length > 0 && !currentProject) {
+      } else if (fetchedProjects.length > 0) {
         // Se não há projeto atual e há projetos disponíveis, definir o primeiro
         const firstProject = fetchedProjects[0];
         setCurrentProjectState(firstProject);
-        navigate(`/project/${firstProject.id}/dashboard`, { replace: true });
+        if (projectId === 'auto' || !projectId) {
+          navigate(`/project/${firstProject.id}/dashboard`, { replace: true });
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
@@ -90,6 +102,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         setCurrentProject,
         refreshProjects,
         isLoading,
+        showWelcome,
       }}
     >
       {children}

@@ -1,4 +1,3 @@
-
 export interface Campaign {
   id: string;
   name: string;
@@ -18,7 +17,6 @@ export interface Campaign {
   utm_term?: string;
   active?: boolean;
   created_at?: string;
-  user_id?: string;
   pixel_integration_type?: 'direct' | 'form';
   conversion_keywords?: string[];
   cancellation_keywords?: string[];
