@@ -30,7 +30,7 @@ const EvolutionApiSettings = ({
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <MessageSquare className="w-5 h-5" />
-          <span>Evolution API - WhatsApp Integration</span>
+          <span>Integração - Evolution API </span>
         </CardTitle>
         <CardDescription>
           Configure a Evolution API para automatizar o processo de validação de leads via WhatsApp
