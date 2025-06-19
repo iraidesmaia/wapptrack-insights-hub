@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -71,8 +70,8 @@ export const useEvolutionAutomation = () => {
       
       console.log('Using company name as instance name:', { companyName, instanceName });
 
-      // Call n8n webhook
-      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/wppp', {
+      // Call n8n webhook with new URL
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
