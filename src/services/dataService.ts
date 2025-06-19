@@ -32,11 +32,3 @@ export {
 export {
   trackRedirect
 } from './trackingService';
-
-export {
-  getClients,
-  addClient,
-  updateClient,
-  deleteClient,
-  createDefaultClient
-} from './clientService';

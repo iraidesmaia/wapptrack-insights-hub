@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -14,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { ActiveProjectSelector } from './ActiveProjectSelector';
 import type { CompanySettings, Theme } from '@/types';
 
 type MainLayoutProps = {
@@ -174,12 +174,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <BrandingSection />
               </Link>
             </div>
-            
-            {/* Seletor de Projetos - Desktop */}
-            <div className="px-4 py-4 border-b border-border">
-              <ActiveProjectSelector />
-            </div>
-            
             <nav className="flex-1 px-2 py-4 space-y-1">
               {navigation.map((item) => (
                 <NavLink
@@ -235,12 +229,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <X />
               </Button>
             </div>
-            
-            {/* Seletor de Projetos - Mobile */}
-            <div className="p-4 border-b border-border">
-              <ActiveProjectSelector isMobile />
-            </div>
-            
             <div className="flex-1 p-4">
               <nav className="space-y-4">
                 {navigation.map((item) => (
