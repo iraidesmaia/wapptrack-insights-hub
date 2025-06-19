@@ -141,7 +141,7 @@ export const useEvolutionAutomation = () => {
       console.log('Using company name as instance name:', { companyName, instanceName });
 
       // Call n8n webhook with new URL
-      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook/gerar-instancia-evolution', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ export const useEvolutionAutomation = () => {
     try {
       console.log('Gerando novo QR code para instância:', instance.instance_name);
 
-      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook/gerar-instancia-evolution', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
