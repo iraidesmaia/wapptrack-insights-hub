@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,14 +34,19 @@ export const useEvolutionAutomation = () => {
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<EvolutionAutoInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCodeCreatedAt, setQrCodeCreatedAt] = useState<Date | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [pollingInterval, setPollingInterval] = useState(5000);
+
+  const QR_CODE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   const cleanInstanceName = (companyName: string): string => {
     return companyName
-      .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
-      .replace(/\s+/g, '_') // Replace spaces with underscores
-      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_{2,}/g, '_')
       .trim()
-      .substring(0, 50); // Limit length
+      .substring(0, 50);
   };
 
   const getCompanyName = async (): Promise<string> => {
@@ -54,7 +60,7 @@ export const useEvolutionAutomation = () => {
 
       if (error) {
         console.error('Error fetching company name:', error);
-        return 'Minha_Empresa'; // Default fallback
+        return 'Minha_Empresa';
       }
 
       return data?.company_name || 'Minha_Empresa';
@@ -67,13 +73,11 @@ export const useEvolutionAutomation = () => {
   const extractQrCode = (n8nData: N8nWebhookResponse): string | null => {
     console.log('Extracting QR code from n8n data:', n8nData);
     
-    // Try different possible locations for the QR code
     if (n8nData.qrCode) {
       return n8nData.qrCode;
     }
     
     if (n8nData.data?.base64) {
-      // Remove data:image/png;base64, prefix if present
       const base64Data = n8nData.data.base64.replace(/^data:image\/png;base64,/, '');
       return base64Data;
     }
@@ -85,19 +89,28 @@ export const useEvolutionAutomation = () => {
     return null;
   };
 
+  const isQrCodeExpired = (): boolean => {
+    if (!qrCodeCreatedAt) return false;
+    return Date.now() - qrCodeCreatedAt.getTime() > QR_CODE_TIMEOUT;
+  };
+
+  const getTimeRemaining = (): number => {
+    if (!qrCodeCreatedAt) return 0;
+    const remaining = QR_CODE_TIMEOUT - (Date.now() - qrCodeCreatedAt.getTime());
+    return Math.max(0, remaining);
+  };
+
   const createAutomaticInstance = async (client_id?: string) => {
     setLoading(true);
     
     try {
       console.log('Creating Evolution instance via n8n...');
       
-      // Get company name from settings
       const companyName = await getCompanyName();
       const instanceName = cleanInstanceName(companyName);
       
       console.log('Using company name as instance name:', { companyName, instanceName });
 
-      // Call n8n webhook with new URL
       const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
         method: 'POST',
         headers: {
@@ -119,11 +132,9 @@ export const useEvolutionAutomation = () => {
         throw new Error(n8nData.error || 'Failed to create instance via n8n');
       }
 
-      // Extract QR code from response
       const extractedQrCode = extractQrCode(n8nData);
       console.log('Extracted QR code:', extractedQrCode ? 'Found' : 'Not found');
 
-      // Save instance data to database
       const instanceData = {
         user_id: (await supabase.auth.getUser()).data.user?.id,
         client_id: client_id || null,
@@ -152,6 +163,9 @@ export const useEvolutionAutomation = () => {
 
       setInstance(savedInstance);
       setQrCode(extractedQrCode);
+      setQrCodeCreatedAt(new Date());
+      setRetryCount(0);
+      setPollingInterval(5000);
       
       toast.success('Instância Evolution criada com sucesso via n8n!');
       
@@ -171,6 +185,97 @@ export const useEvolutionAutomation = () => {
       console.error('Error creating instance via n8n:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const regenerateQrCode = async () => {
+    if (!instance) return;
+    
+    setLoading(true);
+    try {
+      console.log('Regenerating QR Code for instance:', instance.instance_name);
+      
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/gerar-instancia-evolution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instanceName: instance.instance_name
+        })
+      });
+
+      if (!n8nResponse.ok) {
+        throw new Error(`Failed to regenerate QR code: ${n8nResponse.status}`);
+      }
+
+      const n8nData: N8nWebhookResponse = await n8nResponse.json();
+      
+      if (!n8nData.success) {
+        throw new Error(n8nData.error || 'Failed to regenerate QR code');
+      }
+
+      const extractedQrCode = extractQrCode(n8nData);
+      
+      if (extractedQrCode) {
+        const { error } = await supabase
+          .from('evolution_auto_instances')
+          .update({
+            qr_code_base64: extractedQrCode,
+            connection_status: 'waiting_scan',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', instance.id);
+
+        if (error) {
+          throw new Error('Failed to update QR code in database');
+        }
+
+        setQrCode(extractedQrCode);
+        setQrCodeCreatedAt(new Date());
+        setRetryCount(prev => prev + 1);
+        setPollingInterval(5000);
+        
+        toast.success('Novo QR Code gerado com sucesso!');
+      } else {
+        throw new Error('QR Code não foi gerado na resposta');
+      }
+      
+    } catch (error: any) {
+      console.error('Error regenerating QR code:', error);
+      toast.error(`Erro ao gerar novo QR Code: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteInstance = async () => {
+    if (!instance) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('evolution_auto_instances')
+        .delete()
+        .eq('id', instance.id);
+
+      if (error) {
+        throw new Error('Failed to delete instance from database');
+      }
+
+      setInstance(null);
+      setQrCode(null);
+      setQrCodeCreatedAt(null);
+      setRetryCount(0);
+      setPollingInterval(5000);
+      
+      toast.success('Instância deletada com sucesso!');
+      
+    } catch (error: any) {
+      console.error('Error deleting instance:', error);
+      toast.error(`Erro ao deletar instância: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -217,6 +322,9 @@ export const useEvolutionAutomation = () => {
       if (data) {
         setInstance(data);
         setQrCode(data.qr_code_base64);
+        if (data.qr_code_base64) {
+          setQrCodeCreatedAt(new Date(data.updated_at));
+        }
         return data;
       }
 
@@ -231,9 +339,17 @@ export const useEvolutionAutomation = () => {
     loading,
     instance,
     qrCode,
+    qrCodeCreatedAt,
+    retryCount,
+    pollingInterval,
+    isQrCodeExpired,
+    getTimeRemaining,
     createAutomaticInstance,
+    regenerateQrCode,
+    deleteInstance,
     checkInstanceStatus,
     loadExistingInstance,
-    setQrCode
+    setQrCode,
+    setPollingInterval
   };
 };

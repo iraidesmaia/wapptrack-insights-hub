@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Zap, QrCode, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { MessageSquare, Zap, QrCode, CheckCircle, Clock, AlertCircle, RotateCcw, Trash2, Timer } from 'lucide-react';
 import { useEvolutionAutomation } from '@/hooks/useEvolutionAutomation';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -16,23 +16,59 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
     loading, 
     instance, 
     qrCode, 
+    qrCodeCreatedAt,
+    retryCount,
+    pollingInterval,
+    isQrCodeExpired,
+    getTimeRemaining,
     createAutomaticInstance, 
+    regenerateQrCode,
+    deleteInstance,
     loadExistingInstance,
-    checkInstanceStatus 
+    checkInstanceStatus,
+    setPollingInterval
   } = useEvolutionAutomation();
 
   const { formData } = useSettings();
   const [statusInterval, setStatusInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [timeElapsed, setTimeElapsed] = useState(0);
 
   useEffect(() => {
     loadExistingInstance(client_id);
   }, [client_id]);
 
+  // Update time remaining and elapsed every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (qrCodeCreatedAt) {
+        setTimeRemaining(getTimeRemaining());
+        setTimeElapsed(Date.now() - qrCodeCreatedAt.getTime());
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrCodeCreatedAt, getTimeRemaining]);
+
+  // Smart polling with progressive intervals
   useEffect(() => {
     if (instance && instance.connection_status === 'waiting_scan') {
       const interval = setInterval(() => {
         checkInstanceStatus(instance.id);
-      }, 5000);
+        
+        // Increase polling interval progressively (5s -> 10s -> 30s)
+        if (timeElapsed > 60000) { // After 1 minute
+          setPollingInterval(10000);
+        }
+        if (timeElapsed > 180000) { // After 3 minutes
+          setPollingInterval(30000);
+        }
+        
+        // Stop polling if QR code expired
+        if (isQrCodeExpired()) {
+          if (interval) clearInterval(interval);
+        }
+      }, pollingInterval);
       
       setStatusInterval(interval);
       
@@ -43,13 +79,31 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
       clearInterval(statusInterval);
       setStatusInterval(null);
     }
-  }, [instance?.connection_status]);
+  }, [instance?.connection_status, pollingInterval, timeElapsed, isQrCodeExpired]);
 
   const handleCreateInstance = async () => {
     try {
       await createAutomaticInstance(client_id);
     } catch (error) {
       console.error('Error creating instance:', error);
+    }
+  };
+
+  const handleRegenerateQrCode = async () => {
+    try {
+      await regenerateQrCode();
+    } catch (error) {
+      console.error('Error regenerating QR code:', error);
+    }
+  };
+
+  const handleDeleteInstance = async () => {
+    if (window.confirm('Tem certeza que deseja deletar esta instância? Esta ação não pode ser desfeita.')) {
+      try {
+        await deleteInstance();
+      } catch (error) {
+        console.error('Error deleting instance:', error);
+      }
     }
   };
 
@@ -78,6 +132,13 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
       case 'pending': return <Clock className="w-4 h-4" />;
       default: return <AlertCircle className="w-4 h-4" />;
     }
+  };
+
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -112,7 +173,7 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
                   Criada em {new Date(instance.created_at).toLocaleDateString('pt-BR')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Gerenciada via n8n
+                  Gerenciada via n8n {retryCount > 0 && `• Tentativa ${retryCount + 1}`}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -132,19 +193,87 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
 
             {qrCode && instance.connection_status === 'waiting_scan' && (
               <div className="space-y-3">
-                <div className="text-center">
-                  <h4 className="font-medium mb-2">Escaneie o QR Code para conectar</h4>
-                  <div className="inline-block p-4 bg-white rounded-lg border">
-                    <img 
-                      src={`data:image/png;base64,${qrCode}`} 
-                      alt="QR Code WhatsApp" 
-                      className="w-48 h-48"
-                    />
+                {/* Time indicators */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-1">
+                      <Timer className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        Tempo decorrido: {formatTime(timeElapsed)}
+                      </span>
+                    </div>
+                    {timeRemaining > 0 && (
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm text-orange-600">
+                          Expira em: {formatTime(timeRemaining)}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  {isQrCodeExpired() && (
+                    <Badge variant="destructive">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      QR Code Expirado
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="text-center">
+                  <h4 className="font-medium mb-2">
+                    {isQrCodeExpired() ? 'QR Code Expirado - Gere um novo' : 'Escaneie o QR Code para conectar'}
+                  </h4>
+                  
+                  {!isQrCodeExpired() && (
+                    <div className="inline-block p-4 bg-white rounded-lg border">
+                      <img 
+                        src={`data:image/png;base64,${qrCode}`} 
+                        alt="QR Code WhatsApp" 
+                        className="w-48 h-48"
+                      />
+                    </div>
+                  )}
+                  
                   <p className="text-sm text-muted-foreground mt-2">
                     Abra o WhatsApp → Menu → Dispositivos conectados → Conectar dispositivo
                   </p>
                 </div>
+
+                {/* Action buttons */}
+                <div className="flex justify-center space-x-3">
+                  <Button 
+                    onClick={handleRegenerateQrCode} 
+                    disabled={loading}
+                    variant="outline"
+                    className="flex items-center space-x-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{loading ? 'Gerando...' : 'Gerar Novo QR'}</span>
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleDeleteInstance} 
+                    disabled={loading}
+                    variant="destructive"
+                    className="flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Deletar Instância</span>
+                  </Button>
+                </div>
+
+                {/* Expiration warning */}
+                {timeRemaining > 0 && timeRemaining < 60000 && (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
+                      <span className="text-sm text-orange-700">
+                        QR Code expirará em menos de 1 minuto. Prepare-se para escaneá-lo ou gere um novo.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -155,6 +284,19 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
                 <p className="text-sm text-green-600">
                   Sua instância está pronta para enviar e receber mensagens automaticamente.
                 </p>
+                
+                <div className="mt-3">
+                  <Button 
+                    onClick={handleDeleteInstance} 
+                    disabled={loading}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Recriar Instância</span>
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -187,7 +329,8 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
               <p>✅ Instância criada via n8n com o nome da empresa</p>
               <p>✅ Webhook configurado automaticamente</p>
               <p>✅ QR Code gerado instantaneamente</p>
-              <p>✅ Eventos MESSAGES_UPSERT e SEND_MESSAGE habilitados</p>
+              <p>✅ Timeout de 5 minutos com opção de renovar</p>
+              <p>✅ Verificação inteligente de status</p>
               <p>✅ Integração completa com automação n8n</p>
             </div>
           </div>
