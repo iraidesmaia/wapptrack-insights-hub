@@ -40,6 +40,15 @@ export const useEvolutionAutomation = () => {
 
   const QR_CODE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
+  // Função para limpar completamente o estado
+  const clearAllState = () => {
+    setInstance(null);
+    setQrCode(null);
+    setQrCodeCreatedAt(null);
+    setRetryCount(0);
+    setPollingInterval(5000);
+  };
+
   const cleanInstanceName = (companyName: string): string => {
     return companyName
       .replace(/[^a-zA-Z0-9\s]/g, '')
@@ -184,6 +193,7 @@ export const useEvolutionAutomation = () => {
     } catch (error: any) {
       console.error('Error creating instance via n8n:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
+      clearAllState(); // Limpar estado em caso de erro
       throw error;
     } finally {
       setLoading(false);
@@ -265,11 +275,8 @@ export const useEvolutionAutomation = () => {
         throw new Error('Failed to delete instance from database');
       }
 
-      setInstance(null);
-      setQrCode(null);
-      setQrCodeCreatedAt(null);
-      setRetryCount(0);
-      setPollingInterval(5000);
+      // Limpar completamente o estado após deletar
+      clearAllState();
       
       toast.success('Instância deletada com sucesso!');
       
@@ -289,7 +296,14 @@ export const useEvolutionAutomation = () => {
         .eq('id', instanceId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Se instância não existe mais, limpar estado
+        if (error.code === 'PGRST116') {
+          clearAllState();
+          return null;
+        }
+        throw error;
+      }
 
       setInstance(data);
       return data;
@@ -328,9 +342,12 @@ export const useEvolutionAutomation = () => {
         return data;
       }
 
+      // Se não há dados, garantir que estado está limpo
+      clearAllState();
       return null;
     } catch (error) {
       console.error('Error loading existing instance:', error);
+      clearAllState();
       return null;
     }
   };
