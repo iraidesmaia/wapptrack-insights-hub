@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types';
 
@@ -117,6 +116,7 @@ export const addLead = async (leadData: Omit<Lead, 'id'>, clientId?: string): Pr
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
+      campaign_id: data.campaign_id,
       status: (data.status as Lead['status']) || 'new',
       created_at: data.created_at,
       custom_fields: (typeof data.custom_fields === 'object' && data.custom_fields !== null) 
@@ -155,7 +155,6 @@ export const addLead = async (leadData: Omit<Lead, 'id'>, clientId?: string): Pr
       facebook_ad_id: data.facebook_ad_id,
       facebook_adset_id: data.facebook_adset_id,
       facebook_campaign_id: data.facebook_campaign_id,
-      campaign_id: data.campaign_id,
       user_id: data.user_id
     };
 
@@ -190,6 +189,7 @@ export const updateLead = async (id: string, leadData: Partial<Lead>): Promise<L
       name: data.name,
       phone: data.phone,
       campaign: data.campaign,
+      campaign_id: data.campaign_id,
       status: (data.status as Lead['status']) || 'new',
       created_at: data.created_at,
       custom_fields: (typeof data.custom_fields === 'object' && data.custom_fields !== null) 
@@ -228,7 +228,6 @@ export const updateLead = async (id: string, leadData: Partial<Lead>): Promise<L
       facebook_ad_id: data.facebook_ad_id,
       facebook_adset_id: data.facebook_adset_id,
       facebook_campaign_id: data.facebook_campaign_id,
-      campaign_id: data.campaign_id,
       user_id: data.user_id
     };
 
