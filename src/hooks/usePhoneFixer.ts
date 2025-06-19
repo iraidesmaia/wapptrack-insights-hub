@@ -4,18 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { getLeads } from '@/services/dataService';
 import { toast } from "sonner";
 import { Lead } from '@/types';
-import { useProject } from '@/context/ProjectContext';
 
 export const usePhoneFixer = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { currentProject } = useProject();
 
   const fixPhoneNumbers = async (): Promise<Lead[]> => {
-    if (!currentProject) {
-      toast.error('Projeto não selecionado');
-      return [];
-    }
-
     try {
       setIsLoading(true);
       
@@ -23,8 +16,7 @@ export const usePhoneFixer = () => {
       
       const { data: allLeads, error: fetchError } = await supabase
         .from('leads')
-        .select('*')
-        .eq('project_id', currentProject.id);
+        .select('*');
 
       if (fetchError) {
         console.error('Erro ao buscar leads:', fetchError);
@@ -69,7 +61,7 @@ export const usePhoneFixer = () => {
 
       if (correctedCount > 0) {
         toast.success(`${correctedCount} número(s) corrigido(s) com sucesso!`);
-        const leadsData = await getLeads(currentProject.id);
+        const leadsData = await getLeads();
         console.log(`Processo de correção finalizado. ${correctedCount} números corrigidos.`);
         return leadsData;
       } else {

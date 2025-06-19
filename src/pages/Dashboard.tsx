@@ -8,16 +8,14 @@ import LineChart from '@/components/charts/LineChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
-import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint, TrendData } from '@/types';
+import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
-import { useProject } from '@/context/ProjectContext';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { currentProject } = useProject();
   
   // Initialize date range to last 7 days
   const [dateRange, setDateRange] = useState<DateRange>(() => {
@@ -28,69 +26,20 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (currentProject) {
-      fetchData();
-    }
-  }, [dateRange, currentProject]);
+    fetchData();
+  }, [dateRange]);
 
   const fetchData = async () => {
-    if (!currentProject) return;
-    
     try {
       setIsLoading(true);
       const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStatsByPeriod(currentProject.id, dateRange.startDate.toISOString(), dateRange.endDate.toISOString()),
-        getCampaignPerformance(currentProject.id),
-        getTimelineData(currentProject.id, dateRange.startDate.toISOString(), dateRange.endDate.toISOString())
+        getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
+        getCampaignPerformance(),
+        getTimelineData(dateRange.startDate, dateRange.endDate)
       ]);
-      
-      // Transform campaign data to match expected interface
-      const transformedCampaignData: CampaignPerformance[] = campaignData.map(item => ({
-        campaignId: item.campaign || '',
-        campaignName: item.campaign || '',
-        leads: item.leads || 0,
-        sales: item.sales || 0,
-        revenue: item.revenue || 0,
-        conversionRate: item.conversionRate || 0
-      }));
-      
-      // Transform timeline data to match expected interface
-      const transformedTimelineData: TimelineDataPoint[] = timeline.map(item => ({
-        date: item.date,
-        leads: item.leads,
-        sales: item.sales,
-        revenue: 0 // Add default revenue since it's required
-      }));
-      
-      // Create proper TrendData objects
-      const monthlyLeadsTrend: TrendData = {
-        trend: 'up',
-        percentage: 0
-      };
-      
-      const monthlyRevenueTrend: TrendData = {
-        trend: 'up', 
-        percentage: 0
-      };
-      
-      // Transform dashboard stats to match expected interface
-      const transformedStats: DashboardStats = {
-        totalLeads: dashboardStats.totalLeads || 0,
-        totalSales: dashboardStats.totalSales || 0,
-        totalRevenue: dashboardStats.totalRevenue || 0,
-        todaysLeads: 0, // Add default value
-        confirmedSales: dashboardStats.totalSales || 0,
-        pendingConversations: 0, // Add default value
-        monthlyLeads: dashboardStats.totalLeads || 0,
-        monthlyRevenue: dashboardStats.totalRevenue || 0,
-        conversionRate: dashboardStats.conversionRate || 0,
-        monthlyLeadsTrend,
-        monthlyRevenueTrend
-      };
-      
-      setStats(transformedStats);
-      setCampaignPerformance(transformedCampaignData);
-      setTimelineData(transformedTimelineData);
+      setStats(dashboardStats);
+      setCampaignPerformance(campaignData);
+      setTimelineData(timeline);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -101,16 +50,6 @@ const Dashboard = () => {
   const handleDateRangeChange = (newRange: DateRange) => {
     setDateRange(newRange);
   };
-
-  if (!currentProject) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Selecione um projeto para visualizar o dashboard</p>
-        </div>
-      </MainLayout>
-    );
-  }
 
   return (
     <MainLayout>

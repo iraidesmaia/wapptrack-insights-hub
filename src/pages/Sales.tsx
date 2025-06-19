@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { Plus, Trash2, Edit } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { useProject } from '@/context/ProjectContext';
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -32,19 +32,16 @@ const Sales = () => {
     product: '',
     notes: ''
   });
-  const { currentProject } = useProject();
 
   const fetchData = async () => {
-    if (!currentProject) return;
-    
     try {
       setIsLoading(true);
       console.log('📊 Sales - Iniciando busca de dados...');
       
       const [salesData, leadsData, campaignsData] = await Promise.all([
-        getSales(currentProject.id),
-        getLeads(currentProject.id),
-        getCampaigns(currentProject.id)
+        getSales(),
+        getLeads(),
+        getCampaigns()
       ]);
       
       console.log('📊 Sales - Dados carregados:', {
@@ -65,55 +62,52 @@ const Sales = () => {
   };
 
   useEffect(() => {
-    if (currentProject) {
-      fetchData();
+    fetchData();
 
-      // Configurar escuta em tempo real para mudanças na tabela de vendas
-      console.log('🎧 Sales - Configurando escuta em tempo real para vendas...');
-      const channel = supabase
-        .channel('sales-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Escuta INSERT, UPDATE e DELETE
-            schema: 'public',
-            table: 'sales',
-            filter: `project_id=eq.${currentProject.id}`
-          },
-          (payload) => {
-            console.log('📡 Sales - Mudança detectada na tabela sales:', payload);
-            
-            if (payload.eventType === 'INSERT') {
-              console.log('➕ Sales - Nova venda adicionada:', payload.new);
-              const newSale = payload.new as Sale;
-              setSales(prev => [newSale, ...prev]);
-              toast.success(`Nova venda criada: ${newSale.lead_name} - ${formatCurrency(newSale.value)}`);
-            } 
-            else if (payload.eventType === 'UPDATE') {
-              console.log('📝 Sales - Venda atualizada:', payload.new);
-              const updatedSale = payload.new as Sale;
-              setSales(prev => prev.map(sale => 
-                sale.id === updatedSale.id ? updatedSale : sale
-              ));
-              toast.info(`Venda atualizada: ${updatedSale.lead_name}`);
-            }
-            else if (payload.eventType === 'DELETE') {
-              console.log('🗑️ Sales - Venda removida:', payload.old);
-              const deletedSale = payload.old as Sale;
-              setSales(prev => prev.filter(sale => sale.id !== deletedSale.id));
-              toast.info(`Venda removida: ${deletedSale.lead_name}`);
-            }
+    // Configurar escuta em tempo real para mudanças na tabela de vendas
+    console.log('🎧 Sales - Configurando escuta em tempo real para vendas...');
+    const channel = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'sales'
+        },
+        (payload) => {
+          console.log('📡 Sales - Mudança detectada na tabela sales:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('➕ Sales - Nova venda adicionada:', payload.new);
+            const newSale = payload.new as Sale;
+            setSales(prev => [newSale, ...prev]);
+            toast.success(`Nova venda criada: ${newSale.lead_name} - ${formatCurrency(newSale.value)}`);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            console.log('📝 Sales - Venda atualizada:', payload.new);
+            const updatedSale = payload.new as Sale;
+            setSales(prev => prev.map(sale => 
+              sale.id === updatedSale.id ? updatedSale : sale
+            ));
+            toast.info(`Venda atualizada: ${updatedSale.lead_name}`);
           }
-        )
-        .subscribe();
+          else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Sales - Venda removida:', payload.old);
+            const deletedSale = payload.old as Sale;
+            setSales(prev => prev.filter(sale => sale.id !== deletedSale.id));
+            toast.info(`Venda removida: ${deletedSale.lead_name}`);
+          }
+        }
+      )
+      .subscribe();
 
-      // Cleanup: remover a escuta quando o componente for desmontado
-      return () => {
-        console.log('🔌 Sales - Removendo escuta em tempo real...');
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [currentProject]);
+    // Cleanup: remover a escuta quando o componente for desmontado
+    return () => {
+      console.log('🔌 Sales - Removendo escuta em tempo real...');
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filteredSales = sales.filter((sale) => {
     const searchLower = searchTerm.toLowerCase();
@@ -178,11 +172,6 @@ const Sales = () => {
   };
 
   const handleSaveSale = async () => {
-    if (!currentProject) {
-      toast.error('Projeto não selecionado');
-      return;
-    }
-
     try {
       // Validate required fields
       if (!currentSale.value || !currentSale.date || !currentSale.lead_id || !currentSale.campaign) {
@@ -200,8 +189,7 @@ const Sales = () => {
           ...currentSale,
           value: saleValue,
           date: new Date(currentSale.date as string).toISOString(),
-          project_id: currentProject.id
-        } as Omit<Sale, 'id'> & { project_id: string });
+        } as Omit<Sale, 'id'>);
         
         setSales([...sales, newSale]);
         toast.success('Venda adicionada com sucesso');
@@ -239,16 +227,6 @@ const Sales = () => {
       toast.error('Erro ao excluir venda');
     }
   };
-
-  if (!currentProject) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Selecione um projeto para visualizar as vendas</p>
-        </div>
-      </MainLayout>
-    );
-  }
 
   return (
     <MainLayout>

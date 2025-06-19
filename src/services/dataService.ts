@@ -18,7 +18,7 @@ export {
   getSales,
   addSale,
   updateSale,
-  deleteSale  
+  deleteSale
 } from './saleService';
 
 export {
@@ -32,10 +32,3 @@ export {
 export {
   trackRedirect
 } from './trackingService';
-
-export {
-  getProjects,
-  createProject,
-  updateProject,
-  deleteProject
-} from './projectService';

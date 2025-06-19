@@ -36,7 +36,6 @@ export type Database = {
           name: string
           pixel_id: string | null
           pixel_integration_type: string | null
-          project_id: string | null
           redirect_type: string | null
           server_side_api_enabled: boolean | null
           test_event_code: string | null
@@ -76,7 +75,6 @@ export type Database = {
           name: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
-          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -116,7 +114,6 @@ export type Database = {
           name?: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
-          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -139,7 +136,6 @@ export type Database = {
           created_at: string
           id: string
           logo_url: string | null
-          project_id: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -150,7 +146,6 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
-          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -161,7 +156,6 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
-          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -323,7 +317,6 @@ export type Database = {
           notes: string | null
           os: string | null
           phone: string
-          project_id: string | null
           screen_resolution: string | null
           status: string | null
           timezone: string | null
@@ -367,7 +360,6 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone: string
-          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -411,7 +403,6 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone?: string
-          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -509,39 +500,6 @@ export type Database = {
         }
         Relationships: []
       }
-      projects: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_active: boolean
-          logo_url: string | null
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          logo_url?: string | null
-          name: string
-          updated_at?: string
-          user_id?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          logo_url?: string | null
-          name?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       sales: {
         Row: {
           campaign: string
@@ -551,7 +509,6 @@ export type Database = {
           lead_name: string
           notes: string | null
           product: string | null
-          project_id: string | null
           user_id: string
           value: number
         }
@@ -563,7 +520,6 @@ export type Database = {
           lead_name: string
           notes?: string | null
           product?: string | null
-          project_id?: string | null
           user_id?: string
           value: number
         }
@@ -575,7 +531,6 @@ export type Database = {
           lead_name?: string
           notes?: string | null
           product?: string | null
-          project_id?: string | null
           user_id?: string
           value?: number
         }
@@ -661,10 +616,6 @@ export type Database = {
       convert_pending_lead_secure: {
         Args: { pending_lead_id: string }
         Returns: Json
-      }
-      create_default_project_settings: {
-        Args: { project_id_param: string }
-        Returns: undefined
       }
       get_tracking_by_identifiers: {
         Args: {

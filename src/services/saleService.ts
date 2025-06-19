@@ -1,12 +1,12 @@
+
 import { Sale } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
-export const getSales = async (projectId: string): Promise<Sale[]> => {
+export const getSales = async (): Promise<Sale[]> => {
   try {
     const { data: sales, error } = await supabase
       .from('sales')
       .select('*')
-      .eq('project_id', projectId)
       .order('date', { ascending: false });
 
     if (error) throw error;
@@ -27,7 +27,7 @@ export const getSales = async (projectId: string): Promise<Sale[]> => {
   }
 };
 
-export const addSale = async (sale: Omit<Sale, 'id'> & { project_id: string }): Promise<Sale> => {
+export const addSale = async (sale: Omit<Sale, 'id'>): Promise<Sale> => {
   try {
     const { data, error } = await supabase
       .from('sales')
@@ -38,8 +38,7 @@ export const addSale = async (sale: Omit<Sale, 'id'> & { project_id: string }): 
         lead_name: sale.lead_name,
         campaign: sale.campaign,
         product: sale.product,
-        notes: sale.notes,
-        project_id: sale.project_id
+        notes: sale.notes
       })
       .select()
       .single();

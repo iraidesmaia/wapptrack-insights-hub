@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { ProjectProvider } from "./context/ProjectContext";
 import { ThemeProvider } from "./hooks/useTheme";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -32,85 +31,33 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/ir" element={<Redirect />} />
               
-              {/* Rotas antigas - redirecionam para o primeiro projeto */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <ProjectProvider>
-                    <Navigate to="/project/auto/dashboard" replace />
-                  </ProjectProvider>
+                  <Dashboard />
                 </ProtectedRoute>
               } />
               
               <Route path="/leads" element={
                 <ProtectedRoute>
-                  <ProjectProvider>
-                    <Navigate to="/project/auto/leads" replace />
-                  </ProjectProvider>
+                  <Leads />
                 </ProtectedRoute>
               } />
               
               <Route path="/campaigns" element={
                 <ProtectedRoute>
-                  <ProjectProvider>
-                    <Navigate to="/project/auto/campaigns" replace />
-                  </ProjectProvider>
+                  <Campaigns />
                 </ProtectedRoute>
               } />
               
               <Route path="/sales" element={
                 <ProtectedRoute>
-                  <ProjectProvider>
-                    <Navigate to="/project/auto/sales" replace />
-                  </ProjectProvider>
+                  <Sales />
                 </ProtectedRoute>
               } />
               
               <Route path="/settings" element={
                 <ProtectedRoute>
-                  <ProjectProvider>
-                    <Navigate to="/project/auto/settings" replace />
-                  </ProjectProvider>
-                </ProtectedRoute>
-              } />
-              
-              {/* Novas rotas com projectId */}
-              <Route path="/project/:projectId/dashboard" element={
-                <ProtectedRoute>
-                  <ProjectProvider>
-                    <Dashboard />
-                  </ProjectProvider>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/project/:projectId/leads" element={
-                <ProtectedRoute>
-                  <ProjectProvider>
-                    <Leads />
-                  </ProjectProvider>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/project/:projectId/campaigns" element={
-                <ProtectedRoute>
-                  <ProjectProvider>
-                    <Campaigns />
-                  </ProjectProvider>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/project/:projectId/sales" element={
-                <ProtectedRoute>
-                  <ProjectProvider>
-                    <Sales />
-                  </ProjectProvider>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/project/:projectId/settings" element={
-                <ProtectedRoute>
-                  <ProjectProvider>
-                    <Settings />
-                  </ProjectProvider>
+                  <Settings />
                 </ProtectedRoute>
               } />
               

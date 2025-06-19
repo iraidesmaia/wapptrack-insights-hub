@@ -5,7 +5,6 @@ import { addLead, updateLead, deleteLead, addSale } from '@/services/dataService
 import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } from '@/lib/phoneUtils';
 import { correctPhoneNumber, shouldCorrectPhone } from '@/lib/phoneCorrection';
 import { toast } from "sonner";
-import { useProject } from '@/context/ProjectContext';
 
 export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.SetStateAction<Lead[]>>) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -26,8 +25,6 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
     utm_content: '',
     utm_term: ''
   });
-
-  const { currentProject } = useProject();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -103,18 +100,12 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
   };
 
   const createSaleFromLead = async (lead: Lead) => {
-    if (!currentProject) {
-      toast.error('Projeto não selecionado');
-      return;
-    }
-
     try {
       console.log('🎯 createSaleFromLead - Iniciando criação de venda para lead:', {
         leadId: lead.id,
         leadName: lead.name,
         campaign: lead.campaign,
-        status: lead.status,
-        projectId: currentProject.id
+        status: lead.status
       });
 
       const newSale = await addSale({
@@ -124,8 +115,7 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
         lead_name: lead.name,
         campaign: lead.campaign,
         product: '',
-        notes: `Venda criada automaticamente quando lead foi convertido`,
-        project_id: currentProject.id
+        notes: `Venda criada automaticamente quando lead foi convertido`
       });
       
       console.log('✅ createSaleFromLead - Venda criada com sucesso:', newSale);
@@ -148,11 +138,6 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
   };
 
   const handleSaveLead = async () => {
-    if (!currentProject) {
-      toast.error('Projeto não selecionado');
-      return;
-    }
-
     try {
       if (!currentLead.name || !currentLead.phone || !currentLead.campaign || !currentLead.status) {
         toast.error('Preencha todos os campos obrigatórios');
@@ -171,8 +156,7 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
         mode: dialogMode,
         leadId: currentLead.id,
         currentStatus: currentLead.status,
-        wasConverted,
-        projectId: currentProject.id
+        wasConverted
       });
 
       let processedPhone = processBrazilianPhone(currentLead.phone);
@@ -189,10 +173,7 @@ export const useLeadOperations = (leads: Lead[], setLeads: React.Dispatch<React.
 
       if (dialogMode === 'add') {
         console.log('➕ handleSaveLead - Adicionando novo lead...');
-        const newLead = await addLead({
-          ...leadToSave as Omit<Lead, 'id' | 'created_at'>,
-          project_id: currentProject.id
-        });
+        const newLead = await addLead(leadToSave as Omit<Lead, 'id' | 'created_at'>);
         setLeads([newLead, ...leads]);
         updatedLead = newLead;
         toast.success('Lead adicionado com sucesso');

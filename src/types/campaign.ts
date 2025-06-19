@@ -31,11 +31,6 @@ export interface Campaign {
   data_processing_options?: string[];
   data_processing_options_country?: number;
   data_processing_options_state?: number;
-  auto_create_leads?: boolean;
-  evolution_api_key?: string;
-  evolution_instance_name?: string;
-  evolution_base_url?: string;
-  webhook_callback_url?: string;
 }
 
 export interface CompanyBranding {
