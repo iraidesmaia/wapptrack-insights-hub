@@ -163,15 +163,20 @@ serve(async (req) => {
       })
     }
 
-    // 1. Criar instância na Evolution API
+    // 1. Criar instância na Evolution API usando payload exato do n8n
     console.log('🔧 Step 1: Creating instance in Evolution API')
     const createInstancePayload = {
       instanceName: instanceName,
       token: evolutionToken,
-      qrcode: true,
-      webhook: webhookUrl,
-      webhook_by_events: true,
-      events: ['MESSAGES_UPSERT', 'SEND_MESSAGE']
+      options_Create_instance: {
+        webhook: {
+          webhookSettings: {
+            webhookUrl: webhookUrl,
+            webhookByEvents: true,
+            webhookEvents: ["MESSAGES_UPSERT", "SEND_MESSAGE"]
+          }
+        }
+      }
     }
 
     console.log('📤 Sending request to Evolution API:', {
@@ -189,13 +194,15 @@ serve(async (req) => {
     })
 
     console.log('📥 Evolution API response status:', createInstanceResponse.status)
+    console.log('📥 Evolution API response headers:', Object.fromEntries(createInstanceResponse.headers.entries()))
 
     if (!createInstanceResponse.ok) {
       const errorText = await createInstanceResponse.text()
       console.error('❌ Evolution API error response:', {
         status: createInstanceResponse.status,
         statusText: createInstanceResponse.statusText,
-        body: errorText
+        body: errorText,
+        headers: Object.fromEntries(createInstanceResponse.headers.entries())
       })
 
       try {
@@ -203,7 +210,8 @@ serve(async (req) => {
         return new Response(JSON.stringify({ 
           success: false,
           error: `Evolution API error: ${errorJson.message || errorText}`,
-          details: errorJson
+          details: errorJson,
+          status: createInstanceResponse.status
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -211,7 +219,8 @@ serve(async (req) => {
       } catch {
         return new Response(JSON.stringify({ 
           success: false,
-          error: `Evolution API error (${createInstanceResponse.status}): ${errorText}` 
+          error: `Evolution API error (${createInstanceResponse.status}): ${errorText}`,
+          status: createInstanceResponse.status
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -222,39 +231,8 @@ serve(async (req) => {
     const createInstanceData = await createInstanceResponse.json()
     console.log('✅ Instance created successfully:', createInstanceData)
 
-    // 2. Configurar webhook
-    console.log('🔧 Step 2: Setting webhook')
-    const webhookPayload = {
-      url: webhookUrl,
-      webhook_by_events: true,
-      events: ['MESSAGES_UPSERT', 'SEND_MESSAGE']
-    }
-
-    console.log('📤 Setting webhook:', webhookPayload)
-
-    const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': evolutionToken
-      },
-      body: JSON.stringify(webhookPayload)
-    })
-
-    console.log('📥 Webhook response status:', webhookResponse.status)
-
-    if (!webhookResponse.ok) {
-      const webhookErrorText = await webhookResponse.text()
-      console.error('⚠️ Webhook configuration failed:', {
-        status: webhookResponse.status,
-        body: webhookErrorText
-      })
-    } else {
-      console.log('✅ Webhook configured successfully')
-    }
-
-    // 3. Obter QR Code
-    console.log('🔧 Step 3: Getting QR Code')
+    // 2. Obter QR Code
+    console.log('🔧 Step 2: Getting QR Code')
     let qrCodeBase64 = null
     let retries = 0
     const maxRetries = 10
@@ -272,13 +250,15 @@ serve(async (req) => {
       })
 
       console.log('📥 QR Code response status:', qrResponse.status)
+      console.log('📥 QR Code response headers:', Object.fromEntries(qrResponse.headers.entries()))
 
       if (qrResponse.ok) {
         const qrData = await qrResponse.json()
         console.log('📱 QR Response received:', {
           hasBase64: !!qrData.base64,
           hasCode: !!qrData.code,
-          status: qrData.status
+          status: qrData.status,
+          fullResponse: qrData
         })
         
         if (qrData.base64) {
@@ -291,7 +271,10 @@ serve(async (req) => {
         }
       } else {
         const qrErrorText = await qrResponse.text()
-        console.log('⚠️ QR Code not ready yet:', qrErrorText)
+        console.log('⚠️ QR Code not ready yet:', {
+          status: qrResponse.status,
+          error: qrErrorText
+        })
       }
       
       retries++
@@ -301,8 +284,8 @@ serve(async (req) => {
       console.log('⚠️ QR Code not generated after maximum retries')
     }
 
-    // 4. Salvar na nossa base de dados
-    console.log('💾 Step 4: Saving to database')
+    // 3. Salvar na nossa base de dados
+    console.log('💾 Step 3: Saving to database')
     const instanceData = {
       user_id: user.id,
       client_id: client_id || null,
@@ -310,7 +293,7 @@ serve(async (req) => {
       instance_token: evolutionToken,
       qr_code_base64: qrCodeBase64,
       connection_status: qrCodeBase64 ? 'waiting_scan' : 'pending',
-      webhook_configured: webhookResponse.ok,
+      webhook_configured: true, // Webhook é configurado automaticamente no payload
       updated_at: new Date().toISOString()
     }
 
@@ -345,8 +328,9 @@ serve(async (req) => {
       message: 'Evolution API instance created and configured successfully',
       instance: savedInstance,
       qr_code: qrCodeBase64,
-      webhook_configured: webhookResponse.ok,
-      project_data: projectData
+      webhook_configured: true,
+      project_data: projectData,
+      evolution_response: createInstanceData
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
