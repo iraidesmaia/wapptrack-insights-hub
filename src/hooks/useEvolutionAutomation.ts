@@ -21,6 +21,12 @@ interface N8nWebhookResponse {
   qrCode?: string;
   status?: string;
   error?: string;
+  data?: {
+    pairingCode?: string;
+    code?: string;
+    base64?: string;
+    count?: number;
+  };
 }
 
 export const useEvolutionAutomation = () => {
@@ -58,6 +64,27 @@ export const useEvolutionAutomation = () => {
     }
   };
 
+  const extractQrCode = (n8nData: N8nWebhookResponse): string | null => {
+    console.log('Extracting QR code from n8n data:', n8nData);
+    
+    // Try different possible locations for the QR code
+    if (n8nData.qrCode) {
+      return n8nData.qrCode;
+    }
+    
+    if (n8nData.data?.base64) {
+      // Remove data:image/png;base64, prefix if present
+      const base64Data = n8nData.data.base64.replace(/^data:image\/png;base64,/, '');
+      return base64Data;
+    }
+    
+    if (n8nData.data?.code) {
+      return n8nData.data.code;
+    }
+    
+    return null;
+  };
+
   const createAutomaticInstance = async (client_id?: string) => {
     setLoading(true);
     
@@ -92,13 +119,17 @@ export const useEvolutionAutomation = () => {
         throw new Error(n8nData.error || 'Failed to create instance via n8n');
       }
 
+      // Extract QR code from response
+      const extractedQrCode = extractQrCode(n8nData);
+      console.log('Extracted QR code:', extractedQrCode ? 'Found' : 'Not found');
+
       // Save instance data to database
       const instanceData = {
         user_id: (await supabase.auth.getUser()).data.user?.id,
         client_id: client_id || null,
         instance_name: n8nData.instanceName || instanceName,
         instance_token: 'managed_by_n8n',
-        qr_code_base64: n8nData.qrCode || null,
+        qr_code_base64: extractedQrCode,
         connection_status: n8nData.status || 'waiting_scan',
         webhook_configured: true,
         updated_at: new Date().toISOString()
@@ -120,18 +151,20 @@ export const useEvolutionAutomation = () => {
       }
 
       setInstance(savedInstance);
-      setQrCode(n8nData.qrCode || null);
+      setQrCode(extractedQrCode);
       
       toast.success('Instância Evolution criada com sucesso via n8n!');
       
-      if (n8nData.qrCode) {
+      if (extractedQrCode) {
         toast.success('QR Code gerado! Escaneie para conectar o WhatsApp.');
+      } else {
+        toast.info('Instância criada, mas QR Code não foi gerado. Verifique os logs.');
       }
 
       return {
         success: true,
         instance: savedInstance,
-        qr_code: n8nData.qrCode
+        qr_code: extractedQrCode
       };
 
     } catch (error: any) {
