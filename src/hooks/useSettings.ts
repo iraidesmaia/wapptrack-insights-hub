@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +9,6 @@ export const useSettings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [testingEvolution, setTestingEvolution] = useState(false);
   const { theme, setTheme } = useTheme();
   
   const [formData, setFormData] = useState({
@@ -17,18 +17,9 @@ export const useSettings = () => {
     logo_url: '',
     theme: theme as Theme
   });
-  
-  const [evolutionConfig, setEvolutionConfig] = useState({
-    evolution_api_key: '',
-    evolution_instance_name: '',
-    evolution_base_url: '',
-    webhook_callback_url: 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook',
-    webhook_url: ''
-  });
 
   const loadSettings = async () => {
     try {
-      // Usar order by e limit para pegar apenas a primeira configuração
       const { data, error } = await supabase
         .from('company_settings')
         .select('*')
@@ -53,7 +44,6 @@ export const useSettings = () => {
           theme: (data.theme as Theme) || 'system'
         });
         
-        // Apply saved theme
         if (data.theme) {
           setTheme(data.theme as Theme);
         }
@@ -70,98 +60,12 @@ export const useSettings = () => {
     }
   };
 
-  const loadEvolutionConfig = async () => {
-    try {
-      const saved = localStorage.getItem('evolution_config');
-      if (saved) {
-        const config = JSON.parse(saved);
-        setEvolutionConfig({
-          ...evolutionConfig,
-          ...config
-        });
-      }
-    } catch (error) {
-      console.error('Error loading Evolution config:', error);
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleEvolutionConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setEvolutionConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const saveEvolutionConfig = () => {
-    try {
-      localStorage.setItem('evolution_config', JSON.stringify(evolutionConfig));
-      toast.success('Configurações da Evolution API salvas!');
-    } catch (error) {
-      console.error('Error saving Evolution config:', error);
-      toast.error('Erro ao salvar configurações da Evolution API');
-    }
-  };
-
-  const testEvolutionConnection = async () => {
-    if (!evolutionConfig.webhook_url) {
-      toast.error('Por favor, configure a URL do webhook');
-      return;
-    }
-
-    setTestingEvolution(true);
-    
-    try {
-      console.log('Testando conexão do webhook...');
-      
-      const testPayload = {
-        test: true,
-        campaign_id: 'test-campaign',
-        campaign_name: 'Teste de Webhook',
-        lead_name: 'Lead de Teste',
-        lead_phone: '11999999999',
-        timestamp: new Date().toISOString(),
-        event_type: 'test',
-        evolution_config: {
-          api_key: evolutionConfig.evolution_api_key ? '***' : '',
-          instance: evolutionConfig.evolution_instance_name,
-          base_url: evolutionConfig.evolution_base_url
-        }
-      };
-
-      const response = await fetch(evolutionConfig.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(testPayload)
-      });
-
-      console.log('Webhook response status:', response.status);
-      
-      if (response.ok) {
-        const data = await response.text();
-        console.log('Webhook response:', data);
-        toast.success('Webhook testado com sucesso!');
-      } else {
-        const errorText = await response.text();
-        console.error('Webhook error:', errorText);
-        toast.error(`Erro no webhook: ${response.status} - ${response.statusText}`);
-      }
-    } catch (error: any) {
-      console.error('Error testing webhook:', error);
-      toast.error(`Erro ao testar webhook: ${error.message}`);
-    } finally {
-      setTestingEvolution(false);
-    }
   };
 
   const handleThemeChange = (newTheme: Theme) => {
@@ -237,7 +141,6 @@ export const useSettings = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Usar upsert (INSERT ... ON CONFLICT DO UPDATE) para evitar problemas de constraint
       const { data, error } = await supabase
         .from('company_settings')
         .upsert([updateData], {
@@ -266,20 +169,14 @@ export const useSettings = () => {
 
   useEffect(() => {
     loadSettings();
-    loadEvolutionConfig();
   }, []);
 
   return {
     settings,
     loading,
     uploading,
-    testingEvolution,
     formData,
-    evolutionConfig,
     handleInputChange,
-    handleEvolutionConfigChange,
-    saveEvolutionConfig,
-    testEvolutionConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
