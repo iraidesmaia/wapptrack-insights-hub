@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -156,4 +155,14 @@ export interface MonthlyStats {
     leads: number;
     revenue: number;
   };
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
 }
