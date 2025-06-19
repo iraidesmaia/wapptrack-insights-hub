@@ -29,12 +29,16 @@ export const getClients = async (): Promise<Client[]> => {
 
 export const addClient = async (client: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<Client> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('clients')
       .insert({
         name: client.name,
         description: client.description,
-        active: client.active
+        active: client.active,
+        user_id: user.id
       })
       .select()
       .single();
