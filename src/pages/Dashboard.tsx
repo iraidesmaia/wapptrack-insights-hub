@@ -1,49 +1,55 @@
 
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDashboardStats, getCampaignPerformance, getTimelineData } from '@/services/dataService';
+import { DashboardStats, CampaignPerformance, TimelineDataPoint } from '@/types';
 import StatCard from '@/components/StatCard';
-import DateRangeFilter from '@/components/DateRangeFilter';
-import BarChart from '@/components/charts/BarChart';
-import LineChart from '@/components/charts/LineChart';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
-import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
-import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
-import { formatCurrency, formatPercent } from '@/lib/utils';
+import { BarChart } from '@/components/charts/BarChart';
+import { LineChart } from '@/components/charts/LineChart';
+import { Users, UserCheck, TrendingUp, DollarSign, Target, MessageCircle, Calendar, Award } from 'lucide-react';
 import { useProject } from '@/context/ProjectContext';
 
 const Dashboard = () => {
   const { activeProject } = useProject();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalLeads: 0,
+    totalSales: 0,
+    conversionRate: 0,
+    totalRevenue: 0,
+    todaysLeads: 0,
+    confirmedSales: 0,
+    pendingConversations: 0,
+    monthlyLeads: 0,
+    monthlyRevenue: 0
+  });
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Initialize date range to last 7 days
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 7);
-    return { startDate: start, endDate: end };
-  });
 
-  useEffect(() => {
-    fetchData();
-  }, [dateRange, activeProject]);
-
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const clientId = activeProject?.id;
+      console.log('🔄 Dashboard - Carregando dados para projeto:', activeProject?.id);
       
-      const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate, clientId),
-        getCampaignPerformance(clientId),
-        getTimelineData(dateRange.startDate, dateRange.endDate, clientId)
+      // 🎯 Passar o ID do projeto ativo para todas as consultas
+      const [statsData, campaignData, timelineData] = await Promise.all([
+        getDashboardStats(activeProject?.id),
+        getCampaignPerformance(activeProject?.id),
+        getTimelineData(30, activeProject?.id)
       ]);
-      setStats(dashboardStats);
+      
+      console.log('✅ Dashboard - Dados carregados:', {
+        projectId: activeProject?.id,
+        projectName: activeProject?.name,
+        stats: statsData,
+        campaigns: campaignData.length,
+        timeline: timelineData.length
+      });
+      
+      setStats(statsData);
       setCampaignPerformance(campaignData);
-      setTimelineData(timeline);
+      setTimelineData(timelineData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -51,23 +57,22 @@ const Dashboard = () => {
     }
   };
 
-  const handleDateRangeChange = (newRange: DateRange) => {
-    setDateRange(newRange);
+  useEffect(() => {
+    fetchDashboardData();
+  }, [activeProject?.id]); // 🎯 Recarregar quando o projeto ativo mudar
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  // Show loading or no project selected message
-  if (!activeProject) {
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Nenhum projeto selecionado
-            </h3>
-            <p className="text-muted-foreground">
-              Selecione um projeto para visualizar os dados do dashboard
-            </p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
       </MainLayout>
     );
@@ -76,163 +81,139 @@ const Dashboard = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard - {activeProject.name}</h1>
-          <p className="text-muted-foreground">
-            Acompanhe os resultados de suas campanhas de WhatsApp.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Visão geral do seu negócio
+              {activeProject && (
+                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  Projeto: {activeProject.name}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
 
-        <DateRangeFilter 
-          dateRange={dateRange}
-          onDateRangeChange={handleDateRangeChange}
-        />
+        {/* Main Stats */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total de Leads"
+            value={stats.totalLeads}
+            icon={Users}
+            trend={stats.monthlyLeadsTrend}
+          />
+          <StatCard
+            title="Vendas Realizadas"
+            value={stats.totalSales}
+            icon={UserCheck}
+            trend={stats.monthlyRevenueTrend}
+          />
+          <StatCard
+            title="Taxa de Conversão"
+            value={`${stats.conversionRate.toFixed(1)}%`}
+            icon={TrendingUp}
+          />
+          <StatCard
+            title="Faturamento Total"
+            value={formatCurrency(stats.totalRevenue)}
+            icon={DollarSign}
+            trend={stats.monthlyRevenueTrend}
+          />
+        </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-8 bg-gray-300 rounded w-3/4"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <StatCard
-              title="Leads do Período"
-              value={stats?.totalLeads || 0}
-              icon={Users}
-              iconColor="#10B981"
-            />
-            <StatCard
-              title="Leads do Mês"
-              value={stats?.monthlyLeads || 0}
-              icon={Calendar}
-              iconColor="#10B981"
-              trend={stats?.monthlyLeadsTrend}
-            />
-            <StatCard
-              title="Vendas Confirmadas"
-              value={stats?.confirmedSales || 0}
-              icon={DollarSign}
-              iconColor="#10B981"
-            />
-            <StatCard
-              title="Faturamento do Mês"
-              value={formatCurrency(stats?.monthlyRevenue || 0)}
-              icon={TrendingUp}
-              iconColor="#F59E0B"
-              trend={stats?.monthlyRevenueTrend}
-            />
-            <StatCard
-              title="Conversas Pendentes"
-              value={stats?.pendingConversations || 0}
-              icon={MessageSquare}
-              iconColor="#F59E0B"
-            />
-            <StatCard
-              title="Taxa de Conversão"
-              value={formatPercent(stats?.conversionRate || 0)}
-              icon={LayoutDashboard}
-              iconColor="#10B981"
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="col-span-1 lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Desempenho no Tempo</CardTitle>
-              <CardDescription>Leads, vendas e faturamento no período selecionado</CardDescription>
+        {/* Today's Stats */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Leads Hoje</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <LineChart 
-                data={timelineData}
-                xAxisDataKey="date"
-                lines={[
-                  { dataKey: 'leads', color: '#10B981', name: 'Leads' },
-                  { dataKey: 'sales', color: '#F59E0B', name: 'Vendas' },
-                  { dataKey: 'revenue', color: '#8B5CF6', name: 'Faturamento' }
-                ]}
-                height={300}
-              />
+              <div className="text-2xl font-bold">{stats.todaysLeads}</div>
             </CardContent>
           </Card>
 
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>Conversão por Campanha</CardTitle>
-              <CardDescription>
-                Taxa de conversão para cada campanha ativa
-              </CardDescription>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <BarChart
-                data={campaignPerformance}
-                dataKey="conversionRate"
-                nameKey="campaignName"
-                formatter={formatPercent}
-                barColor="#10B981"
-              />
+              <div className="text-2xl font-bold">{stats.confirmedSales}</div>
             </CardContent>
           </Card>
 
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>Receita por Campanha</CardTitle>
-              <CardDescription>
-                Total de receita gerada para cada campanha
-              </CardDescription>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Conversas Pendentes</CardTitle>
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <BarChart
-                data={campaignPerformance}
-                dataKey="revenue"
-                nameKey="campaignName"
-                formatter={formatCurrency}
-                barColor="#F59E0B"
-              />
+              <div className="text-2xl font-bold">{stats.pendingConversations}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Faturamento Mensal</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(stats.monthlyRevenue)}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.monthlyLeads} leads este mês
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Desempenho de Campanhas</CardTitle>
-            <CardDescription>
-              Visão detalhada de todas as campanhas ativas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="table-wrapper">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left">
-                    <th className="p-3 font-medium">Campanha</th>
-                    <th className="p-3 font-medium text-right">Leads</th>
-                    <th className="p-3 font-medium text-right">Vendas</th>
-                    <th className="p-3 font-medium text-right">Receita</th>
-                    <th className="p-3 font-medium text-right">Conversão</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaignPerformance.map((campaign) => (
-                    <tr key={campaign.campaignId} className="border-t">
-                      <td className="p-3">{campaign.campaignName}</td>
-                      <td className="p-3 text-right">{campaign.leads}</td>
-                      <td className="p-3 text-right">{campaign.sales}</td>
-                      <td className="p-3 text-right">{formatCurrency(campaign.revenue)}</td>
-                      <td className="p-3 text-right">{formatPercent(campaign.conversionRate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Charts */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance por Campanha</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {campaignPerformance.length > 0 ? (
+                <BarChart
+                  data={campaignPerformance.map(cp => ({
+                    name: cp.campaignName,
+                    leads: cp.leads,
+                    sales: cp.sales,
+                    revenue: cp.revenue
+                  }))}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  Nenhum dado de campanha disponível
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolução Temporal (30 dias)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {timelineData.length > 0 ? (
+                <LineChart
+                  data={timelineData.map(td => ({
+                    name: new Date(td.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                    leads: td.leads,
+                    sales: td.sales,
+                    revenue: td.revenue
+                  }))}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  Nenhum dado temporal disponível
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </MainLayout>
   );

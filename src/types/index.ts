@@ -26,6 +26,7 @@ export interface Lead {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  client_id?: string; // 🎯 ADICIONADO para isolamento por projeto
   // Campos de dispositivo e localização
   location?: string;
   ip_address?: string;
@@ -81,6 +82,7 @@ export interface Campaign {
   conversion_keywords?: string[];
   cancellation_keywords?: string[];
   created_at?: string;
+  client_id?: string; // 🎯 ADICIONADO para isolamento por projeto
 }
 
 export interface Sale {
@@ -92,6 +94,7 @@ export interface Sale {
   campaign: string;
   product?: string;
   notes?: string;
+  client_id?: string; // 🎯 ADICIONADO para isolamento por projeto
 }
 
 export type CompanySettings = {

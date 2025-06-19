@@ -109,7 +109,8 @@ export const useLeadOperations = (
         leadId: lead.id,
         leadName: lead.name,
         campaign: lead.campaign,
-        status: lead.status
+        status: lead.status,
+        activeProjectId
       });
 
       const newSale = await addSale({
@@ -120,7 +121,7 @@ export const useLeadOperations = (
         campaign: lead.campaign,
         product: '',
         notes: `Venda criada automaticamente quando lead foi convertido`
-      });
+      }, activeProjectId); // 🎯 Passar o projeto ativo
       
       console.log('✅ createSaleFromLead - Venda criada com sucesso:', newSale);
       toast.success('Lead convertido! Uma nova venda foi criada automaticamente.');
