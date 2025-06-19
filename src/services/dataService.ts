@@ -38,3 +38,9 @@ export {
   createClient,
   updateClient
 } from './clientService';
+
+export {
+  getClientVariables,
+  upsertClientVariable,
+  deleteClientVariable
+} from './clientVariablesService';

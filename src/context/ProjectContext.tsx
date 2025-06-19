@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { createClient, updateClient, getActiveClients } from '@/services/clientService';
 
 export interface Client {
   id: string;
@@ -18,6 +19,9 @@ interface ProjectContextType {
   projects: Client[];
   setActiveProject: (project: Client | null) => void;
   loadProjects: () => Promise<void>;
+  createProject: (name: string, description?: string) => Promise<boolean>;
+  updateProject: (id: string, updates: Partial<Client>) => Promise<boolean>;
+  deleteProject: (id: string) => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -52,36 +56,18 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     try {
       setIsLoading(true);
       
-      const { data: clientsData, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading projects:', error);
-        return;
-      }
-
-      const clients = clientsData || [];
+      const clients = await getActiveClients(user.id);
       
       // If no clients exist, create a default one
       if (clients.length === 0) {
-        const { data: newClient, error: createError } = await supabase
-          .from('clients')
-          .insert({
-            name: 'Projeto Principal',
-            description: 'Projeto padrão do sistema',
-            user_id: user.id,
-            active: true
-          })
-          .select()
-          .single();
+        const newClient = await createClient({
+          name: 'Projeto Principal',
+          description: 'Projeto padrão do sistema',
+          user_id: user.id,
+          active: true
+        });
 
-        if (createError) {
-          console.error('Error creating default client:', createError);
-        } else if (newClient) {
+        if (newClient) {
           clients.push(newClient);
         }
       }
@@ -114,6 +100,70 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
     }
   };
 
+  const createProjectHandler = async (name: string, description?: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const newClient = await createClient({
+        name,
+        description,
+        user_id: user.id,
+        active: true
+      });
+
+      if (newClient) {
+        await loadProjects();
+        setActiveProject(newClient);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error creating project:', error);
+      return false;
+    }
+  };
+
+  const updateProjectHandler = async (id: string, updates: Partial<Client>): Promise<boolean> => {
+    try {
+      const updatedClient = await updateClient(id, updates);
+      
+      if (updatedClient) {
+        setProjects(prev => prev.map(p => p.id === id ? updatedClient : p));
+        
+        if (activeProject?.id === id) {
+          setActiveProjectState(updatedClient);
+        }
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      return false;
+    }
+  };
+
+  const deleteProjectHandler = async (id: string): Promise<boolean> => {
+    try {
+      const result = await updateClient(id, { active: false });
+      
+      if (result) {
+        await loadProjects();
+        
+        if (activeProject?.id === id) {
+          const remainingProjects = projects.filter(p => p.id !== id && p.active);
+          setActiveProject(remainingProjects[0] || null);
+        }
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     loadProjects();
   }, [user]);
@@ -125,6 +175,9 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
         projects,
         setActiveProject,
         loadProjects,
+        createProject: createProjectHandler,
+        updateProject: updateProjectHandler,
+        deleteProject: deleteProjectHandler,
         isLoading
       }}
     >
