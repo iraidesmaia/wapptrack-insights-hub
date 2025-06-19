@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/MainLayout';
@@ -7,7 +6,6 @@ import ThemeSettings from '@/components/settings/ThemeSettings';
 import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
 import InstancesSettings from '@/components/settings/InstancesSettings';
 import { useSettings } from '@/hooks/useSettings';
-
 const Settings = () => {
   const {
     loading,
@@ -23,9 +21,7 @@ const Settings = () => {
     handleFileUpload,
     handleSave
   } = useSettings();
-
-  return (
-    <MainLayout>
+  return <MainLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Configurações</h1>
@@ -35,41 +31,19 @@ const Settings = () => {
         </div>
 
         <div className="grid gap-6">
-          <CompanySettings
-            formData={formData}
-            uploading={uploading}
-            onInputChange={handleInputChange}
-            onFileUpload={handleFileUpload}
-          />
+          <CompanySettings formData={formData} uploading={uploading} onInputChange={handleInputChange} onFileUpload={handleFileUpload} />
 
-          <ThemeSettings
-            theme={formData.theme}
-            onThemeChange={handleThemeChange}
-          />
+          <ThemeSettings theme={formData.theme} onThemeChange={handleThemeChange} />
 
-          <EvolutionApiSettings
-            evolutionConfig={evolutionConfig}
-            testingWebhook={testingEvolution}
-            onEvolutionConfigChange={handleEvolutionConfigChange}
-            onSaveEvolutionConfig={saveEvolutionConfig}
-            onTestWebhookConnection={testEvolutionConnection}
-          />
+          <EvolutionApiSettings evolutionConfig={evolutionConfig} testingWebhook={testingEvolution} onEvolutionConfigChange={handleEvolutionConfigChange} onSaveEvolutionConfig={saveEvolutionConfig} onTestWebhookConnection={testEvolutionConnection} />
 
           <InstancesSettings />
 
           <div className="flex justify-end">
-            <Button 
-              onClick={handleSave} 
-              disabled={loading}
-              className="min-w-[120px]"
-            >
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
+            
           </div>
         </div>
       </div>
-    </MainLayout>
-  );
+    </MainLayout>;
 };
-
 export default Settings;
