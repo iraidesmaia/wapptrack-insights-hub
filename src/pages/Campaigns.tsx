@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -45,6 +44,25 @@ const Campaigns = () => {
   useEffect(() => {
     fetchCampaigns();
   }, [activeProject?.id]); // 🎯 Recarregar quando o projeto ativo mudar
+
+  const handleCopyTrackingUrl = (campaign: Campaign) => {
+    const baseUrl = window.location.origin;
+    const params = new URLSearchParams();
+    
+    if (campaign.utm_source) params.append('utm_source', campaign.utm_source);
+    if (campaign.utm_medium) params.append('utm_medium', campaign.utm_medium);
+    if (campaign.utm_campaign) params.append('utm_campaign', campaign.utm_campaign);
+    if (campaign.utm_content) params.append('utm_content', campaign.utm_content);
+    if (campaign.utm_term) params.append('utm_term', campaign.utm_term);
+    
+    const trackingUrl = `${baseUrl}/?${params.toString()}`;
+    
+    navigator.clipboard.writeText(trackingUrl).then(() => {
+      toast.success('URL de rastreamento copiada!');
+    }).catch(() => {
+      toast.error('Erro ao copiar URL');
+    });
+  };
 
   const handleAddCampaign = () => {
     setEditingCampaign(null);
@@ -137,6 +155,7 @@ const Campaigns = () => {
           isLoading={isLoading}
           onEdit={handleEditCampaign}
           onDelete={handleDeleteCampaign}
+          onCopyTrackingUrl={handleCopyTrackingUrl}
         />
 
         <CampaignForm

@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardStats, getCampaignPerformance, getTimelineData } from '@/services/dataService';
 import { DashboardStats, CampaignPerformance, TimelineDataPoint } from '@/types';
 import StatCard from '@/components/StatCard';
-import { BarChart } from '@/components/charts/BarChart';
-import { LineChart } from '@/components/charts/LineChart';
+import BarChart from '@/components/charts/BarChart';
+import LineChart from '@/components/charts/LineChart';
 import { Users, UserCheck, TrendingUp, DollarSign, Target, MessageCircle, Calendar, Award } from 'lucide-react';
 import { useProject } from '@/context/ProjectContext';
 
@@ -183,6 +183,10 @@ const Dashboard = () => {
                     sales: cp.sales,
                     revenue: cp.revenue
                   }))}
+                  dataKey="leads"
+                  nameKey="name"
+                  barColor="#10B981"
+                  label="Leads"
                 />
               ) : (
                 <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -205,6 +209,11 @@ const Dashboard = () => {
                     sales: td.sales,
                     revenue: td.revenue
                   }))}
+                  lines={[
+                    { dataKey: 'leads', color: '#8884d8', name: 'Leads' },
+                    { dataKey: 'sales', color: '#82ca9d', name: 'Vendas' }
+                  ]}
+                  xAxisDataKey="name"
                 />
               ) : (
                 <div className="flex items-center justify-center h-32 text-muted-foreground">
