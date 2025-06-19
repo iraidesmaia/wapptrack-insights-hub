@@ -4,11 +4,13 @@ import { getCampaigns } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
+import { useProject } from '@/context/ProjectContext';
 
 export const useCampaignLoader = (campaignId: string | null, debug: boolean) => {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const { currentProject } = useProject();
 
   // Use enhanced pixel tracking
   const {
@@ -19,14 +21,14 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
 
   useEffect(() => {
     const loadCampaignDetails = async () => {
-      if (!campaignId) {
-        setError('ID da campanha não encontrado');
+      if (!campaignId || !currentProject) {
+        setError('ID da campanha ou projeto não encontrado');
         setIsLoading(false);
         return;
       }
 
       try {
-        const campaigns = await getCampaigns();
+        const campaigns = await getCampaigns(currentProject.id);
         const targetCampaign = campaigns.find(c => c.id === campaignId);
         
         if (targetCampaign) {
@@ -44,7 +46,7 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
     };
 
     loadCampaignDetails();
-  }, [campaignId]);
+  }, [campaignId, currentProject]);
 
   // Enhanced page view tracking when campaign and tracking are ready
   useEffect(() => {

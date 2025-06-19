@@ -13,12 +13,14 @@ import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import PendingLeadConverter from '@/components/leads/PendingLeadConverter';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { useProject } from '@/context/ProjectContext';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const { currentProject } = useProject();
 
   const {
     isDialogOpen,
@@ -34,20 +36,22 @@ const Leads = () => {
     handleOpenAddDialog,
     handleOpenEditDialog,
     handleOpenViewDialog,
-    handleSaveLead,
+    handle SaveLead,
     handleSaveFromDetailDialog,
     handleDeleteLead,
     openWhatsApp
   } = useLeadOperations(leads, setLeads);
 
   const fetchData = async () => {
+    if (!currentProject) return;
+    
     try {
       setIsLoading(true);
       console.log('🔄 Iniciando busca de dados...');
       
       const [leadsData, campaignsData] = await Promise.all([
-        getLeads(),
-        getCampaigns()
+        getLeads(currentProject.id),
+        getCampaigns(currentProject.id)
       ]);
       
       console.log('📋 Dados brutos do getLeads():', leadsData);
@@ -86,100 +90,103 @@ const Leads = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    if (currentProject) {
+      fetchData();
 
-    // Configurar escuta em tempo real para mudanças na tabela de leads
-    console.log('🎧 Configurando escuta em tempo real para leads...');
-    const channel = supabase
-      .channel('leads-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Escuta INSERT, UPDATE e DELETE
-          schema: 'public',
-          table: 'leads'
-        },
-        (payload) => {
-          console.log('📡 Mudança detectada na tabela leads:', payload);
-          console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
-          
-          if (payload.eventType === 'INSERT') {
-            console.log('➕ Novo lead adicionado:', payload.new);
-            const newLead = payload.new as Lead;
-            console.log('➕ Detalhes da mensagem no INSERT:', {
-              last_message: newLead.last_message,
-              type: typeof newLead.last_message,
-              raw: JSON.stringify(newLead.last_message)
-            });
+      // Configurar escuta em tempo real para mudanças na tabela de leads
+      console.log('🎧 Configurando escuta em tempo real para leads...');
+      const channel = supabase
+        .channel('leads-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escuta INSERT, UPDATE e DELETE
+            schema: 'public',
+            table: 'leads',
+            filter: `project_id=eq.${currentProject.id}`
+          },
+          (payload) => {
+            console.log('📡 Mudança detectada na tabela leads:', payload);
+            console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
             
-            // Garantir que a mensagem seja preservada
-            const processedLead = {
-              ...newLead,
-              last_message: newLead.last_message || null
-            };
-            console.log('➕ Lead processado para insert:', processedLead);
-            
-            setLeads(prev => {
-              const newLeads = [processedLead, ...prev];
-              console.log('➕ Estado atualizado após INSERT:', newLeads);
-              return newLeads;
-            });
-            toast.success(`Novo lead adicionado: ${processedLead.name}`);
-          } 
-          else if (payload.eventType === 'UPDATE') {
-            console.log('📝 Lead atualizado:', payload.new);
-            console.log('📝 Lead anterior:', payload.old);
-            
-            const updatedLead = payload.new as Lead;
-            const oldLead = payload.old as Lead;
-            
-            console.log('📝 Comparação de mensagens:', {
-              old_message: oldLead.last_message,
-              new_message: updatedLead.last_message,
-              old_type: typeof oldLead.last_message,
-              new_type: typeof updatedLead.last_message,
-              old_raw: JSON.stringify(oldLead.last_message),
-              new_raw: JSON.stringify(updatedLead.last_message)
-            });
-            
-            // Garantir que a mensagem seja preservada
-            const processedLead = {
-              ...updatedLead,
-              last_message: updatedLead.last_message || null
-            };
-            
-            console.log('📝 Lead processado para update:', processedLead);
-            
-            setLeads(prev => {
-              const updatedLeads = prev.map(lead => 
-                lead.id === processedLead.id ? processedLead : lead
-              );
-              console.log('📝 Estado atualizado após UPDATE:', updatedLeads);
-              return updatedLeads;
-            });
-            
-            // Se uma mensagem foi adicionada, mostrar notificação
-            if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
-              console.log('💬 Nova mensagem detectada:', processedLead.last_message);
-              toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
+            if (payload.eventType === 'INSERT') {
+              console.log('➕ Novo lead adicionado:', payload.new);
+              const newLead = payload.new as Lead;
+              console.log('➕ Detalhes da mensagem no INSERT:', {
+                last_message: newLead.last_message,
+                type: typeof newLead.last_message,
+                raw: JSON.stringify(newLead.last_message)
+              });
+              
+              // Garantir que a mensagem seja preservada
+              const processedLead = {
+                ...newLead,
+                last_message: newLead.last_message || null
+              };
+              console.log('➕ Lead processado para insert:', processedLead);
+              
+              setLeads(prev => {
+                const newLeads = [processedLead, ...prev];
+                console.log('➕ Estado atualizado após INSERT:', newLeads);
+                return newLeads;
+              });
+              toast.success(`Novo lead adicionado: ${processedLead.name}`);
+            } 
+            else if (payload.eventType === 'UPDATE') {
+              console.log('📝 Lead atualizado:', payload.new);
+              console.log('📝 Lead anterior:', payload.old);
+              
+              const updatedLead = payload.new as Lead;
+              const oldLead = payload.old as Lead;
+              
+              console.log('📝 Comparação de mensagens:', {
+                old_message: oldLead.last_message,
+                new_message: updatedLead.last_message,
+                old_type: typeof oldLead.last_message,
+                new_type: typeof updatedLead.last_message,
+                old_raw: JSON.stringify(oldLead.last_message),
+                new_raw: JSON.stringify(updatedLead.last_message)
+              });
+              
+              // Garantir que a mensagem seja preservada
+              const processedLead = {
+                ...updatedLead,
+                last_message: updatedLead.last_message || null
+              };
+              
+              console.log('📝 Lead processado para update:', processedLead);
+              
+              setLeads(prev => {
+                const updatedLeads = prev.map(lead => 
+                  lead.id === processedLead.id ? processedLead : lead
+                );
+                console.log('📝 Estado atualizado após UPDATE:', updatedLeads);
+                return updatedLeads;
+              });
+              
+              // Se uma mensagem foi adicionada, mostrar notificação
+              if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
+                console.log('💬 Nova mensagem detectada:', processedLead.last_message);
+                toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
+              }
+            }
+            else if (payload.eventType === 'DELETE') {
+              console.log('🗑️ Lead removido:', payload.old);
+              const deletedLead = payload.old as Lead;
+              setLeads(prev => prev.filter(lead => lead.id !== deletedLead.id));
+              toast.info(`Lead removido: ${deletedLead.name}`);
             }
           }
-          else if (payload.eventType === 'DELETE') {
-            console.log('🗑️ Lead removido:', payload.old);
-            const deletedLead = payload.old as Lead;
-            setLeads(prev => prev.filter(lead => lead.id !== deletedLead.id));
-            toast.info(`Lead removido: ${deletedLead.name}`);
-          }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    // Cleanup: remover a escuta quando o componente for desmontado
-    return () => {
-      console.log('🔌 Removendo escuta em tempo real...');
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      // Cleanup: remover a escuta quando o componente for desmontado
+      return () => {
+        console.log('🔌 Removendo escuta em tempo real...');
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [currentProject]);
 
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchTerm.toLowerCase();
@@ -197,6 +204,16 @@ const Leads = () => {
     last_message: lead.last_message,
     type: typeof lead.last_message
   })));
+
+  if (!currentProject) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Selecione um projeto para visualizar os leads</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

@@ -10,12 +10,14 @@ import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar
 import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
 import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
+import { useProject } from '@/context/ProjectContext';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentProject } = useProject();
   
   // Initialize date range to last 7 days
   const [dateRange, setDateRange] = useState<DateRange>(() => {
@@ -26,16 +28,20 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    fetchData();
-  }, [dateRange]);
+    if (currentProject) {
+      fetchData();
+    }
+  }, [dateRange, currentProject]);
 
   const fetchData = async () => {
+    if (!currentProject) return;
+    
     try {
       setIsLoading(true);
       const [dashboardStats, campaignData, timeline] = await Promise.all([
-        getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
-        getCampaignPerformance(),
-        getTimelineData(dateRange.startDate, dateRange.endDate)
+        getDashboardStatsByPeriod(currentProject.id, dateRange.startDate, dateRange.endDate),
+        getCampaignPerformance(currentProject.id),
+        getTimelineData(currentProject.id, dateRange.startDate, dateRange.endDate)
       ]);
       setStats(dashboardStats);
       setCampaignPerformance(campaignData);
@@ -50,6 +56,16 @@ const Dashboard = () => {
   const handleDateRangeChange = (newRange: DateRange) => {
     setDateRange(newRange);
   };
+
+  if (!currentProject) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Selecione um projeto para visualizar o dashboard</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
