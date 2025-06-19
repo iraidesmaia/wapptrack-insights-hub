@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/MainLayout';
 import CompanySettings from '@/components/settings/CompanySettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
-import EvolutionAutomationSettings from '@/components/settings/EvolutionAutomationSettings';
+import EvolutionApiSettings from '@/components/settings/EvolutionApiSettings';
 import InstancesSettings from '@/components/settings/InstancesSettings';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -12,8 +12,13 @@ const Settings = () => {
   const {
     loading,
     uploading,
+    testingEvolution,
     formData,
+    evolutionConfig,
     handleInputChange,
+    handleEvolutionConfigChange,
+    saveEvolutionConfig,
+    testEvolutionConnection,
     handleThemeChange,
     handleFileUpload,
     handleSave
@@ -42,7 +47,13 @@ const Settings = () => {
             onThemeChange={handleThemeChange}
           />
 
-          <EvolutionAutomationSettings />
+          <EvolutionApiSettings
+            evolutionConfig={evolutionConfig}
+            testingWebhook={testingEvolution}
+            onEvolutionConfigChange={handleEvolutionConfigChange}
+            onSaveEvolutionConfig={saveEvolutionConfig}
+            onTestWebhookConnection={testEvolutionConnection}
+          />
 
           <InstancesSettings />
 

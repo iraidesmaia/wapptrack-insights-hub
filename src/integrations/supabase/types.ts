@@ -386,53 +386,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_auto_instances: {
-        Row: {
-          client_id: string | null
-          connection_status: string | null
-          created_at: string
-          id: string
-          instance_name: string
-          instance_token: string | null
-          qr_code_base64: string | null
-          updated_at: string
-          user_id: string
-          webhook_configured: boolean | null
-        }
-        Insert: {
-          client_id?: string | null
-          connection_status?: string | null
-          created_at?: string
-          id?: string
-          instance_name: string
-          instance_token?: string | null
-          qr_code_base64?: string | null
-          updated_at?: string
-          user_id: string
-          webhook_configured?: boolean | null
-        }
-        Update: {
-          client_id?: string | null
-          connection_status?: string | null
-          created_at?: string
-          id?: string
-          instance_name?: string
-          instance_token?: string | null
-          qr_code_base64?: string | null
-          updated_at?: string
-          user_id?: string
-          webhook_configured?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evolution_auto_instances_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       evolution_credentials: {
         Row: {
           api_key: string
