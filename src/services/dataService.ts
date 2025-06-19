@@ -32,3 +32,9 @@ export {
 export {
   trackRedirect
 } from './trackingService';
+
+export {
+  getActiveClients,
+  createClient,
+  updateClient
+} from './clientService';

@@ -1,27 +1,38 @@
-
 import { DashboardStats, CampaignPerformance, MonthlyStats, TimelineDataPoint, TrendData } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
-export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date): Promise<DashboardStats> => {
+export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date, clientId?: string): Promise<DashboardStats> => {
   try {
     const startISO = startDate.toISOString();
     const endISO = endDate.toISOString();
 
-    // Fetch leads count for the period
-    const { count: periodLeads, error: leadsError } = await supabase
+    // Build query with optional client filtering
+    let leadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', startISO)
       .lte('created_at', endISO);
 
+    if (clientId) {
+      leadsQuery = leadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: periodLeads, error: leadsError } = await leadsQuery;
+
     if (leadsError) throw leadsError;
 
-    // Fetch sales data for the period
-    const { data: salesData, error: salesError } = await supabase
+    // Build sales query with optional client filtering
+    let salesQuery = supabase
       .from('sales')
       .select('value')
       .gte('date', startISO)
       .lte('date', endISO);
+
+    if (clientId) {
+      salesQuery = salesQuery.eq('client_id', clientId);
+    }
+
+    const { data: salesData, error: salesError } = await salesQuery;
 
     if (salesError) throw salesError;
 
@@ -32,23 +43,36 @@ export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date):
     // Calculate today's leads
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const { count: todaysLeads, error: todayLeadsError } = await supabase
+    
+    let todayLeadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString());
 
+    if (clientId) {
+      todayLeadsQuery = todayLeadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: todaysLeads, error: todayLeadsError } = await todayLeadsQuery;
+
     if (todayLeadsError) throw todayLeadsError;
 
     // Calculate pending conversations
-    const { count: pendingConversations, error: pendingError } = await supabase
+    let pendingQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .in('status', ['new', 'contacted']);
 
+    if (clientId) {
+      pendingQuery = pendingQuery.eq('client_id', clientId);
+    }
+
+    const { count: pendingConversations, error: pendingError } = await pendingQuery;
+
     if (pendingError) throw pendingError;
 
     // Get monthly stats for trends
-    const monthlyStats = await getMonthlyStats();
+    const monthlyStats = await getMonthlyStats(clientId);
 
     return {
       totalLeads: periodLeads || 0,
@@ -81,7 +105,7 @@ export const getDashboardStatsByPeriod = async (startDate: Date, endDate: Date):
   }
 };
 
-export const getMonthlyStats = async (): Promise<MonthlyStats & { trends: { leads: TrendData; revenue: TrendData; sales: TrendData } }> => {
+export const getMonthlyStats = async (clientId?: string): Promise<MonthlyStats & { trends: { leads: TrendData; revenue: TrendData; sales: TrendData } }> => {
   try {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -91,38 +115,62 @@ export const getMonthlyStats = async (): Promise<MonthlyStats & { trends: { lead
     const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
     // Current month leads
-    const { count: currentLeads, error: currentLeadsError } = await supabase
+    let currentLeadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', currentMonthStart.toISOString())
       .lte('created_at', currentMonthEnd.toISOString());
 
+    if (clientId) {
+      currentLeadsQuery = currentLeadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: currentLeads, error: currentLeadsError } = await currentLeadsQuery;
+
     if (currentLeadsError) throw currentLeadsError;
 
     // Previous month leads
-    const { count: previousLeads, error: previousLeadsError } = await supabase
+    let previousLeadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', previousMonthStart.toISOString())
       .lte('created_at', previousMonthEnd.toISOString());
 
+    if (clientId) {
+      previousLeadsQuery = previousLeadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: previousLeads, error: previousLeadsError } = await previousLeadsQuery;
+
     if (previousLeadsError) throw previousLeadsError;
 
     // Current month sales
-    const { data: currentSalesData, error: currentSalesError } = await supabase
+    let currentSalesQuery = supabase
       .from('sales')
       .select('value')
       .gte('date', currentMonthStart.toISOString())
       .lte('date', currentMonthEnd.toISOString());
 
+    if (clientId) {
+      currentSalesQuery = currentSalesQuery.eq('client_id', clientId);
+    }
+
+    const { data: currentSalesData, error: currentSalesError } = await currentSalesQuery;
+
     if (currentSalesError) throw currentSalesError;
 
     // Previous month sales
-    const { data: previousSalesData, error: previousSalesError } = await supabase
+    let previousSalesQuery = supabase
       .from('sales')
       .select('value')
       .gte('date', previousMonthStart.toISOString())
       .lte('date', previousMonthEnd.toISOString());
+
+    if (clientId) {
+      previousSalesQuery = previousSalesQuery.eq('client_id', clientId);
+    }
+
+    const { data: previousSalesData, error: previousSalesError } = await previousSalesQuery;
 
     if (previousSalesError) throw previousSalesError;
 
@@ -165,7 +213,7 @@ export const getMonthlyStats = async (): Promise<MonthlyStats & { trends: { lead
   }
 };
 
-export const getTimelineData = async (startDate: Date, endDate: Date): Promise<TimelineDataPoint[]> => {
+export const getTimelineData = async (startDate: Date, endDate: Date, clientId?: string): Promise<TimelineDataPoint[]> => {
   try {
     const data: TimelineDataPoint[] = [];
     const currentDate = new Date(startDate);
@@ -177,20 +225,32 @@ export const getTimelineData = async (startDate: Date, endDate: Date): Promise<T
       dayEnd.setHours(23, 59, 59, 999);
 
       // Get leads for this day
-      const { count: leadsCount, error: leadsError } = await supabase
+      let leadsQuery = supabase
         .from('leads')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', dayStart.toISOString())
         .lte('created_at', dayEnd.toISOString());
 
+      if (clientId) {
+        leadsQuery = leadsQuery.eq('client_id', clientId);
+      }
+
+      const { count: leadsCount, error: leadsError } = await leadsQuery;
+
       if (leadsError) throw leadsError;
 
       // Get sales for this day
-      const { data: salesData, error: salesError } = await supabase
+      let salesQuery = supabase
         .from('sales')
         .select('value')
         .gte('date', dayStart.toISOString())
         .lte('date', dayEnd.toISOString());
+
+      if (clientId) {
+        salesQuery = salesQuery.eq('client_id', clientId);
+      }
+
+      const { data: salesData, error: salesError } = await salesQuery;
 
       if (salesError) throw salesError;
 
@@ -230,19 +290,31 @@ const calculateTrend = (current: number, previous: number): TrendData => {
   };
 };
 
-export const getDashboardStats = async (): Promise<DashboardStats> => {
+export const getDashboardStats = async (clientId?: string): Promise<DashboardStats> => {
   try {
     // Fetch total leads count
-    const { count: totalLeads, error: leadsError } = await supabase
+    let leadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true });
+
+    if (clientId) {
+      leadsQuery = leadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: totalLeads, error: leadsError } = await leadsQuery;
 
     if (leadsError) throw leadsError;
 
     // Fetch total sales count and revenue
-    const { data: salesData, error: salesError } = await supabase
+    let salesQuery = supabase
       .from('sales')
       .select('value');
+
+    if (clientId) {
+      salesQuery = salesQuery.eq('client_id', clientId);
+    }
+
+    const { data: salesData, error: salesError } = await salesQuery;
 
     if (salesError) throw salesError;
 
@@ -254,10 +326,16 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const { count: todaysLeads, error: todayLeadsError } = await supabase
+    let todayLeadsQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString());
+
+    if (clientId) {
+      todayLeadsQuery = todayLeadsQuery.eq('client_id', clientId);
+    }
+
+    const { count: todaysLeads, error: todayLeadsError } = await todayLeadsQuery;
 
     if (todayLeadsError) throw todayLeadsError;
 
@@ -265,23 +343,35 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     const last7Days = new Date();
     last7Days.setDate(last7Days.getDate() - 7);
 
-    const { count: confirmedSales, error: confirmedSalesError } = await supabase
+    let confirmedSalesQuery = supabase
       .from('sales')
       .select('*', { count: 'exact', head: true })
       .gte('date', last7Days.toISOString());
 
+    if (clientId) {
+      confirmedSalesQuery = confirmedSalesQuery.eq('client_id', clientId);
+    }
+
+    const { count: confirmedSales, error: confirmedSalesError } = await confirmedSalesQuery;
+
     if (confirmedSalesError) throw confirmedSalesError;
 
     // Calculate pending conversations
-    const { count: pendingConversations, error: pendingError } = await supabase
+    let pendingQuery = supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .in('status', ['new', 'contacted']);
 
+    if (clientId) {
+      pendingQuery = pendingQuery.eq('client_id', clientId);
+    }
+
+    const { count: pendingConversations, error: pendingError } = await pendingQuery;
+
     if (pendingError) throw pendingError;
 
     // Get monthly stats for trends
-    const monthlyStats = await getMonthlyStats();
+    const monthlyStats = await getMonthlyStats(clientId);
 
     return {
       totalLeads: totalLeads || 0,
@@ -314,11 +404,17 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   }
 };
 
-export const getCampaignPerformance = async (): Promise<CampaignPerformance[]> => {
+export const getCampaignPerformance = async (clientId?: string): Promise<CampaignPerformance[]> => {
   try {
-    const { data: campaigns, error: campaignsError } = await supabase
+    let campaignsQuery = supabase
       .from('campaigns')
       .select('*');
+
+    if (clientId) {
+      campaignsQuery = campaignsQuery.eq('client_id', clientId);
+    }
+
+    const { data: campaigns, error: campaignsError } = await campaignsQuery;
 
     if (campaignsError) throw campaignsError;
 
@@ -329,17 +425,29 @@ export const getCampaignPerformance = async (): Promise<CampaignPerformance[]> =
     for (const campaign of campaigns) {
       const campaignName = campaign.name;
 
-      const { count: leadsCount, error: leadsError } = await supabase
+      let leadsQuery = supabase
         .from('leads')
         .select('*', { count: 'exact', head: true })
         .eq('campaign', campaignName);
 
+      if (clientId) {
+        leadsQuery = leadsQuery.eq('client_id', clientId);
+      }
+
+      const { count: leadsCount, error: leadsError } = await leadsQuery;
+
       if (leadsError) throw leadsError;
 
-      const { data: salesData, error: salesError } = await supabase
+      let salesQuery = supabase
         .from('sales')
         .select('value')
         .eq('campaign', campaignName);
+
+      if (clientId) {
+        salesQuery = salesQuery.eq('client_id', clientId);
+      }
+
+      const { data: salesData, error: salesError } = await salesQuery;
 
       if (salesError) throw salesError;
 
