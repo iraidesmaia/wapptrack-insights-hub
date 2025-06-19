@@ -8,7 +8,7 @@ import LineChart from '@/components/charts/LineChart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutDashboard, Users, MessageSquare, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { getDashboardStatsByPeriod, getCampaignPerformance, getTimelineData } from '@/services/dataService';
-import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint } from '@/types';
+import { DashboardStats, CampaignPerformance, DateRange, TimelineDataPoint, TrendData } from '@/types';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 import { useProject } from '@/context/ProjectContext';
 
@@ -62,6 +62,17 @@ const Dashboard = () => {
         revenue: 0 // Add default revenue since it's required
       }));
       
+      // Create proper TrendData objects
+      const monthlyLeadsTrend: TrendData = {
+        trend: 'up',
+        percentage: 0
+      };
+      
+      const monthlyRevenueTrend: TrendData = {
+        trend: 'up', 
+        percentage: 0
+      };
+      
       // Transform dashboard stats to match expected interface
       const transformedStats: DashboardStats = {
         totalLeads: dashboardStats.totalLeads || 0,
@@ -71,8 +82,8 @@ const Dashboard = () => {
         monthlyLeads: dashboardStats.totalLeads || 0,
         monthlyRevenue: dashboardStats.totalRevenue || 0,
         conversionRate: dashboardStats.conversionRate || 0,
-        monthlyLeadsTrend: 0, // Add default value
-        monthlyRevenueTrend: 0 // Add default value
+        monthlyLeadsTrend,
+        monthlyRevenueTrend
       };
       
       setStats(transformedStats);
