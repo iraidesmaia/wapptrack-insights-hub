@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,52 +34,60 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
 
+  // Load existing instance on mount
   useEffect(() => {
     loadExistingInstance(client_id);
-  }, [client_id]);
+  }, [client_id, loadExistingInstance]);
 
   // Update time remaining and elapsed every second
   useEffect(() => {
+    if (!qrCodeCreatedAt) return;
+
     const timer = setInterval(() => {
-      if (qrCodeCreatedAt) {
-        setTimeRemaining(getTimeRemaining());
-        setTimeElapsed(Date.now() - qrCodeCreatedAt.getTime());
-      }
+      setTimeRemaining(getTimeRemaining());
+      setTimeElapsed(Date.now() - qrCodeCreatedAt.getTime());
     }, 1000);
 
     return () => clearInterval(timer);
   }, [qrCodeCreatedAt, getTimeRemaining]);
 
-  // Smart polling with progressive intervals
+  // Smart polling with progressive intervals - using useCallback to prevent infinite loops
+  const startPolling = useCallback(() => {
+    if (!instance || instance.connection_status !== 'waiting_scan') return;
+
+    const interval = setInterval(() => {
+      checkInstanceStatus(instance.id);
+      
+      // Increase polling interval progressively (5s -> 10s -> 30s)
+      if (timeElapsed > 60000) { // After 1 minute
+        setPollingInterval(10000);
+      }
+      if (timeElapsed > 180000) { // After 3 minutes
+        setPollingInterval(30000);
+      }
+      
+      // Stop polling if QR code expired
+      if (isQrCodeExpired()) {
+        clearInterval(interval);
+        setStatusInterval(null);
+      }
+    }, pollingInterval);
+    
+    setStatusInterval(interval);
+    
+    return () => clearInterval(interval);
+  }, [instance?.id, instance?.connection_status, pollingInterval, timeElapsed, isQrCodeExpired, checkInstanceStatus, setPollingInterval]);
+
+  // Start/stop polling based on instance status
   useEffect(() => {
     if (instance && instance.connection_status === 'waiting_scan') {
-      const interval = setInterval(() => {
-        checkInstanceStatus(instance.id);
-        
-        // Increase polling interval progressively (5s -> 10s -> 30s)
-        if (timeElapsed > 60000) { // After 1 minute
-          setPollingInterval(10000);
-        }
-        if (timeElapsed > 180000) { // After 3 minutes
-          setPollingInterval(30000);
-        }
-        
-        // Stop polling if QR code expired
-        if (isQrCodeExpired()) {
-          if (interval) clearInterval(interval);
-        }
-      }, pollingInterval);
-      
-      setStatusInterval(interval);
-      
-      return () => {
-        if (interval) clearInterval(interval);
-      };
+      const cleanup = startPolling();
+      return cleanup;
     } else if (statusInterval) {
       clearInterval(statusInterval);
       setStatusInterval(null);
     }
-  }, [instance?.connection_status, pollingInterval, timeElapsed, isQrCodeExpired]);
+  }, [instance?.connection_status, startPolling, statusInterval]);
 
   const handleCreateInstance = async () => {
     try {
@@ -140,6 +148,12 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  console.log('EvolutionAutomationSettings render:', { 
+    instance: instance?.instance_name, 
+    qrCode: qrCode ? 'Present' : 'Missing',
+    status: instance?.connection_status 
+  });
 
   return (
     <Card>
@@ -295,6 +309,29 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Recriar Instância</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Debug info for missing QR code */}
+            {instance.connection_status === 'waiting_scan' && !qrCode && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm text-yellow-700">
+                    QR Code não encontrado. Clique em "Gerar Novo QR" para tentar novamente.
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <Button 
+                    onClick={handleRegenerateQrCode} 
+                    disabled={loading}
+                    size="sm"
+                    className="flex items-center space-x-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{loading ? 'Gerando...' : 'Gerar Novo QR'}</span>
                   </Button>
                 </div>
               </div>
