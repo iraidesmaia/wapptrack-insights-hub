@@ -285,7 +285,11 @@ export const useEvolutionAutomation = () => {
         .eq('id', instanceId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('Instância não encontrada no banco, resetando estado');
+        resetInstanceState();
+        return null;
+      }
 
       // Verificar se houve mudança no status de conexão
       if (data && lastConnectionStatus && lastConnectionStatus !== data.connection_status) {
@@ -332,7 +336,7 @@ export const useEvolutionAutomation = () => {
         query = query.is('client_id', null);
       }
 
-      const { data, error } = await query.limit(1).single();
+      const { data, error } = await query.limit(1).maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading instance:', error);
@@ -341,22 +345,39 @@ export const useEvolutionAutomation = () => {
 
       if (data) {
         console.log('Instância carregada:', data);
-        setInstance(data);
-        setQrCode(data.qr_code_base64);
-        setLastConnectionStatus(data.connection_status);
+        
+        // Verificar se a instância realmente existe fazendo uma segunda consulta
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('evolution_auto_instances')
+          .select('*')
+          .eq('id', data.id)
+          .single();
+
+        if (verifyError || !verifyData) {
+          console.log('Instância não existe mais, resetando estado');
+          resetInstanceState();
+          return null;
+        }
+
+        setInstance(verifyData);
+        setQrCode(verifyData.qr_code_base64);
+        setLastConnectionStatus(verifyData.connection_status);
         
         // Se a instância existe mas não está conectada, verificar se precisa gerar novo QR
-        if (data.connection_status === 'waiting_scan' && !data.qr_code_base64) {
+        if (verifyData.connection_status === 'waiting_scan' && !verifyData.qr_code_base64) {
           console.log('Instância aguardando scan mas sem QR, gerando novo...');
           setTimeout(() => generateNewQrCode(), 1000);
         }
         
-        return data;
+        return verifyData;
       }
 
+      // Se não encontrou dados, garantir que o estado está limpo
+      resetInstanceState();
       return null;
     } catch (error) {
       console.error('Error loading existing instance:', error);
+      resetInstanceState();
       return null;
     }
   };
