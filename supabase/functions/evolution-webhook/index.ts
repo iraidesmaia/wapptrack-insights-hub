@@ -1,9 +1,18 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders, getMessageContent, getContactName } from "./helpers.ts";
+import { getMessageContent, getContactName } from "./helpers.ts";
 import { createPhoneSearchVariations } from "./phoneVariations.ts";
 import { processComercialMessage, processClientMessage, handleDirectLead } from "./handlers.ts";
+import { 
+  corsHeaders, 
+  checkRateLimit, 
+  sanitizePhoneNumber, 
+  sanitizeMessageContent, 
+  sanitizeInstanceName,
+  logSecurityEvent,
+  validateWebhookPayload 
+} from "./security.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,18 +20,60 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting based on IP
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(clientIP)) {
+      logSecurityEvent('Rate limit exceeded', { ip: clientIP }, 'medium');
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded' }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    
     const body = await req.json();
+    
+    // Validate webhook payload
+    if (!validateWebhookPayload(body)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid payload' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     console.log('Evolution webhook received:', JSON.stringify(body, null, 2));
 
     if (body.event === 'messages.upsert' && body.data) {
       const message = body.data;
       const remoteJid = message.key?.remoteJid;
-      const instanceName = body.instance;
+      let instanceName: string;
       const isFromMe = message.key?.fromMe;
+      
+      try {
+        instanceName = sanitizeInstanceName(body.instance);
+      } catch (error) {
+        logSecurityEvent('Invalid instance name in webhook', { 
+          instance: body.instance, 
+          error: error.message 
+        }, 'high');
+        return new Response(
+          JSON.stringify({ error: 'Invalid instance name' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
       
       if (remoteJid) {
         // 🚫 FILTRAR MENSAGENS DE GRUPO (terminam com @g.us)
@@ -34,8 +85,25 @@ serve(async (req) => {
           });
         }
 
-        const realPhoneNumber = remoteJid.replace('@s.whatsapp.net', '');
-        const messageContent = getMessageContent(message);
+        let realPhoneNumber: string;
+        let messageContent: string;
+        
+        try {
+          realPhoneNumber = sanitizePhoneNumber(remoteJid.replace('@s.whatsapp.net', ''));
+          messageContent = sanitizeMessageContent(getMessageContent(message));
+        } catch (error) {
+          logSecurityEvent('Invalid phone number or message content', { 
+            remoteJid, 
+            error: error.message 
+          }, 'medium');
+          return new Response(
+            JSON.stringify({ error: 'Invalid phone number or message format' }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
 
         console.log(`📱 Processando mensagem de: ${realPhoneNumber} (instância: ${instanceName})`);
 
@@ -81,7 +149,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('💥 Webhook error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    logSecurityEvent('Webhook processing error', { 
+      error: error.message,
+      stack: error.stack 
+    }, 'high');
+    
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
