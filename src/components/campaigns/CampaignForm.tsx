@@ -11,50 +11,109 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Campaign } from '@/types/campaign';
+import { Campaign } from '@/types';
 
 interface CampaignFormProps {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  mode: 'add' | 'edit';
-  campaign: Partial<Campaign>;
-  onCampaignChange: (campaign: Partial<Campaign>) => void;
-  onSave: () => void;
-  baseUrl: string;
-  onBaseUrlChange: (url: string) => void;
+  onClose: () => void;
+  onSave: (campaignData: Omit<Campaign, 'id' | 'created_at'>) => void;
+  campaign: Campaign | null;
 }
 
 const CampaignForm: React.FC<CampaignFormProps> = ({
   isOpen,
-  onOpenChange,
-  mode,
-  campaign,
-  onCampaignChange,
+  onClose,
   onSave,
-  baseUrl,
-  onBaseUrlChange
+  campaign
 }) => {
   const [uploading, setUploading] = useState(false);
 
+  // Initialize form data with campaign or defaults
+  const [formData, setFormData] = useState<Partial<Campaign>>(() => ({
+    name: campaign?.name || '',
+    company_title: campaign?.company_title || '',
+    company_subtitle: campaign?.company_subtitle || '',
+    logo_url: campaign?.logo_url || '',
+    utm_source: campaign?.utm_source || '',
+    utm_medium: campaign?.utm_medium || '',
+    utm_campaign: campaign?.utm_campaign || '',
+    utm_content: campaign?.utm_content || '',
+    utm_term: campaign?.utm_term || '',
+    whatsapp_number: campaign?.whatsapp_number || '',
+    custom_message: campaign?.custom_message || '',
+    event_type: campaign?.event_type || 'lead',
+    redirect_type: campaign?.redirect_type || 'whatsapp',
+    pixel_integration_type: campaign?.pixel_integration_type || 'direct',
+    pixel_id: campaign?.pixel_id || '',
+    facebook_access_token: campaign?.facebook_access_token || '',
+    active: campaign?.active ?? true
+  }));
+
+  // Update form data when campaign changes
+  React.useEffect(() => {
+    if (campaign) {
+      setFormData({
+        name: campaign.name || '',
+        company_title: campaign.company_title || '',
+        company_subtitle: campaign.company_subtitle || '',
+        logo_url: campaign.logo_url || '',
+        utm_source: campaign.utm_source || '',
+        utm_medium: campaign.utm_medium || '',
+        utm_campaign: campaign.utm_campaign || '',
+        utm_content: campaign.utm_content || '',
+        utm_term: campaign.utm_term || '',
+        whatsapp_number: campaign.whatsapp_number || '',
+        custom_message: campaign.custom_message || '',
+        event_type: campaign.event_type || 'lead',
+        redirect_type: campaign.redirect_type || 'whatsapp',
+        pixel_integration_type: campaign.pixel_integration_type || 'direct',
+        pixel_id: campaign.pixel_id || '',
+        facebook_access_token: campaign.facebook_access_token || '',
+        active: campaign.active ?? true
+      });
+    } else {
+      // Reset form for new campaign
+      setFormData({
+        name: '',
+        company_title: '',
+        company_subtitle: '',
+        logo_url: '',
+        utm_source: '',
+        utm_medium: '',
+        utm_campaign: '',
+        utm_content: '',
+        utm_term: '',
+        whatsapp_number: '',
+        custom_message: '',
+        event_type: 'lead',
+        redirect_type: 'whatsapp',
+        pixel_integration_type: 'direct',
+        pixel_id: '',
+        facebook_access_token: '',
+        active: true
+      });
+    }
+  }, [campaign]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    onCampaignChange({ ...campaign, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSwitchChange = (checked: boolean) => {
-    onCampaignChange({ ...campaign, active: checked });
+    setFormData(prev => ({ ...prev, active: checked }));
   };
 
   const handleEventTypeChange = (value: string) => {
-    onCampaignChange({ ...campaign, event_type: value as Campaign['event_type'] });
+    setFormData(prev => ({ ...prev, event_type: value as Campaign['event_type'] }));
   };
 
   const handleRedirectTypeChange = (value: string) => {
-    onCampaignChange({ ...campaign, redirect_type: value as Campaign['redirect_type'] });
+    setFormData(prev => ({ ...prev, redirect_type: value as Campaign['redirect_type'] }));
   };
 
   const handlePixelIntegrationTypeChange = (value: string) => {
-    onCampaignChange({ ...campaign, pixel_integration_type: value as Campaign['pixel_integration_type'] });
+    setFormData(prev => ({ ...prev, pixel_integration_type: value as Campaign['pixel_integration_type'] }));
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,10 +141,10 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
         .from('company-logos')
         .getPublicUrl(filePath);
 
-      onCampaignChange({
-        ...campaign,
+      setFormData(prev => ({
+        ...prev,
         logo_url: data.publicUrl
-      });
+      }));
 
       toast.success('Logo enviada com sucesso!');
     } catch (error) {
@@ -96,17 +155,26 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
     }
   };
 
+  const handleSave = () => {
+    if (!formData.name?.trim()) {
+      toast.error('Nome da campanha é obrigatório');
+      return;
+    }
+
+    onSave(formData as Omit<Campaign, 'id' | 'created_at'>);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'add' ? 'Adicionar Novo Link de rastreamento' : 'Editar Link de rastreamento'}
+            {campaign ? 'Editar Link de rastreamento' : 'Adicionar Novo Link de rastreamento'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'add' 
-              ? 'Configure seu link de rastreamento com tracking avançado e máximos parâmetros.' 
-              : 'Atualize os detalhes do link de rastreamento e configurações de tracking.'}
+            {campaign 
+              ? 'Atualize os detalhes do link de rastreamento e configurações de tracking.'
+              : 'Configure seu link de rastreamento com tracking avançado e máximos parâmetros.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -126,7 +194,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="company_title"
                   name="company_title"
-                  value={campaign.company_title || ''}
+                  value={formData.company_title || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: Minha Empresa"
                 />
@@ -137,7 +205,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="company_subtitle"
                   name="company_subtitle"
-                  value={campaign.company_subtitle || ''}
+                  value={formData.company_subtitle || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: Sistema de Marketing Digital"
                 />
@@ -167,11 +235,11 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                       Formatos aceitos: PNG, JPG, JPEG (máx. 5MB)
                     </p>
                   </div>
-                  {campaign.logo_url && (
+                  {formData.logo_url && (
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 rounded-lg border overflow-hidden">
                         <img
-                          src={campaign.logo_url}
+                          src={formData.logo_url}
                           alt="Logo da campanha"
                           className="w-full h-full object-cover"
                         />
@@ -187,7 +255,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <Input
                 id="name"
                 name="name"
-                value={campaign.name || ''}
+                value={formData.name || ''}
                 onChange={handleInputChange}
                 placeholder="Ex: Instagram - Stories Junho"
                 required
@@ -200,7 +268,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             <div className="flex items-center space-x-2 pt-4 border-t">
               <Switch
                 id="active"
-                checked={campaign.active || false}
+                checked={formData.active || false}
                 onCheckedChange={handleSwitchChange}
               />
               <Label htmlFor="active">Link de rastreamento Ativo</Label>
@@ -217,7 +285,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Textarea
                   id="custom_message"
                   name="custom_message"
-                  value={campaign.custom_message || ''}
+                  value={formData.custom_message || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: Olá! Vi seu interesse no nosso produto..."
                   rows={3}
@@ -230,7 +298,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <div className="grid gap-2">
                 <Label htmlFor="event_type">Tipo de Evento</Label>
                 <Select
-                  value={campaign.event_type || 'lead'}
+                  value={formData.event_type || 'lead'}
                   onValueChange={handleEventTypeChange}
                 >
                   <SelectTrigger>
@@ -250,7 +318,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="whatsapp_number"
                   name="whatsapp_number"
-                  value={campaign.whatsapp_number || ''}
+                  value={formData.whatsapp_number || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 5511999887766"
                 />
@@ -259,7 +327,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <div className="grid gap-2">
                 <Label htmlFor="redirect_type">Tipo de redirecionamento</Label>
                 <Select
-                  value={campaign.redirect_type || 'whatsapp'}
+                  value={formData.redirect_type || 'whatsapp'}
                   onValueChange={handleRedirectTypeChange}
                 >
                   <SelectTrigger>
@@ -277,7 +345,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 <Input
                   id="pixel_id"
                   name="pixel_id"
-                  value={campaign.pixel_id || ''}
+                  value={formData.pixel_id || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 123456789012345"
                 />
@@ -289,7 +357,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                   id="facebook_access_token"
                   name="facebook_access_token"
                   type="password"
-                  value={campaign.facebook_access_token || ''}
+                  value={formData.facebook_access_token || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: EAABwzLixn..."
                 />
@@ -298,7 +366,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <div className="grid gap-2">
                 <Label htmlFor="pixel_integration_type">Integração do Pixel</Label>
                 <Select
-                  value={campaign.pixel_integration_type || 'direct'}
+                  value={formData.pixel_integration_type || 'direct'}
                   onValueChange={handlePixelIntegrationTypeChange}
                 >
                   <SelectTrigger>
@@ -310,26 +378,16 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="baseUrl">URL Base</Label>
-                <Input
-                  id="baseUrl"
-                  value={baseUrl}
-                  onChange={(e) => onBaseUrlChange(e.target.value)}
-                  placeholder="https://seusite.com"
-                />
-              </div>
             </div>
           </TabsContent>
         </Tabs>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={onSave}>
-            {mode === 'add' ? 'Adicionar' : 'Atualizar'}
+          <Button onClick={handleSave}>
+            {campaign ? 'Atualizar' : 'Adicionar'}
           </Button>
         </DialogFooter>
       </DialogContent>
