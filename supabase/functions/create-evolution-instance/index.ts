@@ -8,17 +8,7 @@ const corsHeaders = {
 }
 
 interface CreateInstanceRequest {
-  instanceName: string;
-  token: string;
-  options_Create_instance: {
-    webhook: {
-      webhookSettings: {
-        webhookUrl: string;
-        webhookByEvents: boolean;
-        webhookEvents: string[];
-      }
-    }
-  }
+  client_id?: string;
 }
 
 serve(async (req) => {
@@ -62,65 +52,65 @@ serve(async (req) => {
 
     console.log('✅ User authenticated:', user.id)
 
-    // Parse and validate request body - expecting n8n format
-    let requestPayload: CreateInstanceRequest;
+    // Parse request body to get client_id
+    let requestData: CreateInstanceRequest = {};
     try {
-      requestPayload = await req.json()
+      requestData = await req.json()
     } catch (parseError) {
       console.error('JSON parsing error:', parseError)
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'Invalid JSON in request body' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // Se não conseguir fazer parse, continua sem client_id
     }
 
-    // Validate required fields in n8n format
-    if (!requestPayload.instanceName) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'instanceName is required' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    console.log('📋 Request data received:', { client_id: requestData.client_id })
+
+    // Generate instance name based on user or client
+    let instanceName = `User_${user.id.slice(0, 8)}`;
+    
+    if (requestData.client_id) {
+      // Try to get client name if client_id is provided
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', requestData.client_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (!clientError && client) {
+        instanceName = client.name.replace(/[^a-zA-Z0-9]/g, '');
+        console.log('📝 Using client name for instance:', instanceName)
+      } else {
+        console.log('⚠️ Client not found, using default name')
+      }
     }
 
-    if (!requestPayload.token) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'token is required' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    // Build Evolution API payload exactly like n8n workflow
+    const evolutionPayload = {
+      instanceName: instanceName,
+      token: 'k6KUvVBp0Nya0NtMwq7N0swJjBYSr8ia',
+      options_Create_instance: {
+        webhook: {
+          webhookSettings: {
+            webhookUrl: 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook',
+            webhookByEvents: true,
+            webhookEvents: ['MESSAGES_UPSERT', 'SEND_MESSAGE']
+          }
+        }
+      }
+    };
 
-    if (!requestPayload.options_Create_instance?.webhook?.webhookSettings?.webhookUrl) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'webhookUrl is required in options_Create_instance.webhook.webhookSettings' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    console.log('📋 Request payload:', {
-      instanceName: requestPayload.instanceName,
+    console.log('🔧 Evolution API payload constructed:', {
+      instanceName: evolutionPayload.instanceName,
       token: '[REDACTED]',
-      webhookUrl: requestPayload.options_Create_instance.webhook.webhookSettings.webhookUrl,
-      user_id: user.id
+      webhookUrl: evolutionPayload.options_Create_instance.webhook.webhookSettings.webhookUrl,
+      webhookEvents: evolutionPayload.options_Create_instance.webhook.webhookSettings.webhookEvents
     })
 
-    // Check if instance already exists - fix UUID issue by handling null properly
+    // Check if instance already exists
     const { data: existingInstance, error: checkError } = await supabase
       .from('evolution_auto_instances')
       .select('*')
       .eq('user_id', user.id)
-      .eq('instance_name', requestPayload.instanceName)
+      .eq('instance_name', instanceName)
       .maybeSingle()
 
     if (checkError) {
@@ -149,23 +139,19 @@ serve(async (req) => {
     // Evolution API configuration
     const evolutionApiUrl = 'https://evolutionapi.workidigital.tech'
 
-    console.log('🔧 Creating instance in Evolution API with payload:', {
-      ...requestPayload,
-      token: '[REDACTED]'
-    })
+    console.log('🚀 Creating instance in Evolution API...')
 
-    // Call Evolution API with exact n8n payload format
+    // Call Evolution API with constructed payload
     const createInstanceResponse = await fetch(`${evolutionApiUrl}/instance/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': requestPayload.token
+        'apikey': evolutionPayload.token
       },
-      body: JSON.stringify(requestPayload)
+      body: JSON.stringify(evolutionPayload)
     })
 
     console.log('📥 Evolution API response status:', createInstanceResponse.status)
-    console.log('📥 Evolution API response headers:', Object.fromEntries(createInstanceResponse.headers.entries()))
 
     let createInstanceData;
     let responseText = '';
@@ -187,8 +173,7 @@ serve(async (req) => {
       console.error('❌ Evolution API error response:', {
         status: createInstanceResponse.status,
         statusText: createInstanceResponse.statusText,
-        body: responseText,
-        headers: Object.fromEntries(createInstanceResponse.headers.entries())
+        body: responseText
       })
 
       return new Response(JSON.stringify({ 
@@ -204,7 +189,7 @@ serve(async (req) => {
 
     console.log('✅ Instance created successfully:', createInstanceData)
 
-    // Get QR Code
+    // Get QR Code with retries
     console.log('🔧 Getting QR Code')
     let qrCodeBase64 = null
     let retries = 0
@@ -215,10 +200,10 @@ serve(async (req) => {
       
       console.log(`🔄 QR Code attempt ${retries + 1}/${maxRetries}`)
       
-      const qrResponse = await fetch(`${evolutionApiUrl}/instance/connect/${requestPayload.instanceName}`, {
+      const qrResponse = await fetch(`${evolutionApiUrl}/instance/connect/${instanceName}`, {
         method: 'GET',
         headers: {
-          'apikey': requestPayload.token
+          'apikey': evolutionPayload.token
         }
       })
 
@@ -229,8 +214,7 @@ serve(async (req) => {
         console.log('📱 QR Response received:', {
           hasBase64: !!qrData.base64,
           hasCode: !!qrData.code,
-          status: qrData.status,
-          fullResponse: qrData
+          status: qrData.status
         })
         
         if (qrData.base64) {
@@ -255,13 +239,13 @@ serve(async (req) => {
       console.log('⚠️ QR Code not generated after maximum retries')
     }
 
-    // Save to database - no client_id, just user_id and instance_name
+    // Save to database
     console.log('💾 Saving to database')
     const instanceData = {
       user_id: user.id,
-      client_id: null, // Explicitly set to null to avoid UUID issues
-      instance_name: requestPayload.instanceName,
-      instance_token: requestPayload.token,
+      client_id: requestData.client_id || null,
+      instance_name: instanceName,
+      instance_token: evolutionPayload.token,
       qr_code_base64: qrCodeBase64,
       connection_status: qrCodeBase64 ? 'waiting_scan' : 'pending',
       webhook_configured: true,
