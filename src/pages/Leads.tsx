@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ const Leads = () => {
     handleOpenAddDialog,
     handleOpenEditDialog,
     handleOpenViewDialog,
-    handle SaveLead,
+    handleSaveLead,
     handleSaveFromDetailDialog,
     handleDeleteLead,
     openWhatsApp
