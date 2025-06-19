@@ -76,6 +76,8 @@ const Dashboard = () => {
       // Transform dashboard stats to match expected interface
       const transformedStats: DashboardStats = {
         totalLeads: dashboardStats.totalLeads || 0,
+        totalSales: dashboardStats.totalSales || 0,
+        totalRevenue: dashboardStats.totalRevenue || 0,
         todaysLeads: 0, // Add default value
         confirmedSales: dashboardStats.totalSales || 0,
         pendingConversations: 0, // Add default value
