@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Zap, QrCode, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useEvolutionAutomation } from '@/hooks/useEvolutionAutomation';
+import { useSettings } from '@/hooks/useSettings';
 
 interface EvolutionAutomationSettingsProps {
   client_id?: string;
@@ -20,6 +21,7 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
     checkInstanceStatus 
   } = useEvolutionAutomation();
 
+  const { formData } = useSettings();
   const [statusInterval, setStatusInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -83,13 +85,24 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Zap className="w-5 h-5" />
-          <span>Evolution API - Configuração Automática</span>
+          <span>Evolution API - Integração com n8n</span>
         </CardTitle>
         <CardDescription>
-          Crie e configure automaticamente uma instância WhatsApp personalizada para seu projeto
+          Crie e configure automaticamente uma instância WhatsApp usando o nome da empresa via n8n
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {formData.company_name && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              <strong>Nome da instância:</strong> {formData.company_name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Baseado no nome da empresa configurado em "Informações da Empresa"
+            </p>
+          </div>
+        )}
+
         {instance ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -97,6 +110,9 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
                 <h3 className="font-medium">Instância: {instance.instance_name}</h3>
                 <p className="text-sm text-muted-foreground">
                   Criada em {new Date(instance.created_at).toLocaleDateString('pt-BR')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Gerenciada via n8n
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -110,7 +126,7 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
             {instance.webhook_configured && (
               <div className="flex items-center space-x-2 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">Webhook configurado automaticamente</span>
+                <span className="text-sm">Webhook configurado automaticamente via n8n</span>
               </div>
             )}
 
@@ -148,24 +164,31 @@ const EvolutionAutomationSettings = ({ client_id }: EvolutionAutomationSettingsP
               <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-medium mb-2">Nenhuma instância configurada</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Crie automaticamente uma instância WhatsApp para seu projeto
+                Crie automaticamente uma instância WhatsApp com o nome da sua empresa
               </p>
               
               <Button 
                 onClick={handleCreateInstance} 
-                disabled={loading}
+                disabled={loading || !formData.company_name}
                 className="flex items-center space-x-2"
               >
                 <Zap className="w-4 h-4" />
-                <span>{loading ? 'Criando...' : 'Criar Instância Automaticamente'}</span>
+                <span>{loading ? 'Criando via n8n...' : 'Criar Instância Automaticamente'}</span>
               </Button>
+
+              {!formData.company_name && (
+                <p className="text-sm text-orange-600 mt-2">
+                  Configure o nome da empresa em "Informações da Empresa" primeiro
+                </p>
+              )}
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>✅ Instância será criada com o nome do projeto</p>
+              <p>✅ Instância criada via n8n com o nome da empresa</p>
               <p>✅ Webhook configurado automaticamente</p>
               <p>✅ QR Code gerado instantaneamente</p>
               <p>✅ Eventos MESSAGES_UPSERT e SEND_MESSAGE habilitados</p>
+              <p>✅ Integração completa com automação n8n</p>
             </div>
           </div>
         )}

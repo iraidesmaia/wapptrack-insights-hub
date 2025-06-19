@@ -16,45 +16,127 @@ interface EvolutionAutoInstance {
   updated_at: string;
 }
 
+interface N8nWebhookResponse {
+  success: boolean;
+  instanceName?: string;
+  qrCode?: string;
+  status?: string;
+  error?: string;
+}
+
 export const useEvolutionAutomation = () => {
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<EvolutionAutoInstance | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
+  const cleanInstanceName = (companyName: string): string => {
+    return companyName
+      .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .trim()
+      .substring(0, 50); // Limit length
+  };
+
+  const getCompanyName = async (): Promise<string> => {
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('company_name')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching company name:', error);
+        return 'Minha_Empresa'; // Default fallback
+      }
+
+      return data?.company_name || 'Minha_Empresa';
+    } catch (error) {
+      console.error('Error getting company name:', error);
+      return 'Minha_Empresa';
+    }
+  };
+
   const createAutomaticInstance = async (client_id?: string) => {
     setLoading(true);
     
     try {
-      console.log('Creating automatic Evolution instance...');
+      console.log('Creating Evolution instance via n8n...');
       
-      const { data, error } = await supabase.functions.invoke('create-evolution-instance', {
-        body: { client_id }
+      // Get company name from settings
+      const companyName = await getCompanyName();
+      const instanceName = cleanInstanceName(companyName);
+      
+      console.log('Using company name as instance name:', { companyName, instanceName });
+
+      // Call n8n webhook
+      const n8nResponse = await fetch('https://n8n.workidigital.tech/webhook-test/wppp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instanceName: instanceName
+        })
       });
 
-      if (error) {
-        console.error('Function error:', error);
-        throw new Error(error.message || 'Failed to create instance');
+      if (!n8nResponse.ok) {
+        throw new Error(`n8n webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create instance');
+      const n8nData: N8nWebhookResponse = await n8nResponse.json();
+      console.log('n8n response:', n8nData);
+
+      if (!n8nData.success) {
+        throw new Error(n8nData.error || 'Failed to create instance via n8n');
       }
 
-      console.log('Instance created successfully:', data);
+      // Save instance data to database
+      const instanceData = {
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        client_id: client_id || null,
+        instance_name: n8nData.instanceName || instanceName,
+        instance_token: 'managed_by_n8n',
+        qr_code_base64: n8nData.qrCode || null,
+        connection_status: n8nData.status || 'waiting_scan',
+        webhook_configured: true,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Saving instance data to database:', instanceData);
+
+      const { data: savedInstance, error: saveError } = await supabase
+        .from('evolution_auto_instances')
+        .upsert(instanceData, {
+          onConflict: 'user_id,instance_name'
+        })
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('Database save error:', saveError);
+        throw new Error(`Failed to save instance data: ${saveError.message}`);
+      }
+
+      setInstance(savedInstance);
+      setQrCode(n8nData.qrCode || null);
       
-      setInstance(data.instance);
-      setQrCode(data.qr_code);
+      toast.success('Instância Evolution criada com sucesso via n8n!');
       
-      toast.success('Instância Evolution criada com sucesso!');
-      
-      if (data.qr_code) {
+      if (n8nData.qrCode) {
         toast.success('QR Code gerado! Escaneie para conectar o WhatsApp.');
       }
 
-      return data;
+      return {
+        success: true,
+        instance: savedInstance,
+        qr_code: n8nData.qrCode
+      };
 
     } catch (error: any) {
-      console.error('Error creating automatic instance:', error);
+      console.error('Error creating instance via n8n:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
     } finally {
