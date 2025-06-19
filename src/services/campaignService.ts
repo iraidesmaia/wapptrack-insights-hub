@@ -15,7 +15,6 @@ export const getCampaigns = async (projectId: string): Promise<Campaign[]> => {
     return (campaigns || []).map(campaign => ({
       id: campaign.id,
       name: campaign.name,
-      user_id: campaign.user_id,
       created_at: campaign.created_at,
       active: campaign.active,
       whatsapp_number: campaign.whatsapp_number,
@@ -106,7 +105,6 @@ export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'> 
     return {
       id: data.id,
       name: data.name,
-      user_id: data.user_id,
       created_at: data.created_at,
       active: data.active,
       whatsapp_number: data.whatsapp_number,
@@ -198,7 +196,6 @@ export const updateCampaign = async (id: string, campaign: Partial<Campaign>): P
     return {
       id: data.id,
       name: data.name,
-      user_id: data.user_id,
       created_at: data.created_at,
       active: data.active,
       whatsapp_number: data.whatsapp_number,
