@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Send, Webhook, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
+
 interface EvolutionApiConfig {
   evolution_api_key: string;
   evolution_instance_name: string;
@@ -12,6 +13,7 @@ interface EvolutionApiConfig {
   webhook_callback_url: string;
   webhook_url: string;
 }
+
 interface EvolutionApiSettingsProps {
   evolutionConfig: EvolutionApiConfig;
   testingWebhook: boolean;
@@ -19,6 +21,7 @@ interface EvolutionApiSettingsProps {
   onSaveEvolutionConfig: () => void;
   onTestWebhookConnection: () => Promise<void>;
 }
+
 const EvolutionApiSettings = ({
   evolutionConfig,
   testingWebhook,
@@ -26,7 +29,8 @@ const EvolutionApiSettings = ({
   onSaveEvolutionConfig,
   onTestWebhookConnection
 }: EvolutionApiSettingsProps) => {
-  return <Card>
+  return (
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <MessageSquare className="w-5 h-5" />
@@ -40,7 +44,14 @@ const EvolutionApiSettings = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="evolution_base_url">URL Base da Evolution API *</Label>
-            <Input id="evolution_base_url" name="evolution_base_url" value={evolutionConfig.evolution_base_url} onChange={onEvolutionConfigChange} placeholder="https://api.evolution.com" type="url" />
+            <Input 
+              id="evolution_base_url" 
+              name="evolution_base_url" 
+              value={evolutionConfig.evolution_base_url} 
+              onChange={onEvolutionConfigChange} 
+              placeholder="https://api.evolution.com" 
+              type="url" 
+            />
             <p className="text-xs text-muted-foreground">
               URL base da sua instância Evolution API
             </p>
@@ -48,7 +59,13 @@ const EvolutionApiSettings = ({
 
           <div className="space-y-2">
             <Label htmlFor="evolution_instance_name">Nome da Instância *</Label>
-            <Input id="evolution_instance_name" name="evolution_instance_name" value={evolutionConfig.evolution_instance_name} onChange={onEvolutionConfigChange} placeholder="minha-instancia" />
+            <Input 
+              id="evolution_instance_name" 
+              name="evolution_instance_name" 
+              value={evolutionConfig.evolution_instance_name} 
+              onChange={onEvolutionConfigChange} 
+              placeholder="minha-instancia" 
+            />
             <p className="text-xs text-muted-foreground">
               Nome da instância WhatsApp na Evolution API
             </p>
@@ -57,7 +74,14 @@ const EvolutionApiSettings = ({
 
         <div className="space-y-2">
           <Label htmlFor="evolution_api_key">API Key da Evolution *</Label>
-          <Input id="evolution_api_key" name="evolution_api_key" value={evolutionConfig.evolution_api_key} onChange={onEvolutionConfigChange} placeholder="sua-api-key-evolution" type="password" />
+          <Input 
+            id="evolution_api_key" 
+            name="evolution_api_key" 
+            value={evolutionConfig.evolution_api_key} 
+            onChange={onEvolutionConfigChange} 
+            placeholder="sua-api-key-evolution" 
+            type="password" 
+          />
           <p className="text-xs text-muted-foreground">
             Chave de API para autenticação na Evolution API
           </p>
@@ -65,28 +89,28 @@ const EvolutionApiSettings = ({
 
         <div className="space-y-2">
           <Label htmlFor="webhook_callback_url">URL de Callback (Webhook de Retorno)</Label>
-          <Input id="webhook_callback_url" name="webhook_callback_url" value={evolutionConfig.webhook_callback_url} onChange={onEvolutionConfigChange} placeholder="https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook" type="url" readOnly />
+          <Input 
+            id="webhook_callback_url" 
+            name="webhook_callback_url" 
+            value={evolutionConfig.webhook_callback_url} 
+            onChange={onEvolutionConfigChange} 
+            placeholder="https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/evolution-webhook" 
+            type="url" 
+            readOnly 
+          />
           <p className="text-xs text-muted-foreground">
             URL que a Evolution API usará para enviar confirmações de entrega
           </p>
         </div>
 
-        <hr className="my-6" />
-
-        
-
-        
-
         <div className="flex space-x-3">
           <Button onClick={onSaveEvolutionConfig} variant="outline">
             Salvar Configuração
           </Button>
-          <Button onClick={onTestWebhookConnection} disabled={testingWebhook || !evolutionConfig.webhook_url} className="flex items-center space-x-2">
-            <Send className="w-4 h-4" />
-            <span>{testingWebhook ? 'Testando...' : 'Testar Webhook'}</span>
-          </Button>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default EvolutionApiSettings;
