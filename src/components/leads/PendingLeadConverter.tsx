@@ -1,47 +1,24 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, CheckCircle } from 'lucide-react';
-import { usePendingLeadConverter } from '@/hooks/usePendingLeadConverter';
+import { AlertTriangle } from 'lucide-react';
 
 const PendingLeadConverter = () => {
-  const { convertPendingLeads, isConverting } = usePendingLeadConverter();
-
   return (
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <RefreshCw className="h-5 w-5" />
-          Conversão Segura de Leads Pendentes
+          <AlertTriangle className="h-5 w-5 text-orange-500" />
+          Funcionalidade Descontinuada
         </CardTitle>
         <CardDescription>
-          Converta leads de formulários que estão pendentes em leads definitivos usando função Supabase com privilégios elevados
+          A funcionalidade de conversão de pending leads foi removida pois a tabela pending_leads não existe mais no banco de dados.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={convertPendingLeads}
-            disabled={isConverting}
-            variant="outline"
-          >
-            {isConverting ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Convertendo...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Converter Pending Leads
-              </>
-            )}
-          </Button>
-          <div className="text-sm text-muted-foreground">
-            <p>✅ Agora usando função Supabase com SECURITY DEFINER</p>
-            <p>🔒 Contorna problemas de RLS e garante conversão segura</p>
-          </div>
+        <div className="text-sm text-muted-foreground">
+          <p>🔄 Os leads agora são criados diretamente na tabela principal</p>
+          <p>✅ Não é mais necessário converter leads pendentes</p>
         </div>
       </CardContent>
     </Card>
