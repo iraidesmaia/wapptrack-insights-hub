@@ -1,32 +1,51 @@
+
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
-import { captureAndSaveDeviceData } from "@/lib/dataCollection";
 import type { ConversionResult } from '@/types/supabase-functions';
 
 /**
- * ✅ FUNÇÃO PARA SALVAR DADOS COMPLETOS DE DISPOSITIVO E UTMs
+ * ✅ NOVA FUNÇÃO PARA SALVAR UTMs DE CLICKS DIRETOS
  */
-const saveDeviceAndUtmData = async (
+const saveDirectClickUtms = async (
   phone: string,
-  utms?: {
+  utms: {
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
     utm_content?: string;
     utm_term?: string;
-    gclid?: string;
-    fbclid?: string;
   }
 ) => {
   try {
-    console.log('📱 Iniciando captura completa de dados do dispositivo para:', phone);
-    
-    // Usar a função completa de captura de dados
-    await captureAndSaveDeviceData(phone);
-    
-    console.log('✅ Dados do dispositivo salvos com sucesso para:', phone);
+    // Só salvar se pelo menos um UTM estiver presente
+    if (!utms.utm_source && !utms.utm_medium && !utms.utm_campaign && !utms.utm_content && !utms.utm_term) {
+      console.log('📋 Nenhum UTM para salvar no click direto');
+      return;
+    }
+
+    const clickData = {
+      phone,
+      utm_source: utms.utm_source || null,
+      utm_medium: utms.utm_medium || null,
+      utm_campaign: utms.utm_campaign || null,
+      utm_content: utms.utm_content || null,
+      utm_term: utms.utm_term || null,
+      created_at: new Date().toISOString()
+    };
+
+    console.log('💾 Salvando UTMs para click direto:', clickData);
+
+    const { error } = await supabase
+      .from('utm_clicks')
+      .insert(clickData);
+
+    if (error) {
+      console.error('❌ Erro ao salvar UTMs de click direto:', error);
+    } else {
+      console.log('✅ UTMs de click direto salvos com sucesso');
+    }
   } catch (error) {
-    console.error('❌ Erro ao salvar dados do dispositivo:', error);
+    console.error('❌ Erro geral ao salvar UTMs de click direto:', error);
   }
 };
 
@@ -75,7 +94,7 @@ const convertPendingLeadToLead = async (pendingLeadData: any) => {
 
 /**
  * Função principal para rastrear redirecionamentos e salvar leads
- * ✅ MODIFICADA PARA INCLUIR CAPTURA COMPLETA DE DADOS
+ * ✅ MODIFICADA PARA INCLUIR CONVERSÃO AUTOMÁTICA MAIS ROBUSTA
  */
 export const trackRedirect = async (
   campaignId: string, 
@@ -106,12 +125,6 @@ export const trackRedirect = async (
     const isAuthenticated = !!user;
     console.log('🔐 Status de autenticação:', isAuthenticated ? 'Logado' : 'Público');
 
-    // 🎯 SALVAR DADOS DETALHADOS DO DISPOSITIVO SEMPRE QUE HOUVER TELEFONE
-    if (phone && phone !== 'Redirecionamento Direto') {
-      console.log('📱 Salvando dados detalhados do dispositivo...');
-      await saveDeviceAndUtmData(phone, utms);
-    }
-
     // Busca a campanha por ID
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -122,6 +135,19 @@ export const trackRedirect = async (
     // Campanha não encontrada -> fallback default
     if (campaignError || !campaign) {
       console.log(`❌ Campaign with ID ${campaignId} not found. Creating default lead.`);
+      
+      // 🎯 SALVAR UTMS PARA POSSÍVEL CLICK DIRETO
+      if (phone && phone !== 'Redirecionamento Direto' && utms) {
+        const utmsToSave = {
+          utm_source: utms.utm_source,
+          utm_medium: utms.utm_medium,
+          utm_campaign: utms.utm_campaign,
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined),
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined),
+        };
+        await saveDirectClickUtms(phone, utmsToSave);
+      }
+      
       return { targetPhone: '5585998372658' };
     }
 
@@ -135,6 +161,18 @@ export const trackRedirect = async (
         utms,
         authenticated: isAuthenticated
       });
+      
+      // 🎯 SALVAR UTMS PARA POSSÍVEL CLICK DIRETO
+      if (phone && phone !== 'Redirecionamento Direto' && utms) {
+        const utmsToSave = {
+          utm_source: utms.utm_source,
+          utm_medium: utms.utm_medium,
+          utm_campaign: utms.utm_campaign,
+          utm_content: utms.utm_content || (utms.gclid ? `gclid=${utms.gclid}` : undefined),
+          utm_term: utms.utm_term || (utms.fbclid ? `fbclid=${utms.fbclid}` : undefined),
+        };
+        await saveDirectClickUtms(phone, utmsToSave);
+      }
       
       // Para redirect_type: 'whatsapp', salvar em pending_leads (PÚBLICO)
       if (phone && phone !== 'Redirecionamento Direto') {
