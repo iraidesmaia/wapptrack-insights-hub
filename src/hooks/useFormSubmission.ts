@@ -2,7 +2,6 @@
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
-import { sendToEvolutionAPI } from '@/services/evolutionApiService';
 import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
@@ -37,7 +36,7 @@ export const useFormSubmission = (
       throw new Error('ID da campanha não encontrado');
     }
 
-    console.log('📝 Processing form submission (PUBLIC + AUTO CONVERSION)...', {
+    console.log('📝 Processing form submission...', {
       campaignId,
       phone,
       name,
@@ -85,56 +84,19 @@ export const useFormSubmission = (
       console.error('❌ Error sending data via external webhook:', error);
     }
 
-    // Check if Evolution API is configured
-    const evolutionConfigStr = localStorage.getItem('evolution_config');
-    
-    if (evolutionConfigStr) {
-      try {
-        const evolutionConfig = JSON.parse(evolutionConfigStr);
-        
-        if (evolutionConfig.evolution_api_key && evolutionConfig.evolution_instance_name) {
-          console.log('🤖 Using Evolution API for lead processing...');
-          
-          const result = await sendToEvolutionAPI({
-            campaignId,
-            campaignName: campaign?.name || 'Default Campaign',
-            phone,
-            name,
-            message: campaign?.custom_message
-          });
-
-          if (result.success) {
-            toast.success('Mensagem enviada! Aguarde a confirmação de entrega.');
-            console.log('✅ Lead sent to Evolution API successfully');
-            return;
-          } else {
-            throw new Error(result.error || 'Erro ao enviar via Evolution API');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error with Evolution API:', error);
-        toast.error('Erro ao processar via Evolution API. Tentando método alternativo...');
-      }
-    }
-
-    // 🎯 COLETA UTMs E PARÂMETROS FACEBOOK ATUALIZADOS (AMBOS FORMATOS)
+    // 🎯 COLETA UTMs E PARÂMETROS FACEBOOK ATUALIZADOS
     const utms = collectUrlParameters();
-    console.log('🌐 UTMs e parâmetros Facebook obtidos da URL (ambos formatos):', {
+    console.log('🌐 UTMs e parâmetros Facebook obtidos da URL:', {
       utm_source: utms.utm_source,
       utm_medium: utms.utm_medium,
       utm_campaign: utms.utm_campaign,
       utm_content: utms.utm_content,
       utm_term: utms.utm_term,
       ad_id: utms.ad_id,
-      facebook_ad_id: utms.facebook_ad_id,
-      adset_id: utms.adset_id,
-      facebook_adset_id: utms.facebook_adset_id,
-      campaign_id: utms.campaign_id,
-      facebook_campaign_id: utms.facebook_campaign_id
+      facebook_ad_id: utms.facebook_ad_id
     });
 
-    // ✅ PROCESSAMENTO PÚBLICO COM CONVERSÃO AUTOMÁTICA
-    console.log('📱 Processando formulário público via trackRedirect com conversão automática...');
+    console.log('📱 Processando formulário via trackRedirect...');
     
     try {
       const result = await trackRedirect(
@@ -151,7 +113,7 @@ export const useFormSubmission = (
         }
       );
       
-      console.log('✅ trackRedirect executado com conversão automática (modo público):', result);
+      console.log('✅ trackRedirect executado:', result);
       
       // Get target WhatsApp number
       const targetPhone = result.targetPhone || campaign?.whatsapp_number;
@@ -181,7 +143,7 @@ export const useFormSubmission = (
       toast.success('Lead salvo! Redirecionando para o WhatsApp...');
       window.location.href = whatsappUrl;
       
-      console.log('✅ WhatsApp redirect initiated (public form with auto conversion)');
+      console.log('✅ WhatsApp redirect initiated');
     } catch (error) {
       console.error('❌ Error in trackRedirect or WhatsApp redirect:', error);
       throw new Error('Erro ao processar redirecionamento');

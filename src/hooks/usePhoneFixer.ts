@@ -83,8 +83,6 @@ export const usePhoneFixer = () => {
           whatsapp_delivery_attempts: lead.whatsapp_delivery_attempts,
           last_whatsapp_attempt: lead.last_whatsapp_attempt,
           last_message: lead.last_message,
-          evolution_message_id: lead.evolution_message_id,
-          evolution_status: lead.evolution_status,
           utm_source: lead.utm_source,
           utm_medium: lead.utm_medium,
           utm_campaign: lead.utm_campaign,
