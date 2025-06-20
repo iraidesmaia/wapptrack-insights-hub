@@ -13,9 +13,7 @@ export type Database = {
         Row: {
           active: boolean | null
           advanced_matching_enabled: boolean | null
-          auto_create_leads: boolean | null
           cancellation_keywords: string[] | null
-          client_id: string | null
           company_subtitle: string | null
           company_title: string | null
           conversion_api_enabled: boolean | null
@@ -27,9 +25,6 @@ export type Database = {
           data_processing_options_country: number | null
           data_processing_options_state: number | null
           event_type: string | null
-          evolution_api_key: string | null
-          evolution_base_url: string | null
-          evolution_instance_name: string | null
           external_id: string | null
           facebook_access_token: string | null
           id: string
@@ -37,6 +32,7 @@ export type Database = {
           name: string
           pixel_id: string | null
           pixel_integration_type: string | null
+          project_id: string | null
           redirect_type: string | null
           server_side_api_enabled: boolean | null
           test_event_code: string | null
@@ -47,15 +43,12 @@ export type Database = {
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
-          webhook_callback_url: string | null
           whatsapp_number: string | null
         }
         Insert: {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
-          auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
-          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -67,9 +60,6 @@ export type Database = {
           data_processing_options_country?: number | null
           data_processing_options_state?: number | null
           event_type?: string | null
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
           external_id?: string | null
           facebook_access_token?: string | null
           id?: string
@@ -77,6 +67,7 @@ export type Database = {
           name: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
+          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -87,15 +78,12 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
-          webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
         Update: {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
-          auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
-          client_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -107,9 +95,6 @@ export type Database = {
           data_processing_options_country?: number | null
           data_processing_options_state?: number | null
           event_type?: string | null
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
           external_id?: string | null
           facebook_access_token?: string | null
           id?: string
@@ -117,6 +102,7 @@ export type Database = {
           name?: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
+          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -127,183 +113,45 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
-          webhook_callback_url?: string | null
           whatsapp_number?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaigns_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_evolution_settings: {
-        Row: {
-          client_id: string
-          created_at: string
-          evolution_api_key: string | null
-          evolution_base_url: string | null
-          evolution_instance_name: string | null
-          id: string
-          updated_at: string
-          user_id: string
-          webhook_callback_url: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-          webhook_callback_url?: string | null
-          webhook_url?: string | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-          webhook_callback_url?: string | null
-          webhook_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_evolution_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_variables: {
-        Row: {
-          client_id: string
-          created_at: string
-          description: string | null
-          id: string
-          updated_at: string
-          user_id: string
-          variable_name: string
-          variable_type: string | null
-          variable_value: string | null
-        }
-        Insert: {
-          client_id: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-          variable_name: string
-          variable_type?: string | null
-          variable_value?: string | null
-        }
-        Update: {
-          client_id?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-          variable_name?: string
-          variable_type?: string | null
-          variable_value?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_variables_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clients: {
-        Row: {
-          active: boolean
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
       company_settings: {
         Row: {
-          client_id: string | null
           company_name: string
           company_subtitle: string
           created_at: string
           id: string
           logo_url: string | null
+          project_id: string | null
           theme: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
           id?: string
           logo_url?: string | null
+          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
         }
         Update: {
-          client_id?: string | null
           company_name?: string
           company_subtitle?: string
           created_at?: string
           id?: string
           logo_url?: string | null
+          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "company_settings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       device_data: {
         Row: {
@@ -386,165 +234,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_credentials: {
-        Row: {
-          api_key: string
-          api_url: string
-          created_at: string
-          id: string
-          instance_name: string | null
-          status: string
-          updated_at: string
-          user_id: string
-          validated_at: string | null
-        }
-        Insert: {
-          api_key: string
-          api_url: string
-          created_at?: string
-          id?: string
-          instance_name?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-          validated_at?: string | null
-        }
-        Update: {
-          api_key?: string
-          api_url?: string
-          created_at?: string
-          id?: string
-          instance_name?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-          validated_at?: string | null
-        }
-        Relationships: []
-      }
-      evolution_instances: {
-        Row: {
-          active: boolean | null
-          api_key: string | null
-          base_url: string | null
-          created_at: string
-          id: string
-          instance_id: string | null
-          instance_name: string
-          is_default_for_organic: boolean | null
-          phone_number: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          api_key?: string | null
-          base_url?: string | null
-          created_at?: string
-          id?: string
-          instance_id?: string | null
-          instance_name: string
-          is_default_for_organic?: boolean | null
-          phone_number?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean | null
-          api_key?: string | null
-          base_url?: string | null
-          created_at?: string
-          id?: string
-          instance_id?: string | null
-          instance_name?: string
-          is_default_for_organic?: boolean | null
-          phone_number?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      form_submissions: {
-        Row: {
-          card_positions: Json | null
-          communication: number | null
-          created_at: string | null
-          creativity: number | null
-          email: string
-          id: number
-          interests: string | null
-          name: string
-          organization: number | null
-          productivity: number | null
-          teamwork: number | null
-        }
-        Insert: {
-          card_positions?: Json | null
-          communication?: number | null
-          created_at?: string | null
-          creativity?: number | null
-          email: string
-          id?: number
-          interests?: string | null
-          name: string
-          organization?: number | null
-          productivity?: number | null
-          teamwork?: number | null
-        }
-        Update: {
-          card_positions?: Json | null
-          communication?: number | null
-          created_at?: string | null
-          creativity?: number | null
-          email?: string
-          id?: number
-          interests?: string | null
-          name?: string
-          organization?: number | null
-          productivity?: number | null
-          teamwork?: number | null
-        }
-        Relationships: []
-      }
-      invited_users: {
-        Row: {
-          created_at: string | null
-          email: string
-          expires_at: string | null
-          first_login_at: string | null
-          id: string
-          invite_token: string
-          invited_by: string
-          last_login_at: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          expires_at?: string | null
-          first_login_at?: string | null
-          id?: string
-          invite_token: string
-          invited_by: string
-          last_login_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          expires_at?: string | null
-          first_login_at?: string | null
-          id?: string
-          invite_token?: string
-          invited_by?: string
-          last_login_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       leads: {
         Row: {
           ad_account: string | null
@@ -554,14 +243,11 @@ export type Database = {
           campaign: string
           campaign_id: string | null
           city: string | null
-          client_id: string | null
           country: string | null
           created_at: string | null
           custom_fields: Json | null
           device_model: string | null
           device_type: string | null
-          evolution_message_id: string | null
-          evolution_status: string | null
           facebook_ad_id: string | null
           facebook_adset_id: string | null
           facebook_campaign_id: string | null
@@ -578,6 +264,7 @@ export type Database = {
           notes: string | null
           os: string | null
           phone: string
+          project_id: string | null
           screen_resolution: string | null
           status: string | null
           timezone: string | null
@@ -598,14 +285,11 @@ export type Database = {
           campaign: string
           campaign_id?: string | null
           city?: string | null
-          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
-          evolution_message_id?: string | null
-          evolution_status?: string | null
           facebook_ad_id?: string | null
           facebook_adset_id?: string | null
           facebook_campaign_id?: string | null
@@ -622,6 +306,7 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone: string
+          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -642,14 +327,11 @@ export type Database = {
           campaign?: string
           campaign_id?: string | null
           city?: string | null
-          client_id?: string | null
           country?: string | null
           created_at?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
-          evolution_message_id?: string | null
-          evolution_status?: string | null
           facebook_ad_id?: string | null
           facebook_adset_id?: string | null
           facebook_campaign_id?: string | null
@@ -666,6 +348,7 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone?: string
+          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -686,65 +369,7 @@ export type Database = {
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "leads_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      pending_leads: {
-        Row: {
-          campaign_id: string
-          campaign_name: string | null
-          created_at: string
-          id: string
-          name: string
-          phone: string
-          status: string | null
-          utm_campaign: string | null
-          utm_content: string | null
-          utm_medium: string | null
-          utm_source: string | null
-          utm_term: string | null
-          webhook_data: Json | null
-          webhook_sent_at: string | null
-        }
-        Insert: {
-          campaign_id: string
-          campaign_name?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          phone: string
-          status?: string | null
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-          webhook_data?: Json | null
-          webhook_sent_at?: string | null
-        }
-        Update: {
-          campaign_id?: string
-          campaign_name?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          phone?: string
-          status?: string | null
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-          webhook_data?: Json | null
-          webhook_sent_at?: string | null
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -770,51 +395,77 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           campaign: string
-          client_id: string | null
           date: string | null
           id: string
           lead_id: string | null
           lead_name: string
           notes: string | null
           product: string | null
+          project_id: string | null
           user_id: string
           value: number
         }
         Insert: {
           campaign: string
-          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
           lead_name: string
           notes?: string | null
           product?: string | null
+          project_id?: string | null
           user_id?: string
           value: number
         }
         Update: {
           campaign?: string
-          client_id?: string | null
           date?: string | null
           id?: string
           lead_id?: string | null
           lead_name?: string
           notes?: string | null
           product?: string | null
+          project_id?: string | null
           user_id?: string
           value?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sales_lead_id_fkey"
             columns: ["lead_id"]
@@ -884,125 +535,14 @@ export type Database = {
         }
         Relationships: []
       }
-      user_permissions: {
-        Row: {
-          can_edit: boolean | null
-          can_view: boolean | null
-          created_at: string | null
-          id: string
-          invited_user_id: string | null
-          section: string
-        }
-        Insert: {
-          can_edit?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          id?: string
-          invited_user_id?: string | null
-          section: string
-        }
-        Update: {
-          can_edit?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          id?: string
-          invited_user_id?: string | null
-          section?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_permissions_invited_user_id_fkey"
-            columns: ["invited_user_id"]
-            isOneToOne: false
-            referencedRelation: "invited_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      utm_clicks: {
-        Row: {
-          created_at: string
-          id: string
-          phone: string
-          utm_campaign: string | null
-          utm_content: string | null
-          utm_medium: string | null
-          utm_source: string | null
-          utm_term: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          phone: string
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          phone?: string
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_instances: {
-        Row: {
-          created_at: string
-          id: string
-          instance_name: string
-          instance_token: string | null
-          phone_number: string | null
-          qrcode_base64: string | null
-          status: string
-          updated_at: string
-          user_id: string
-          user_name_wpp: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          instance_name: string
-          instance_token?: string | null
-          phone_number?: string | null
-          qrcode_base64?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-          user_name_wpp?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          instance_name?: string
-          instance_token?: string | null
-          phone_number?: string | null
-          qrcode_base64?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-          user_name_wpp?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      convert_all_pending_leads: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      convert_pending_lead_secure: {
-        Args: { pending_lead_id: string }
-        Returns: Json
+      create_default_project_settings: {
+        Args: { project_id_param: string }
+        Returns: undefined
       }
       get_tracking_by_identifiers: {
         Args: {
@@ -1024,10 +564,6 @@ export type Database = {
           utm_term: string
           created_at: string
         }[]
-      }
-      get_user_by_instance: {
-        Args: { instance_name_param: string }
-        Returns: string
       }
       insert_tracking_session: {
         Args: {
@@ -1065,10 +601,6 @@ export type Database = {
           utm_term: string
           created_at: string
         }[]
-      }
-      update_otp_expiry: {
-        Args: Record<PropertyKey, never> | { new_expiry_minutes: number }
-        Returns: undefined
       }
     }
     Enums: {
