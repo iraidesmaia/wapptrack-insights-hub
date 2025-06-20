@@ -13,7 +13,6 @@ export type Database = {
         Row: {
           active: boolean | null
           advanced_matching_enabled: boolean | null
-          auto_create_leads: boolean | null
           cancellation_keywords: string[] | null
           company_subtitle: string | null
           company_title: string | null
@@ -26,9 +25,6 @@ export type Database = {
           data_processing_options_country: number | null
           data_processing_options_state: number | null
           event_type: string | null
-          evolution_api_key: string | null
-          evolution_base_url: string | null
-          evolution_instance_name: string | null
           external_id: string | null
           facebook_access_token: string | null
           id: string
@@ -36,6 +32,7 @@ export type Database = {
           name: string
           pixel_id: string | null
           pixel_integration_type: string | null
+          project_id: string | null
           redirect_type: string | null
           server_side_api_enabled: boolean | null
           test_event_code: string | null
@@ -46,13 +43,11 @@ export type Database = {
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
-          webhook_callback_url: string | null
           whatsapp_number: string | null
         }
         Insert: {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
-          auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
@@ -65,9 +60,6 @@ export type Database = {
           data_processing_options_country?: number | null
           data_processing_options_state?: number | null
           event_type?: string | null
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
           external_id?: string | null
           facebook_access_token?: string | null
           id?: string
@@ -75,6 +67,7 @@ export type Database = {
           name: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
+          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -85,13 +78,11 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
-          webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
         Update: {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
-          auto_create_leads?: boolean | null
           cancellation_keywords?: string[] | null
           company_subtitle?: string | null
           company_title?: string | null
@@ -104,9 +95,6 @@ export type Database = {
           data_processing_options_country?: number | null
           data_processing_options_state?: number | null
           event_type?: string | null
-          evolution_api_key?: string | null
-          evolution_base_url?: string | null
-          evolution_instance_name?: string | null
           external_id?: string | null
           facebook_access_token?: string | null
           id?: string
@@ -114,6 +102,7 @@ export type Database = {
           name?: string
           pixel_id?: string | null
           pixel_integration_type?: string | null
+          project_id?: string | null
           redirect_type?: string | null
           server_side_api_enabled?: boolean | null
           test_event_code?: string | null
@@ -124,7 +113,6 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
-          webhook_callback_url?: string | null
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -136,6 +124,7 @@ export type Database = {
           created_at: string
           id: string
           logo_url: string | null
+          project_id: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -146,6 +135,7 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
+          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -156,6 +146,7 @@ export type Database = {
           created_at?: string
           id?: string
           logo_url?: string | null
+          project_id?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -243,48 +234,6 @@ export type Database = {
         }
         Relationships: []
       }
-      evolution_instances: {
-        Row: {
-          active: boolean | null
-          api_key: string | null
-          base_url: string | null
-          created_at: string
-          id: string
-          instance_id: string | null
-          instance_name: string
-          is_default_for_organic: boolean | null
-          phone_number: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          api_key?: string | null
-          base_url?: string | null
-          created_at?: string
-          id?: string
-          instance_id?: string | null
-          instance_name: string
-          is_default_for_organic?: boolean | null
-          phone_number?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean | null
-          api_key?: string | null
-          base_url?: string | null
-          created_at?: string
-          id?: string
-          instance_id?: string | null
-          instance_name?: string
-          is_default_for_organic?: boolean | null
-          phone_number?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       leads: {
         Row: {
           ad_account: string | null
@@ -299,8 +248,6 @@ export type Database = {
           custom_fields: Json | null
           device_model: string | null
           device_type: string | null
-          evolution_message_id: string | null
-          evolution_status: string | null
           facebook_ad_id: string | null
           facebook_adset_id: string | null
           facebook_campaign_id: string | null
@@ -317,6 +264,7 @@ export type Database = {
           notes: string | null
           os: string | null
           phone: string
+          project_id: string | null
           screen_resolution: string | null
           status: string | null
           timezone: string | null
@@ -342,8 +290,6 @@ export type Database = {
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
-          evolution_message_id?: string | null
-          evolution_status?: string | null
           facebook_ad_id?: string | null
           facebook_adset_id?: string | null
           facebook_campaign_id?: string | null
@@ -360,6 +306,7 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone: string
+          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -385,8 +332,6 @@ export type Database = {
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
-          evolution_message_id?: string | null
-          evolution_status?: string | null
           facebook_ad_id?: string | null
           facebook_adset_id?: string | null
           facebook_campaign_id?: string | null
@@ -403,6 +348,7 @@ export type Database = {
           notes?: string | null
           os?: string | null
           phone?: string
+          project_id?: string | null
           screen_resolution?: string | null
           status?: string | null
           timezone?: string | null
@@ -424,57 +370,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      pending_leads: {
-        Row: {
-          campaign_id: string
-          campaign_name: string | null
-          created_at: string
-          id: string
-          name: string
-          phone: string
-          status: string | null
-          utm_campaign: string | null
-          utm_content: string | null
-          utm_medium: string | null
-          utm_source: string | null
-          utm_term: string | null
-          webhook_data: Json | null
-          webhook_sent_at: string | null
-        }
-        Insert: {
-          campaign_id: string
-          campaign_name?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          phone: string
-          status?: string | null
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-          webhook_data?: Json | null
-          webhook_sent_at?: string | null
-        }
-        Update: {
-          campaign_id?: string
-          campaign_name?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          phone?: string
-          status?: string | null
-          utm_campaign?: string | null
-          utm_content?: string | null
-          utm_medium?: string | null
-          utm_source?: string | null
-          utm_term?: string | null
-          webhook_data?: Json | null
-          webhook_sent_at?: string | null
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -500,6 +395,39 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           campaign: string
@@ -509,6 +437,7 @@ export type Database = {
           lead_name: string
           notes: string | null
           product: string | null
+          project_id: string | null
           user_id: string
           value: number
         }
@@ -520,6 +449,7 @@ export type Database = {
           lead_name: string
           notes?: string | null
           product?: string | null
+          project_id?: string | null
           user_id?: string
           value: number
         }
@@ -531,6 +461,7 @@ export type Database = {
           lead_name?: string
           notes?: string | null
           product?: string | null
+          project_id?: string | null
           user_id?: string
           value?: number
         }
@@ -609,13 +540,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      convert_all_pending_leads: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      convert_pending_lead_secure: {
-        Args: { pending_lead_id: string }
-        Returns: Json
+      create_default_project_settings: {
+        Args: { project_id_param: string }
+        Returns: undefined
       }
       get_tracking_by_identifiers: {
         Args: {
@@ -637,10 +564,6 @@ export type Database = {
           utm_term: string
           created_at: string
         }[]
-      }
-      get_user_by_instance: {
-        Args: { instance_name_param: string }
-        Returns: string
       }
       insert_tracking_session: {
         Args: {
