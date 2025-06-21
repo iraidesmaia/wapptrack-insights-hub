@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const isInitialLoad = useRef(true);
+  const hasShownLoginToast = useRef(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -34,12 +36,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setLoading(false);
         
-        if (event === 'SIGNED_IN' && session) {
+        // Só mostrar toast de login quando é um login real, não quando retorna à aba
+        if (event === 'SIGNED_IN' && session && !isInitialLoad.current && !hasShownLoginToast.current) {
           toast.success('Login realizado com sucesso!');
+          hasShownLoginToast.current = true;
           navigate('/dashboard');
         } else if (event === 'SIGNED_OUT') {
           toast.info('Você saiu do sistema');
+          hasShownLoginToast.current = false;
           navigate('/login');
+        }
+        
+        // Após o primeiro carregamento, marcar como false
+        if (isInitialLoad.current) {
+          isInitialLoad.current = false;
         }
       }
     );
@@ -49,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Não mostrar toast no carregamento inicial se já estiver logado
     });
 
     return () => subscription.unsubscribe();
@@ -61,6 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setLoading(true);
+      hasShownLoginToast.current = false; // Reset para permitir toast no próximo login
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -115,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      hasShownLoginToast.current = false; // Reset para próximo login
     } catch (error) {
       console.error('Error logging out:', error);
       toast.error('Erro ao sair do sistema');
