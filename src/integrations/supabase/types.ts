@@ -234,6 +234,33 @@ export type Database = {
         }
         Relationships: []
       }
+      global_keywords_settings: {
+        Row: {
+          cancellation_keywords: string[]
+          conversion_keywords: string[]
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancellation_keywords?: string[]
+          conversion_keywords?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cancellation_keywords?: string[]
+          conversion_keywords?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           ad_account: string | null
@@ -540,6 +567,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_global_keywords_to_campaign: {
+        Args: { campaign_id_param: string }
+        Returns: undefined
+      }
       create_default_project_settings: {
         Args: { project_id_param: string }
         Returns: undefined
