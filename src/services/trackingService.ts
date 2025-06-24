@@ -1,6 +1,7 @@
 
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
+import { saveTrackingData } from './sessionTrackingService';
 
 /**
  * Função principal para rastrear redirecionamentos e salvar leads
@@ -44,6 +45,12 @@ export const trackRedirect = async (
 
     const type = eventType || campaign.event_type || 'lead';
 
+    // 💾 NOVA FUNCIONALIDADE: Salvar dados de tracking para correlação futura
+    if (utms && Object.keys(utms).length > 0) {
+      console.log('💾 Salvando dados de tracking para correlação futura...');
+      await saveTrackingData(utms, campaignId);
+    }
+
     // Para campanhas de redirecionamento WhatsApp
     if (campaign.redirect_type === 'whatsapp') {
       console.log(`🚦 Campanha de redirecionamento WhatsApp`, {
@@ -66,12 +73,14 @@ export const trackRedirect = async (
         name: name || 'Lead via Tracking',
         phone,
         campaign: campaign.name,
+        campaign_id: campaignId,
         status: 'new' as const,
         utm_source: utms?.utm_source || '',
         utm_medium: utms?.utm_medium || '',
         utm_campaign: utms?.utm_campaign || '',
         utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || '',
         utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
+        tracking_method: 'form_submission',
         // Incluir dados do dispositivo se disponíveis
         ...(deviceData && {
           location: deviceData.location,

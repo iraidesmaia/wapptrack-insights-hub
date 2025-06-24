@@ -1,6 +1,7 @@
 
 import { getUtmsFromDirectClick } from './utmHandler.ts';
 import { getDeviceDataByPhone } from './deviceDataHandler.ts';
+import { getTrackingDataBySession } from './sessionTrackingHandler.ts';
 import { getContactName } from './helpers.ts';
 import { logSecurityEvent } from './security.ts';
 
@@ -62,25 +63,59 @@ export const handleDirectLead = async ({
     console.log(`🔍 Buscando dados do dispositivo no banco para: ${realPhoneNumber}`);
     const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
     
-    if (!deviceData) {
-      console.log(`❌ Nenhum dado do dispositivo encontrado no banco para: ${realPhoneNumber}`);
+    // 🔄 NOVA FUNCIONALIDADE: Tentar correlacionar com tracking sessions
+    console.log(`🔄 Tentando correlacionar com dados de tracking recentes...`);
+    const trackingCorrelation = await getTrackingDataBySession(supabase, deviceData);
+    
+    let finalUtms;
+    let campaignSource = 'WhatsApp Orgânico';
+    let campaignId = null;
+    
+    if (trackingCorrelation) {
+      console.log(`🎯 CORRELAÇÃO ENCONTRADA! Lead veio de tráfego pago:`, {
+        campaign_id: trackingCorrelation.campaign_id,
+        utm_source: trackingCorrelation.utm_source,
+        utm_medium: trackingCorrelation.utm_medium,
+        utm_campaign: trackingCorrelation.utm_campaign,
+        match_type: trackingCorrelation.match_type
+      });
+      
+      // Buscar dados da campanha para obter o nome correto
+      if (trackingCorrelation.campaign_id) {
+        const { data: campaignData } = await supabase
+          .from('campaigns')
+          .select('name')
+          .eq('id', trackingCorrelation.campaign_id)
+          .single();
+        
+        if (campaignData) {
+          campaignSource = campaignData.name;
+          campaignId = trackingCorrelation.campaign_id;
+        }
+      }
+      
+      finalUtms = {
+        utm_source: trackingCorrelation.utm_source,
+        utm_medium: trackingCorrelation.utm_medium,
+        utm_campaign: trackingCorrelation.utm_campaign,
+        utm_content: trackingCorrelation.utm_content,
+        utm_term: trackingCorrelation.utm_term
+      };
+      
+      console.log(`✅ Usando UTMs da campanha paga correlacionada`);
+    } else {
+      console.log(`❌ Nenhuma correlação encontrada, usando UTMs orgânicos`);
+      
+      // 🎯 Buscar UTMs de clicks diretos (método legado)
+      const utms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
+      
+      // 📋 Usar UTMs padrão se não encontrar nenhum
+      finalUtms = utms || {
+        utm_source: 'whatsapp',
+        utm_medium: 'organic', 
+        utm_campaign: 'organic'
+      };
     }
-
-    // 🎯 Buscar UTMs de clicks diretos
-    const utms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
-    
-    if (!utms) {
-      console.log(`❌ Nenhum UTM encontrado para click direto`);
-    }
-    
-    // 📋 Usar UTMs padrão se não encontrar nenhum
-    const finalUtms = utms || {
-      utm_source: 'whatsapp',
-      utm_medium: 'organic', 
-      utm_campaign: 'organic'
-    };
-    
-    console.log(`📋 Usando UTMs padrão (orgânico)`);
 
     // 📞 Verificar se já existe um lead para este telefone antes de criar
     const phoneVariations = [
@@ -103,15 +138,15 @@ export const handleDirectLead = async ({
       return;
     }
 
-    console.log(`🆕 Criando novo lead direto (nenhum lead existente encontrado)...`);
+    console.log(`🆕 Criando novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
 
     // 🆕 Criar novo lead direto
     const leadData = {
       name: getContactName(message),
       phone: realPhoneNumber,
-      campaign: "WhatsApp Orgânico",
-      campaign_id: null,
-      user_id: responsibleUserId, // ✅ GARANTIR QUE SEMPRE TENHA user_id
+      campaign: campaignSource,
+      campaign_id: campaignId,
+      user_id: responsibleUserId,
       status: 'lead',
       first_contact_date: new Date().toISOString(),
       last_message: message.message?.conversation || message.message?.extendedTextMessage?.text || 'Mensagem recebida',
@@ -120,6 +155,7 @@ export const handleDirectLead = async ({
       utm_campaign: finalUtms.utm_campaign,
       utm_content: finalUtms.utm_content || null,
       utm_term: finalUtms.utm_term || null,
+      tracking_method: trackingCorrelation ? trackingCorrelation.match_type : 'organic',
       // Dados do dispositivo se disponíveis
       ...(deviceData && {
         location: deviceData.location,
@@ -136,15 +172,16 @@ export const handleDirectLead = async ({
       })
     };
 
-    console.log(`🆕 Criando novo lead direto: ${JSON.stringify({
-      metodo_atribuicao: 'organico',
+    console.log(`🆕 Criando novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'}: ${JSON.stringify({
+      metodo_atribuicao: trackingCorrelation ? 'correlacao_paga' : 'organico',
       campaign_id: leadData.campaign_id,
       nome_campanha_do_banco: leadData.campaign,
       status: leadData.status,
       user_id: leadData.user_id,
       instance_name: instanceName,
       utms: finalUtms,
-      tem_dados_dispositivo: !!deviceData
+      tem_dados_dispositivo: !!deviceData,
+      tracking_method: leadData.tracking_method
     })}`);
 
     const { data: newLead, error: leadError } = await supabase
@@ -154,28 +191,32 @@ export const handleDirectLead = async ({
       .single();
 
     if (leadError) {
-      console.error(`❌ Erro ao criar lead direto:`, leadError);
-      logSecurityEvent('Failed to create organic lead', {
+      console.error(`❌ Erro ao criar lead:`, leadError);
+      logSecurityEvent('Failed to create lead', {
         error: leadError,
         phone: realPhoneNumber,
         instance: instanceName,
-        user_id: responsibleUserId
+        user_id: responsibleUserId,
+        was_paid_traffic: !!trackingCorrelation
       }, 'high');
       return;
     }
 
-    console.log(`✅ Novo lead direto criado: "${leadData.campaign}" ${JSON.stringify({
+    console.log(`✅ Novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}" ${JSON.stringify({
       lead_id: newLead.id,
       name: newLead.name,
       user_id: responsibleUserId,
-      instance_name: instanceName
+      instance_name: instanceName,
+      was_paid_traffic: !!trackingCorrelation
     })}`);
 
-    logSecurityEvent('Organic lead created successfully', {
+    logSecurityEvent(`${trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
       lead_id: newLead.id,
       phone: realPhoneNumber,
       instance: instanceName,
-      user_id: responsibleUserId
+      user_id: responsibleUserId,
+      campaign_id: campaignId,
+      tracking_method: leadData.tracking_method
     }, 'low');
 
   } catch (error) {
