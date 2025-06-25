@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -223,10 +222,11 @@ const Leads = () => {
 
         <LeadsTable
           leads={filteredLeads}
-          isLoading={isLoading}
           onView={handleOpenViewDialog}
+          onEdit={handleOpenEditDialog}
           onDelete={handleDeleteLead}
           onOpenWhatsApp={openWhatsApp}
+          onRefresh={fetchData}
         />
 
         <LeadDialog
