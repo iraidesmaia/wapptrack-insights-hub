@@ -22,32 +22,59 @@ const Dashboard = () => {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 7);
-    return { startDate: start, endDate: end };
+    
+    // Normalize dates (remove time component)
+    const normalizedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const normalizedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    
+    console.log('🎯 Dashboard - Initial date range:', {
+      start: normalizedStart.toISOString(),
+      end: normalizedEnd.toISOString()
+    });
+    
+    return { startDate: normalizedStart, endDate: normalizedEnd };
   });
 
   useEffect(() => {
+    console.log('🔄 Dashboard - useEffect triggered, dateRange changed:', dateRange);
     fetchData();
   }, [dateRange]);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      console.log('📊 Dashboard - Fetching data for period:', {
+        start: dateRange.startDate.toISOString(),
+        end: dateRange.endDate.toISOString()
+      });
+      
       const [dashboardStats, campaignData, timeline] = await Promise.all([
         getDashboardStatsByPeriod(dateRange.startDate, dateRange.endDate),
         getCampaignPerformance(),
         getTimelineData(dateRange.startDate, dateRange.endDate)
       ]);
+      
+      console.log('✅ Dashboard - Data fetched successfully:', {
+        stats: dashboardStats,
+        campaigns: campaignData.length,
+        timelinePoints: timeline.length
+      });
+      
       setStats(dashboardStats);
       setCampaignPerformance(campaignData);
       setTimelineData(timeline);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Dashboard - Error fetching data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDateRangeChange = (newRange: DateRange) => {
+    console.log('📅 Dashboard - Date range changed:', {
+      old: dateRange,
+      new: newRange
+    });
     setDateRange(newRange);
   };
 
