@@ -11,6 +11,7 @@ import LeadDialog from '@/components/leads/LeadDialog';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import RetroactiveCorrelationButton from '@/components/leads/RetroactiveCorrelationButton';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -199,14 +200,13 @@ const Leads = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Leads</h1>
-            <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleOpenAddDialog}>
-              <Plus className="mr-2 h-4 w-4" /> Novo Lead
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Leads</h1>
+          <div className="flex items-center space-x-4">
+            <RetroactiveCorrelationButton />
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Lead
             </Button>
           </div>
         </div>
