@@ -78,15 +78,22 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       utm_medium: utms.utm_medium,
       utm_campaign: utms.utm_campaign,
       utm_content: utms.utm_content,
-      utm_term: utms.utm_term
+      utm_term: utms.utm_term,
+      // 🆕 NOVOS PARÂMETROS
+      source_id: utms.source_id,
+      media_url: utms.media_url,
+      ctwa_clid: utms.ctwa_clid,
     };
     
-    console.log('📊 Dados de tracking preparados:', {
+    console.log('📊 Dados de tracking preparados com novos parâmetros:', {
       session_id: sessionId,
       browser_fingerprint: browserFingerprint,
       ip_address: publicIP,
       campaign_id: campaignId,
-      utm_campaign: utms.utm_campaign
+      utm_campaign: utms.utm_campaign,
+      source_id: utms.source_id,
+      media_url: utms.media_url,
+      ctwa_clid: utms.ctwa_clid
     });
     
     // Inserir diretamente na tabela tracking_sessions
@@ -107,7 +114,11 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
         utm_medium: trackingData.utm_medium,
         utm_campaign: trackingData.utm_campaign,
         utm_content: trackingData.utm_content,
-        utm_term: trackingData.utm_term
+        utm_term: trackingData.utm_term,
+        // 🆕 NOVOS CAMPOS
+        source_id: trackingData.source_id,
+        media_url: trackingData.media_url,
+        ctwa_clid: trackingData.ctwa_clid,
       });
     
     if (error) {
@@ -115,7 +126,7 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       return { success: false, error };
     }
     
-    console.log('✅ Dados de tracking salvos com identificadores únicos');
+    console.log('✅ Dados de tracking salvos com identificadores únicos e novos parâmetros');
     
     // Também salvar no localStorage para redundância
     localStorage.setItem('last_tracking_data', JSON.stringify({
@@ -123,6 +134,9 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       browser_fingerprint: browserFingerprint,
       campaign_id: campaignId,
       utm_campaign: utms.utm_campaign,
+      source_id: utms.source_id,
+      media_url: utms.media_url,  
+      ctwa_clid: utms.ctwa_clid,
       timestamp: Date.now()
     }));
     

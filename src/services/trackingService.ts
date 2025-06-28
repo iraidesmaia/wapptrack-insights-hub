@@ -19,6 +19,10 @@ export const trackRedirect = async (
     utm_term?: string
     gclid?: string
     fbclid?: string
+    // 🆕 NOVOS PARÂMETROS
+    source_id?: string
+    media_url?: string
+    ctwa_clid?: string
   }
 ): Promise<{targetPhone?: string}> => {
   try {
@@ -78,7 +82,7 @@ export const trackRedirect = async (
         utm_source: utms?.utm_source || '',
         utm_medium: utms?.utm_medium || '',
         utm_campaign: utms?.utm_campaign || '',
-        utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || '',
+        utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || (utms?.ctwa_clid ? `ctwa_clid=${utms.ctwa_clid}` : '') || '',
         utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
         tracking_method: 'form_submission',
         // Incluir dados do dispositivo se disponíveis
@@ -96,11 +100,19 @@ export const trackRedirect = async (
           language: deviceData.language,
           facebook_ad_id: deviceData.facebook_ad_id,
           facebook_adset_id: deviceData.facebook_adset_id,
-          facebook_campaign_id: deviceData.facebook_campaign_id
+          facebook_campaign_id: deviceData.facebook_campaign_id,
+          // 🆕 NOVOS CAMPOS
+          source_id: deviceData.source_id,
+          media_url: deviceData.media_url,
+          ctwa_clid: deviceData.ctwa_clid,
         })
       };
       
-      console.log('📝 [FORMULÁRIO] Criando lead:', leadData);
+      console.log('📝 [FORMULÁRIO] Criando lead com novos parâmetros:', {
+        source_id: leadData.source_id,
+        media_url: leadData.media_url,
+        ctwa_clid: leadData.ctwa_clid
+      });
 
       const { error: leadError } = await supabase
         .from('leads')

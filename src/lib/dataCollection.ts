@@ -21,6 +21,9 @@ export interface UrlParameters {
   facebook_ad_id?: string;
   facebook_adset_id?: string;
   facebook_campaign_id?: string;
+  source_id?: string;
+  media_url?: string;
+  ctwa_clid?: string;
 }
 
 export interface DeviceData {
@@ -149,6 +152,9 @@ export const collectUrlParameters = (): UrlParameters => {
     facebook_ad_id: allParams.get('facebook_ad_id') || undefined,
     facebook_adset_id: allParams.get('facebook_adset_id') || undefined,
     facebook_campaign_id: allParams.get('facebook_campaign_id') || undefined,
+    source_id: allParams.get('source_id') || undefined,
+    media_url: allParams.get('media_url') || undefined,
+    ctwa_clid: allParams.get('ctwa_clid') || undefined,
   };
 };
 
@@ -328,11 +334,17 @@ export const collectFacebookData = (additionalData?: any): FacebookData => {
   const fbc = localStorage.getItem('_fbc') || getCookie('_fbc');
   const fbp = localStorage.getItem('_fbp') || getCookie('_fbp');
   const fbclid = new URLSearchParams(window.location.search).get('fbclid');
+  const ctwa_clid = new URLSearchParams(window.location.search).get('ctwa_clid');
   
   // Store Facebook parameters in localStorage for persistence
   if (fbclid && !fbc) {
     const fbcValue = `fb.1.${Date.now()}.${fbclid}`;
     localStorage.setItem('_fbc', fbcValue);
+  }
+  
+  // 🆕 PERSISTIR CTWA_CLID TAMBÉM
+  if (ctwa_clid) {
+    localStorage.setItem('_ctwa_clid', ctwa_clid);
   }
   
   if (!fbp) {
@@ -345,7 +357,7 @@ export const collectFacebookData = (additionalData?: any): FacebookData => {
     fbp: fbp || localStorage.getItem('_fbp') || undefined,
     fbclid: fbclid || undefined,
     eventId: generateEventId(),
-    clickId: fbclid || undefined,
+    clickId: fbclid || ctwa_clid || undefined,
     browserId: localStorage.getItem('_fbp') || undefined,
     sessionId: sessionStorage.getItem('session_id') || undefined,
     advancedMatchingData: additionalData || undefined,
@@ -410,7 +422,7 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
     const getFacebookAdsetId = () => urlParams.adset_id || urlParams.facebook_adset_id;
     const getFacebookCampaignId = () => urlParams.campaign_id || urlParams.facebook_campaign_id;
 
-    // 🎯 INCLUIR TODOS OS PARÂMETROS NOS UTMs SALVOS
+    // 🎯 INCLUIR TODOS OS PARÂMETROS NOS UTMs SALVOS (INCLUINDO OS NOVOS)
     const urlParamsString = [
       urlParams.utm_source ? `utm_source=${urlParams.utm_source}` : '',
       urlParams.utm_medium ? `utm_medium=${urlParams.utm_medium}` : '',
@@ -422,6 +434,10 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       getFacebookAdId() ? `ad_id=${getFacebookAdId()}` : '',
       getFacebookAdsetId() ? `adset_id=${getFacebookAdsetId()}` : '',
       getFacebookCampaignId() ? `campaign_id=${getFacebookCampaignId()}` : '',
+      // 🆕 NOVOS PARÂMETROS
+      urlParams.source_id ? `source_id=${urlParams.source_id}` : '',
+      urlParams.media_url ? `media_url=${urlParams.media_url}` : '',
+      urlParams.ctwa_clid ? `ctwa_clid=${urlParams.ctwa_clid}` : '',
     ].filter(Boolean).join(', ');
 
     // Montar objeto completo para salvar
@@ -448,16 +464,17 @@ export const captureAndSaveDeviceData = async (phone?: string) => {
       // 🎯 INCLUIR PARÂMETROS DO FACEBOOK ADS (PRIORIZANDO FORMATO CORRETO)
       facebook_ad_id: getFacebookAdId(),
       facebook_adset_id: getFacebookAdsetId(),
-      facebook_campaign_id: getFacebookCampaignId()
+      facebook_campaign_id: getFacebookCampaignId(),
+      // 🆕 NOVOS PARÂMETROS IMPLEMENTADOS
+      source_id: urlParams.source_id,
+      media_url: urlParams.media_url,
+      ctwa_clid: urlParams.ctwa_clid,
     };
 
-    console.log('📱 Dados do dispositivo coletados com parâmetros Facebook (ambos formatos):', {
-      ad_id: getFacebookAdId(),
-      facebook_ad_id: urlParams.facebook_ad_id,
-      adset_id: getFacebookAdsetId(),
-      facebook_adset_id: urlParams.facebook_adset_id,
-      campaign_id: getFacebookCampaignId(),
-      facebook_campaign_id: urlParams.facebook_campaign_id,
+    console.log('📱 Dados do dispositivo coletados com novos parâmetros:', {
+      source_id: urlParams.source_id,
+      media_url: urlParams.media_url,
+      ctwa_clid: urlParams.ctwa_clid,
       phone: completeDeviceData.phone
     });
     
