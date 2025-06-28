@@ -159,6 +159,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string
+          ctwa_clid: string | null
           device_model: string | null
           device_type: string | null
           facebook_ad_id: string | null
@@ -168,10 +169,12 @@ export type Database = {
           ip_address: string | null
           language: string | null
           location: string | null
+          media_url: string | null
           os: string | null
           phone: string
           referrer: string | null
           screen_resolution: string | null
+          source_id: string | null
           timezone: string | null
           user_agent: string | null
           utm_campaign: string | null
@@ -185,6 +188,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -194,10 +198,12 @@ export type Database = {
           ip_address?: string | null
           language?: string | null
           location?: string | null
+          media_url?: string | null
           os?: string | null
           phone: string
           referrer?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -211,6 +217,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -220,10 +227,12 @@ export type Database = {
           ip_address?: string | null
           language?: string | null
           location?: string | null
+          media_url?: string | null
           os?: string | null
           phone?: string
           referrer?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -272,6 +281,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          ctwa_clid: string | null
           custom_fields: Json | null
           device_model: string | null
           device_type: string | null
@@ -287,12 +297,14 @@ export type Database = {
           last_message: string | null
           last_whatsapp_attempt: string | null
           location: string | null
+          media_url: string | null
           name: string
           notes: string | null
           os: string | null
           phone: string
           project_id: string | null
           screen_resolution: string | null
+          source_id: string | null
           status: string | null
           timezone: string | null
           tracking_method: string | null
@@ -314,6 +326,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          ctwa_clid?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
@@ -329,12 +342,14 @@ export type Database = {
           last_message?: string | null
           last_whatsapp_attempt?: string | null
           location?: string | null
+          media_url?: string | null
           name: string
           notes?: string | null
           os?: string | null
           phone: string
           project_id?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
@@ -356,6 +371,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          ctwa_clid?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
@@ -371,12 +387,14 @@ export type Database = {
           last_message?: string | null
           last_whatsapp_attempt?: string | null
           location?: string | null
+          media_url?: string | null
           name?: string
           notes?: string | null
           os?: string | null
           phone?: string
           project_id?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
@@ -507,13 +525,16 @@ export type Database = {
           browser_fingerprint: string | null
           campaign_id: string | null
           created_at: string
+          ctwa_clid: string | null
           current_url: string | null
           id: string
           ip_address: string | null
           language: string | null
+          media_url: string | null
           referrer: string | null
           screen_resolution: string | null
           session_id: string
+          source_id: string | null
           timezone: string | null
           user_agent: string | null
           utm_campaign: string | null
@@ -526,13 +547,16 @@ export type Database = {
           browser_fingerprint?: string | null
           campaign_id?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           current_url?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
+          media_url?: string | null
           referrer?: string | null
           screen_resolution?: string | null
           session_id: string
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -545,13 +569,16 @@ export type Database = {
           browser_fingerprint?: string | null
           campaign_id?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           current_url?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
+          media_url?: string | null
           referrer?: string | null
           screen_resolution?: string | null
           session_id?: string
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null

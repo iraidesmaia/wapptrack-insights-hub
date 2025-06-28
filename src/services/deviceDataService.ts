@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DeviceDataCapture {
@@ -210,12 +209,7 @@ export const getDeviceDataByPhone = async (phone: string): Promise<DeviceDataCap
     
     const { data, error } = await supabase
       .from('device_data')
-      .select(`
-        *,
-        source_id,
-        media_url,
-        ctwa_clid
-      `)
+      .select('*')
       .eq('phone', phone)
       .order('created_at', { ascending: false })
       .limit(1)
