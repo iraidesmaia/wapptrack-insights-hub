@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -24,6 +23,7 @@ type MainLayoutProps = {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -64,6 +64,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   useEffect(() => {
     loadCompanySettings();
   }, []);
+
+  // Force redirect to dashboard if user tries to access root
+  useEffect(() => {
+    if (location.pathname === '/') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   const loadCompanySettings = async () => {
     try {
