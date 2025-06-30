@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -10,6 +9,7 @@ import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import LeadDialog from '@/components/leads/LeadDialog';
 import { useToast } from "@/components/ui/use-toast"
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
+import MainLayout from '@/components/MainLayout';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -187,52 +187,54 @@ const Leads = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-        <Button onClick={handleOpenAddDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Lead
-        </Button>
+    <MainLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
+          <Button onClick={handleOpenAddDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Lead
+          </Button>
+        </div>
+
+        <LeadsTable
+          leads={leads}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onOpenWhatsApp={handleOpenWhatsApp}
+          onRefresh={handleRefresh}
+        />
+
+        <LeadDialog
+          isOpen={isLeadDialogOpen}
+          onClose={() => {
+            setIsLeadDialogOpen(false);
+            resetCurrentLead();
+          }}
+          mode={dialogMode}
+          currentLead={currentLead}
+          campaigns={campaigns}
+          onSave={handleSave}
+          onInputChange={handleInputChange}
+          onPhoneChange={handlePhoneChange}
+          onSelectChange={handleSelectChange}
+        />
+
+        <LeadDetailDialog
+          lead={selectedLead}
+          isOpen={isDetailDialogOpen}
+          onClose={() => setIsDetailDialogOpen(false)}
+          onSave={(updatedData: Partial<Lead>) => {
+            if (selectedLead) {
+              return handleUpdate(selectedLead.id, updatedData);
+            }
+            return Promise.resolve();
+          }}
+          onOpenWhatsApp={handleOpenWhatsApp}
+        />
       </div>
-
-      <LeadsTable
-        leads={leads}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onOpenWhatsApp={handleOpenWhatsApp}
-        onRefresh={handleRefresh}
-      />
-
-      <LeadDialog
-        isOpen={isLeadDialogOpen}
-        onClose={() => {
-          setIsLeadDialogOpen(false);
-          resetCurrentLead();
-        }}
-        mode={dialogMode}
-        currentLead={currentLead}
-        campaigns={campaigns}
-        onSave={handleSave}
-        onInputChange={handleInputChange}
-        onPhoneChange={handlePhoneChange}
-        onSelectChange={handleSelectChange}
-      />
-
-      <LeadDetailDialog
-        lead={selectedLead}
-        isOpen={isDetailDialogOpen}
-        onClose={() => setIsDetailDialogOpen(false)}
-        onSave={(updatedData: Partial<Lead>) => {
-          if (selectedLead) {
-            return handleUpdate(selectedLead.id, updatedData);
-          }
-          return Promise.resolve();
-        }}
-        onOpenWhatsApp={handleOpenWhatsApp}
-      />
-    </div>
+    </MainLayout>
   );
 };
 
