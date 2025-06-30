@@ -1,4 +1,3 @@
-
 import { trackRedirect } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
@@ -12,6 +11,13 @@ type UTMVars = {
   utm_campaign?: string;
   utm_content?: string;
   utm_term?: string;
+  gclid?: string;
+  fbclid?: string;
+  ctwa_clid?: string;
+  source_id?: string;
+  media_url?: string;
+  ad_id?: string;
+  facebook_ad_id?: string;
 };
 
 export const useDirectWhatsAppRedirect = (

@@ -1,4 +1,3 @@
-
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -6,6 +5,21 @@ import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters } from '@/lib/dataCollection';
+
+type UTMVars = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  gclid?: string;
+  fbclid?: string;
+  ctwa_clid?: string;
+  source_id?: string;
+  media_url?: string;
+  ad_id?: string;
+  facebook_ad_id?: string;
+};
 
 export const useFormSubmission = (
   campaignId: string | null,
@@ -84,7 +98,7 @@ export const useFormSubmission = (
       console.error('❌ Error sending data via external webhook:', error);
     }
 
-    // 🎯 COLETA UTMs E PARÂMETROS FACEBOOK ATUALIZADOS
+    // 🎯 COLETA UTMS E PARÂMETROS FACEBOOK ATUALIZADOS
     const utms = collectUrlParameters();
     console.log('🌐 UTMs e parâmetros Facebook obtidos da URL:', {
       utm_source: utms.utm_source,

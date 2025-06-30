@@ -11,6 +11,142 @@ type UTMVars = {
   media_url?: string;
 };
 
+export type UrlParameters = UTMVars;
+
+export type DeviceData = {
+  userAgent: string;
+  deviceType: string;
+  browserName: string;
+  operatingSystem: string;
+  screenResolution: string;
+  language: string;
+  timezone: string;
+};
+
+export type SessionData = {
+  sessionId: string;
+  visitorId: string;
+  timeOnPage: number;
+  scrollDepth: number;
+  pageViews: number;
+  engagementScore: number;
+  clickCount: number;
+};
+
+export type ContextData = {
+  currentUrl: string;
+  sourceUrl: string;
+  referrer: string;
+  title: string;
+  path: string;
+  loadTime: number;
+};
+
+export type FacebookData = {
+  fbc?: string;
+  fbp?: string;
+  advancedMatchingData?: any;
+};
+
+export type GeolocationData = {
+  ipAddress?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+export const collectDeviceData = (): DeviceData => {
+  return {
+    userAgent: navigator.userAgent,
+    deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    browserName: navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                 navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                 navigator.userAgent.includes('Safari') ? 'Safari' : 'Other',
+    operatingSystem: navigator.platform,
+    screenResolution: `${screen.width}x${screen.height}`,
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  };
+};
+
+export const collectSessionData = (): SessionData => {
+  const sessionId = sessionStorage.getItem('session_id') || Math.random().toString(36);
+  const visitorId = localStorage.getItem('visitor_id') || Math.random().toString(36);
+  
+  if (!sessionStorage.getItem('session_id')) {
+    sessionStorage.setItem('session_id', sessionId);
+  }
+  if (!localStorage.getItem('visitor_id')) {
+    localStorage.setItem('visitor_id', visitorId);
+  }
+
+  return {
+    sessionId,
+    visitorId,
+    timeOnPage: Math.floor((Date.now() - performance.timing.navigationStart) / 1000),
+    scrollDepth: Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100) || 0,
+    pageViews: parseInt(sessionStorage.getItem('page_views') || '1'),
+    engagementScore: 50, // Default engagement score
+    clickCount: parseInt(sessionStorage.getItem('click_count') || '0')
+  };
+};
+
+export const collectContextData = (): ContextData => {
+  return {
+    currentUrl: window.location.href,
+    sourceUrl: document.referrer,
+    referrer: document.referrer,
+    title: document.title,
+    path: window.location.pathname,
+    loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart
+  };
+};
+
+export const collectFacebookData = (): FacebookData => {
+  const fbc = localStorage.getItem('_fbc') || undefined;
+  const fbp = localStorage.getItem('_fbp') || undefined;
+  
+  return {
+    fbc,
+    fbp,
+    advancedMatchingData: {}
+  };
+};
+
+export const collectGeolocationData = async (): Promise<GeolocationData> => {
+  try {
+    // Simple geolocation data collection
+    return new Promise((resolve) => {
+      resolve({
+        ipAddress: undefined, // Would need external service
+        country: undefined,
+        region: undefined,
+        city: undefined,
+        latitude: undefined,
+        longitude: undefined
+      });
+    });
+  } catch (error) {
+    console.warn('Geolocation collection failed:', error);
+    return {};
+  }
+};
+
+export const initializeEventTracking = () => {
+  // Initialize event tracking
+  let clickCount = 0;
+  document.addEventListener('click', () => {
+    clickCount++;
+    sessionStorage.setItem('click_count', clickCount.toString());
+  });
+  
+  // Track page views
+  const pageViews = parseInt(sessionStorage.getItem('page_views') || '0') + 1;
+  sessionStorage.setItem('page_views', pageViews.toString());
+};
+
 export const collectUrlParameters = (): UTMVars => {
   try {
     const params = new URLSearchParams(window.location.search);

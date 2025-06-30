@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import { getDeviceDataByPhone } from "./deviceDataService";
 import { saveTrackingData } from './sessionTrackingService';
