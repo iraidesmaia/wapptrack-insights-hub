@@ -19,6 +19,7 @@ type UTMVars = {
   media_url?: string;
   ad_id?: string;
   facebook_ad_id?: string;
+  ttclid?: string;
 };
 
 export const useFormSubmission = (
