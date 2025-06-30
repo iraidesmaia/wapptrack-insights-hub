@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { Lead } from '@/types';
+import { Lead, Campaign } from '@/types';
 import { getLeads, addLead, deleteLead, updateLead } from '@/services/leadService';
+import { getCampaigns } from '@/services/campaignService';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import LeadDialog from '@/components/leads/LeadDialog';
@@ -13,15 +14,36 @@ import FacebookAdsDemoButton from '@/components/leads/FacebookAdsDemoButton';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [currentLead, setCurrentLead] = useState<Partial<Lead>>({
+    name: '',
+    phone: '',
+    campaign: '',
+    status: 'new',
+    notes: '',
+    first_contact_date: '',
+    last_contact_date: ''
+  });
   const [isLeadDialogOpen, setIsLeadDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     handleRefresh();
+    fetchCampaigns();
   }, []);
+
+  const fetchCampaigns = async () => {
+    try {
+      const campaignsData = await getCampaigns();
+      setCampaigns(campaignsData);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -47,6 +69,8 @@ const Leads = () => {
 
   const handleEdit = (lead: Lead) => {
     setSelectedLead(lead);
+    setCurrentLead(lead);
+    setDialogMode('edit');
     setIsLeadDialogOpen(true);
   };
 
@@ -67,22 +91,77 @@ const Leads = () => {
     }
   };
 
-  const handleSave = async (leadData: Omit<Lead, 'id' | 'created_at'>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCurrentLead(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatBrazilianPhone(value);
+    setCurrentLead(prev => ({ ...prev, phone: formatted }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setCurrentLead(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
     try {
-      const newLead = await addLead(leadData);
-      setLeads([...leads, newLead]);
+      if (!currentLead.name || !currentLead.phone || !currentLead.campaign || !currentLead.status) {
+        toast({
+          variant: "destructive",
+          title: "Campos obrigatórios",
+          description: "Preencha todos os campos obrigatórios.",
+        });
+        return;
+      }
+
+      if (dialogMode === 'add') {
+        const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'created_at'>);
+        setLeads([...leads, newLead]);
+        toast({
+          title: "Lead criado com sucesso.",
+        });
+      } else {
+        if (selectedLead) {
+          const updatedLead = await updateLead(selectedLead.id, currentLead);
+          setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
+          toast({
+            title: "Lead atualizado com sucesso.",
+          });
+        }
+      }
+      
       setIsLeadDialogOpen(false);
-      toast({
-        title: "Lead criado com sucesso.",
-      })
+      resetCurrentLead();
     } catch (error) {
-      console.error("Error adding lead:", error);
+      console.error("Error saving lead:", error);
       toast({
         variant: "destructive",
-        title: "Erro ao criar lead.",
-        description: "Ocorreu um problema ao criar o lead no servidor.",
-      })
+        title: "Erro ao salvar lead.",
+        description: "Ocorreu um problema ao salvar o lead no servidor.",
+      });
     }
+  };
+
+  const resetCurrentLead = () => {
+    setCurrentLead({
+      name: '',
+      phone: '',
+      campaign: '',
+      status: 'new',
+      notes: '',
+      first_contact_date: '',
+      last_contact_date: ''
+    });
+    setSelectedLead(null);
+  };
+
+  const handleOpenAddDialog = () => {
+    resetCurrentLead();
+    setDialogMode('add');
+    setIsLeadDialogOpen(true);
   };
 
   const handleUpdate = async (id: string, updatedData: Partial<Lead>) => {
@@ -114,7 +193,7 @@ const Leads = () => {
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
         <div className="flex space-x-2">
           <FacebookAdsDemoButton onLeadCreated={handleRefresh} />
-          <Button onClick={() => setIsLeadDialogOpen(true)}>
+          <Button onClick={handleOpenAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Lead
           </Button>
@@ -132,9 +211,17 @@ const Leads = () => {
 
       <LeadDialog
         isOpen={isLeadDialogOpen}
-        onClose={() => setIsLeadDialogOpen(false)}
+        onClose={() => {
+          setIsLeadDialogOpen(false);
+          resetCurrentLead();
+        }}
+        mode={dialogMode}
+        currentLead={currentLead}
+        campaigns={campaigns}
         onSave={handleSave}
-        lead={selectedLead || undefined}
+        onInputChange={handleInputChange}
+        onPhoneChange={handlePhoneChange}
+        onSelectChange={handleSelectChange}
       />
 
       <LeadDetailDialog
