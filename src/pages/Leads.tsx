@@ -10,7 +10,6 @@ import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import LeadDialog from '@/components/leads/LeadDialog';
 import { useToast } from "@/components/ui/use-toast"
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
-import FacebookAdsDemoButton from '@/components/leads/FacebookAdsDemoButton';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -191,13 +190,10 @@ const Leads = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-        <div className="flex space-x-2">
-          <FacebookAdsDemoButton onLeadCreated={handleRefresh} />
-          <Button onClick={handleOpenAddDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Lead
-          </Button>
-        </div>
+        <Button onClick={handleOpenAddDialog}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Lead
+        </Button>
       </div>
 
       <LeadsTable
