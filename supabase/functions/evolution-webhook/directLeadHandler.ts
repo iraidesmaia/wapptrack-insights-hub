@@ -59,6 +59,20 @@ export const handleDirectLead = async ({
       }
     }
 
+    // 🆕 EXTRAIR DADOS DE TRACKING DA EVOLUTION API
+    let evolutionTrackingData = null;
+    if (message.contextInfo?.externalAdReply) {
+      const adReply = message.contextInfo.externalAdReply;
+      evolutionTrackingData = {
+        source_id: adReply.sourceId || null,
+        media_url: adReply.sourceUrl || null,
+        ctwa_clid: adReply.ctwaClid || null,
+        source_type: adReply.sourceType || null
+      };
+      
+      console.log(`🎯 [EVOLUTION TRACKING] Dados de tracking extraídos da Evolution:`, evolutionTrackingData);
+    }
+
     // 🔍 Buscar dados do dispositivo associados ao telefone
     console.log(`🔍 [LEAD DIRETO] Buscando dados do dispositivo no banco para: ${realPhoneNumber}`);
     const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
@@ -75,7 +89,23 @@ export const handleDirectLead = async ({
     let campaignId = null;
     let trackingMethod = 'organic';
     
-    if (trackingCorrelation && trackingCorrelation.confidence_score >= 60) {
+    // 🆕 PRIORIZAR DADOS DA EVOLUTION SE DISPONÍVEIS
+    if (evolutionTrackingData?.ctwa_clid) {
+      console.log(`🎯 [EVOLUTION] TRACKING PAGO DETECTADO pela Evolution API!`, evolutionTrackingData);
+      
+      campaignSource = `Meta Ads - ${evolutionTrackingData.source_type || 'ad'}`;
+      trackingMethod = 'evolution_api_meta';
+      
+      finalUtms = {
+        utm_source: 'facebook',
+        utm_medium: 'social',
+        utm_campaign: `ctwa_${evolutionTrackingData.ctwa_clid.substring(0, 8)}`,
+        utm_content: evolutionTrackingData.source_id || '',
+        utm_term: evolutionTrackingData.media_url || ''
+      };
+      
+      console.log(`✅ [EVOLUTION] Usando dados de tracking do Meta via Evolution API`);
+    } else if (trackingCorrelation && trackingCorrelation.confidence_score >= 60) {
       console.log(`🎯 [CORRELAÇÃO] CORRELAÇÃO ENCONTRADA! Lead veio de tráfego pago:`, {
         campaign_id: trackingCorrelation.campaign_id,
         utm_source: trackingCorrelation.utm_source,
@@ -158,7 +188,7 @@ export const handleDirectLead = async ({
       return;
     }
 
-    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
 
     // 🆕 Criar novo lead direto
     const leadData = {
@@ -176,6 +206,12 @@ export const handleDirectLead = async ({
       utm_content: finalUtms.utm_content || null,
       utm_term: finalUtms.utm_term || null,
       tracking_method: trackingMethod,
+      // 🆕 INCLUIR DADOS DA EVOLUTION API
+      ...(evolutionTrackingData && {
+        source_id: evolutionTrackingData.source_id,
+        media_url: evolutionTrackingData.media_url,
+        ctwa_clid: evolutionTrackingData.ctwa_clid
+      }),
       // 🎯 Dados do dispositivo se disponíveis
       ...(deviceData && {
         location: deviceData.location,
@@ -195,14 +231,15 @@ export const handleDirectLead = async ({
       })
     };
 
-    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'}:`, {
-      metodo_atribuicao: trackingCorrelation ? 'correlacao_paga' : 'organico',
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS via Evolution' : trackingCorrelation ? 'PAGO' : 'orgânico'}:`, {
+      metodo_atribuicao: evolutionTrackingData?.ctwa_clid ? 'evolution_meta_ads' : trackingCorrelation ? 'correlacao_paga' : 'organico',
       campaign_id: leadData.campaign_id,
       nome_campanha_do_banco: leadData.campaign,
       status: leadData.status,
       user_id: leadData.user_id,
       instance_name: instanceName,
       utms: finalUtms,
+      evolution_data: evolutionTrackingData,
       tem_dados_dispositivo: !!deviceData,
       tracking_method: leadData.tracking_method,
       confidence_score: trackingCorrelation?.confidence_score || 0
@@ -221,28 +258,31 @@ export const handleDirectLead = async ({
         phone: realPhoneNumber,
         instance: instanceName,
         user_id: responsibleUserId,
-        was_paid_traffic: !!trackingCorrelation,
+        evolution_tracking: evolutionTrackingData,
+        was_paid_traffic: !!(evolutionTrackingData?.ctwa_clid || trackingCorrelation),
         confidence_score: trackingCorrelation?.confidence_score || 0
       }, 'high');
       return;
     }
 
-    console.log(`✅ [LEAD DIRETO] Novo lead ${trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}"`, {
+    console.log(`✅ [LEAD DIRETO] Novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}"`, {
       lead_id: newLead.id,
       name: newLead.name,
       user_id: responsibleUserId,
       instance_name: instanceName,
-      was_paid_traffic: !!trackingCorrelation,
+      evolution_tracking: evolutionTrackingData,
+      was_paid_traffic: !!(evolutionTrackingData?.ctwa_clid || trackingCorrelation),
       confidence_score: trackingCorrelation?.confidence_score || 0
     });
 
-    logSecurityEvent(`${trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
+    logSecurityEvent(`${evolutionTrackingData?.ctwa_clid ? 'Meta Ads' : trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
       lead_id: newLead.id,
       phone: realPhoneNumber,
       instance: instanceName,
       user_id: responsibleUserId,
       campaign_id: campaignId,
       tracking_method: leadData.tracking_method,
+      evolution_data: evolutionTrackingData,
       confidence_score: trackingCorrelation?.confidence_score || 0
     }, 'low');
 
