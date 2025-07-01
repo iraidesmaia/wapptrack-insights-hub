@@ -10,7 +10,6 @@ import LeadDialog from '@/components/leads/LeadDialog';
 import { useToast } from "@/components/ui/use-toast"
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
 import MainLayout from '@/components/MainLayout';
-import CtwaClidDebugPanel from '@/components/leads/CtwaClidDebugPanel';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -29,7 +28,6 @@ const Leads = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -193,27 +191,11 @@ const Leads = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
-              className="text-xs"
-            >
-              {showDebugPanel ? 'Ocultar' : 'Debug ctwa_clid'}
-            </Button>
-            <Button onClick={handleOpenAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Lead
-            </Button>
-          </div>
+          <Button onClick={handleOpenAddDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Lead
+          </Button>
         </div>
-
-        {/* 🆕 PAINEL DE DEBUG */}
-        {showDebugPanel && (
-          <div className="mb-6">
-            <CtwaClidDebugPanel />
-          </div>
-        )}
 
         <LeadsTable
           leads={leads}
