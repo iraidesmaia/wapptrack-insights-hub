@@ -99,16 +99,11 @@ export const useFormSubmission = (
       console.error('❌ Error sending data via external webhook:', error);
     }
 
-    // 🎯 COLETA UTMS E PARÂMETROS FACEBOOK ATUALIZADOS
-    const utms = collectUrlParameters();
-    console.log('🌐 UTMs e parâmetros Facebook obtidos da URL:', {
-      utm_source: utms.utm_source,
-      utm_medium: utms.utm_medium,
-      utm_campaign: utms.utm_campaign,
-      utm_content: utms.utm_content,
-      utm_term: utms.utm_term,
-      ad_id: utms.ad_id,
-      facebook_ad_id: utms.facebook_ad_id
+    // 🎯 COLETA SEPARADA DE UTMs E PARÂMETROS DE TRACKING
+    const { utm, tracking } = collectUrlParameters();
+    console.log('🌐 Parâmetros coletados e validados:', {
+      utm_parameters: utm,
+      tracking_parameters: tracking
     });
 
     console.log('📱 Processando formulário via trackRedirect...');
@@ -120,11 +115,18 @@ export const useFormSubmission = (
         name, 
         campaign?.event_type,
         {
-          utm_source: utms.utm_source,
-          utm_medium: utms.utm_medium,
-          utm_campaign: utms.utm_campaign,
-          utm_content: utms.utm_content,
-          utm_term: utms.utm_term
+          // UTMs validados
+          utm_source: utm.utm_source,
+          utm_medium: utm.utm_medium,
+          utm_campaign: utm.utm_campaign,
+          utm_content: utm.utm_content,
+          utm_term: utm.utm_term,
+          // Parâmetros de tracking separados
+          gclid: tracking.gclid,
+          fbclid: tracking.fbclid,
+          ctwa_clid: tracking.ctwa_clid,
+          source_id: tracking.source_id,
+          media_url: tracking.media_url
         }
       );
       

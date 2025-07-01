@@ -45,7 +45,8 @@ export const useMaximumTracking = (campaign?: Campaign | null) => {
       initializeEventTracking();
       
       // Collect all data immediately available
-      const urlParameters = collectUrlParameters();
+      const urlParametersData = collectUrlParameters();
+      const urlParameters = { ...urlParametersData.utm, ...urlParametersData.tracking };
       const deviceData = collectDeviceData();
       const sessionData = collectSessionData();
       const contextData = collectContextData();
@@ -59,10 +60,10 @@ export const useMaximumTracking = (campaign?: Campaign | null) => {
         facebookData
       });
       
-      // Store UTM parameters for persistence
-      if (Object.keys(urlParameters).length > 0) {
-        localStorage.setItem('utm_data', JSON.stringify(urlParameters));
-        console.log('💾 UTM parameters stored:', urlParameters);
+      // Store UTM parameters for persistence (only valid UTMs)
+      if (Object.keys(urlParametersData.utm).length > 0) {
+        localStorage.setItem('utm_data', JSON.stringify(urlParametersData.utm));
+        console.log('💾 UTM parameters stored:', urlParametersData.utm);
       }
       
       // Update state with immediately available data

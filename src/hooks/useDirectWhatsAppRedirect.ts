@@ -2,23 +2,10 @@ import { trackRedirect } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
-import { collectUrlParameters } from '@/lib/dataCollection';
+import { collectUrlParameters, UTMParameters, TrackingParameters } from '@/lib/dataCollection';
 import { saveTrackingData } from '@/services/sessionTrackingService';
 
-type UTMVars = {
-  utm_source?: string;
-  utm_medium?: string;
-  utm_campaign?: string;
-  utm_content?: string;
-  utm_term?: string;
-  gclid?: string;
-  fbclid?: string;
-  ctwa_clid?: string;
-  source_id?: string;
-  media_url?: string;
-  ad_id?: string;
-  facebook_ad_id?: string;
-};
+type CombinedTrackingData = UTMParameters & TrackingParameters;
 
 export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
@@ -29,7 +16,7 @@ export const useDirectWhatsAppRedirect = (
     options?: {
       phone?: string;
       name?: string;
-      utms?: UTMVars;
+      utms?: CombinedTrackingData;
     }
   ) => {
     try {
@@ -40,7 +27,13 @@ export const useDirectWhatsAppRedirect = (
       });
 
       // ✅ COLETA UTMs DA URL ATUAL SE NÃO FORAM FORNECIDOS
-      const currentUtms = options?.utms || collectUrlParameters();
+      let currentUtms: CombinedTrackingData;
+      if (options?.utms) {
+        currentUtms = options.utms;
+      } else {
+        const { utm, tracking } = collectUrlParameters();
+        currentUtms = { ...utm, ...tracking };
+      }
       
       // 🎯 PRIORIDADE PARA CTWA_CLID
       if (currentUtms.ctwa_clid) {
@@ -99,7 +92,20 @@ export const useDirectWhatsAppRedirect = (
           'Redirecionamento Direto', // Sem telefone ainda
           options?.name || 'Visitante',
           campaignData.event_type,
-          currentUtms // Inclui ctwa_clid e outros novos parâmetros
+          {
+            // UTMs validados
+            utm_source: currentUtms.utm_source,
+            utm_medium: currentUtms.utm_medium,
+            utm_campaign: currentUtms.utm_campaign,
+            utm_content: currentUtms.utm_content,
+            utm_term: currentUtms.utm_term,
+            // Parâmetros de tracking separados
+            gclid: currentUtms.gclid,
+            fbclid: currentUtms.fbclid,
+            ctwa_clid: currentUtms.ctwa_clid,
+            source_id: currentUtms.source_id,
+            media_url: currentUtms.media_url
+          }
         );
         
         console.log('✅ Redirecionamento direto salvo com CTWA (PUBLIC):', {

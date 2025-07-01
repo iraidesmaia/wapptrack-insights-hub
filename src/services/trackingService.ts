@@ -11,14 +11,15 @@ export const trackRedirect = async (
   name?: string,
   eventType?: string,
   utms?: {
+    // UTMs validados
     utm_source?: string
     utm_medium?: string
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
+    // Parâmetros de tracking separados
     gclid?: string
     fbclid?: string
-    // 🆕 NOVOS PARÂMETROS
     source_id?: string
     media_url?: string
     ctwa_clid?: string
@@ -81,8 +82,8 @@ export const trackRedirect = async (
         utm_source: utms?.utm_source || '',
         utm_medium: utms?.utm_medium || '',
         utm_campaign: utms?.utm_campaign || '',
-        utm_content: utms?.utm_content || (utms?.gclid ? `gclid=${utms.gclid}` : '') || (utms?.ctwa_clid ? `ctwa_clid=${utms.ctwa_clid}` : '') || '',
-        utm_term: utms?.utm_term || (utms?.fbclid ? `fbclid=${utms.fbclid}` : '') || '',
+        utm_content: utms?.utm_content || '',
+        utm_term: utms?.utm_term || '',
         tracking_method: 'form_submission',
         // Incluir dados do dispositivo se disponíveis
         ...(deviceData && {
@@ -100,10 +101,10 @@ export const trackRedirect = async (
           facebook_ad_id: deviceData.facebook_ad_id,
           facebook_adset_id: deviceData.facebook_adset_id,
           facebook_campaign_id: deviceData.facebook_campaign_id,
-          // 🆕 NOVOS CAMPOS
-          source_id: deviceData.source_id,
-          media_url: deviceData.media_url,
-          ctwa_clid: deviceData.ctwa_clid,
+          // 🆕 CAMPOS DE TRACKING SEPARADOS DOS UTMs
+          source_id: deviceData.source_id || utms?.source_id,
+          media_url: deviceData.media_url || utms?.media_url,
+          ctwa_clid: deviceData.ctwa_clid || utms?.ctwa_clid,
         })
       };
       

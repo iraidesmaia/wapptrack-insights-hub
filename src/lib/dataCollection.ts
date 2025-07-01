@@ -151,137 +151,178 @@ export const initializeEventTracking = () => {
   sessionStorage.setItem('page_views', pageViews.toString());
 };
 
-export const collectUrlParameters = (): UTMVars => {
+// Função para validar se um valor é um UTM válido
+const isValidUTMValue = (value: string): boolean => {
+  if (!value || value.trim() === '') return false;
+  
+  // Não deve ser uma URL
+  if (value.includes('http://') || value.includes('https://')) return false;
+  
+  // Não deve ser um número de telefone (55 + DDD + número)
+  if (/^55\d{10,11}$/.test(value.replace(/\D/g, ''))) return false;
+  
+  // Não deve ser apenas números longos (IDs)
+  if (/^\d{10,}$/.test(value)) return false;
+  
+  // Deve ter tamanho razoável (não muito longo)
+  if (value.length > 100) return false;
+  
+  return true;
+};
+
+// Tipos separados para UTMs e dados customizados
+export type UTMParameters = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+};
+
+export type TrackingParameters = {
+  gclid?: string;
+  fbclid?: string;
+  ttclid?: string;
+  ctwa_clid?: string;
+  source_id?: string;
+  media_url?: string;
+  ad_id?: string;
+  facebook_ad_id?: string;
+};
+
+export type CollectedParameters = {
+  utm: UTMParameters;
+  tracking: TrackingParameters;
+};
+
+export const collectUrlParameters = (): CollectedParameters => {
   try {
     const params = new URLSearchParams(window.location.search);
-    const utmVars: UTMVars = {};
+    const utm: UTMParameters = {};
+    const tracking: TrackingParameters = {};
     
-    // Standard UTM parameters
-    const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+    // 📊 COLETAR APENAS UTMs VÁLIDOS
+    const utmParams: (keyof UTMParameters)[] = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
     utmParams.forEach(param => {
       const value = params.get(param);
-      if (value) {
-        utmVars[param as keyof UTMVars] = value;
+      if (value && isValidUTMValue(value)) {
+        utm[param] = value.trim();
+        console.log(`✅ UTM válido coletado: ${param} = ${value}`);
+      } else if (value) {
+        console.warn(`⚠️ UTM inválido rejeitado: ${param} = ${value}`);
       }
     });
+    
+    // 🎯 COLETAR PARÂMETROS DE TRACKING (separados dos UTMs)
     
     // Google Ads click ID
     const gclid = params.get('gclid');
     if (gclid) {
-      utmVars.gclid = gclid;
-      // Save to localStorage for persistence
+      tracking.gclid = gclid;
       localStorage.setItem('_gclid', gclid);
     }
     
     // Facebook click ID  
     const fbclid = params.get('fbclid');
     if (fbclid) {
-      utmVars.fbclid = fbclid;
-      // Save to localStorage for persistence
+      tracking.fbclid = fbclid;
       localStorage.setItem('_fbclid', fbclid);
     }
 
     // TikTok click ID
     const ttclid = params.get('ttclid');
     if (ttclid) {
-      utmVars.ttclid = ttclid;
-      // Save to localStorage for persistence
+      tracking.ttclid = ttclid;
       localStorage.setItem('_ttclid', ttclid);
     }
 
-    // META CLICK-TO-WHATSAPP ID (PRIORIDADE MÁXIMA)
+    // META CLICK-TO-WHATSAPP ID
     const ctwaCLid = params.get('ctwa_clid');
     if (ctwaCLid) {
-      utmVars.ctwa_clid = ctwaCLid;
-      // Save to localStorage for persistence
+      tracking.ctwa_clid = ctwaCLid;
       localStorage.setItem('_ctwa_clid', ctwaCLid);
-      console.log('🎯 [CTWA] Click-to-WhatsApp ID detectado e salvo:', ctwaCLid);
+      console.log('🎯 [CTWA] Click-to-WhatsApp ID detectado:', ctwaCLid);
     }
 
-    // NOVOS PARÂMETROS DE TRACKING AVANÇADO
+    // Source ID personalizado
     const sourceId = params.get('source_id');
     if (sourceId) {
-      utmVars.source_id = sourceId;
+      tracking.source_id = sourceId;
       localStorage.setItem('_source_id', sourceId);
     }
 
+    // URL de mídia
     const mediaUrl = params.get('media_url');
     if (mediaUrl) {
-      utmVars.media_url = mediaUrl;
+      tracking.media_url = mediaUrl;
       localStorage.setItem('_media_url', mediaUrl);
     }
 
     // Facebook Ad ID parameters
     const adId = params.get('ad_id');
     if (adId) {
-      utmVars.ad_id = adId;
+      tracking.ad_id = adId;
       localStorage.setItem('_ad_id', adId);
     }
 
     const facebookAdId = params.get('facebook_ad_id');
     if (facebookAdId) {
-      utmVars.facebook_ad_id = facebookAdId;
+      tracking.facebook_ad_id = facebookAdId;
       localStorage.setItem('_facebook_ad_id', facebookAdId);
     }
 
-    // RECUPERAR PARÂMETROS DO LOCALSTORAGE SE NÃO ESTIVEREM NA URL
-    if (!utmVars.gclid) {
-      const storedGclid = localStorage.getItem('_gclid');
-      if (storedGclid) utmVars.gclid = storedGclid;
+    // 💾 RECUPERAR PARÂMETROS PERSISTIDOS DO LOCALSTORAGE
+    if (!tracking.gclid) {
+      const stored = localStorage.getItem('_gclid');
+      if (stored) tracking.gclid = stored;
     }
 
-    if (!utmVars.fbclid) {
-      const storedFbclid = localStorage.getItem('_fbclid');
-      if (storedFbclid) utmVars.fbclid = storedFbclid;
+    if (!tracking.fbclid) {
+      const stored = localStorage.getItem('_fbclid');
+      if (stored) tracking.fbclid = stored;
     }
 
-    if (!utmVars.ttclid) {
-      const storedTtclid = localStorage.getItem('_ttclid');
-      if (storedTtclid) utmVars.ttclid = storedTtclid;
+    if (!tracking.ttclid) {
+      const stored = localStorage.getItem('_ttclid');
+      if (stored) tracking.ttclid = stored;
     }
 
-    if (!utmVars.ctwa_clid) {
-      const storedCtwaCLid = localStorage.getItem('_ctwa_clid');
-      if (storedCtwaCLid) {
-        utmVars.ctwa_clid = storedCtwaCLid;
-        console.log('🎯 [CTWA] Click-to-WhatsApp ID recuperado do localStorage:', storedCtwaCLid);
-      }
+    if (!tracking.ctwa_clid) {
+      const stored = localStorage.getItem('_ctwa_clid');
+      if (stored) tracking.ctwa_clid = stored;
     }
 
-    if (!utmVars.source_id) {
-      const storedSourceId = localStorage.getItem('_source_id');
-      if (storedSourceId) utmVars.source_id = storedSourceId;
+    if (!tracking.source_id) {
+      const stored = localStorage.getItem('_source_id');
+      if (stored) tracking.source_id = stored;
     }
 
-    if (!utmVars.media_url) {
-      const storedMediaUrl = localStorage.getItem('_media_url');
-      if (storedMediaUrl) utmVars.media_url = storedMediaUrl;
+    if (!tracking.media_url) {
+      const stored = localStorage.getItem('_media_url');
+      if (stored) tracking.media_url = stored;
     }
 
-    if (!utmVars.ad_id) {
-      const storedAdId = localStorage.getItem('_ad_id');
-      if (storedAdId) utmVars.ad_id = storedAdId;
+    if (!tracking.ad_id) {
+      const stored = localStorage.getItem('_ad_id');
+      if (stored) tracking.ad_id = stored;
     }
 
-    if (!utmVars.facebook_ad_id) {
-      const storedFacebookAdId = localStorage.getItem('_facebook_ad_id');
-      if (storedFacebookAdId) utmVars.facebook_ad_id = storedFacebookAdId;
+    if (!tracking.facebook_ad_id) {
+      const stored = localStorage.getItem('_facebook_ad_id');
+      if (stored) tracking.facebook_ad_id = stored;
     }
 
-    console.log('📊 [DATA COLLECTION] Parâmetros coletados com novos campos:', {
-      ...utmVars,
-      has_ctwa_clid: !!utmVars.ctwa_clid,
-      has_source_id: !!utmVars.source_id,
-      has_media_url: !!utmVars.media_url,
-      has_ad_id: !!utmVars.ad_id,
-      has_facebook_ad_id: !!utmVars.facebook_ad_id,
-      has_ttclid: !!utmVars.ttclid
+    console.log('📊 [DATA COLLECTION] Parâmetros coletados e validados:', {
+      utm_count: Object.keys(utm).length,
+      tracking_count: Object.keys(tracking).length,
+      utm_params: utm,
+      tracking_params: Object.keys(tracking)
     });
     
-    return utmVars;
+    return { utm, tracking };
   } catch (error) {
     console.error('❌ [DATA COLLECTION] Erro ao coletar parâmetros da URL:', error);
-    return {};
+    return { utm: {}, tracking: {} };
   }
 };
 
