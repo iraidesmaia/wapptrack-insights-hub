@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters, UTMParameters, TrackingParameters } from '@/lib/dataCollection';
-import { saveTrackingData } from '@/services/sessionTrackingService';
+import { useCTWATracking } from './useCTWATracking';
 
 type CombinedTrackingData = UTMParameters & TrackingParameters;
 
@@ -11,6 +11,7 @@ export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
   pixelInitialized: boolean
 ) => {
+  const { isCTWACampaign, captureClickData, getCTWAStatus } = useCTWATracking();
   const handleDirectWhatsAppRedirect = async (
     campaignData: Campaign,
     options?: {
@@ -70,19 +71,22 @@ export const useDirectWhatsAppRedirect = (
         }
       }
 
-      // 🆕 SALVAR DADOS DE TRACKING COM IDENTIFICADORES ÚNICOS E CTWA_CLID
-      try {
-        const trackingResult = await saveTrackingData(currentUtms, campaignId!);
-        if (trackingResult.success) {
-          console.log('✅ Dados de tracking salvos com CTWA:', {
-            session_id: trackingResult.session_id,
-            browser_fingerprint: trackingResult.browser_fingerprint,
-            campaign_id: campaignId,
-            ctwa_clid: currentUtms.ctwa_clid || 'none'
-          });
+      // 🎯 CAPTURA COMPLETA DE DADOS CTWA NO CLIQUE (SE APLICÁVEL)
+      if (isCTWACampaign) {
+        console.log('🎯 [CTWA] Campanha CTWA detectada, capturando dados completos...');
+        try {
+          const clickData = await captureClickData(campaignId!);
+          if (clickData) {
+            console.log('✅ [CTWA] Dados completos do clique capturados:', {
+              ctwa_clid: clickData.ctwa_clid,
+              campaign_id: clickData.campaign_id,
+              ip_address: clickData.ip_address,
+              device_type: clickData.device_type
+            });
+          }
+        } catch (trackingError) {
+          console.warn('⚠️ Erro ao capturar dados CTWA, continuando...:', trackingError);
         }
-      } catch (trackingError) {
-        console.warn('⚠️ Erro ao salvar tracking data, continuando...:', trackingError);
       }
 
       // ✅ SALVAR O REDIRECIONAMENTO DIRETO (PÚBLICO - COM CTWA_CLID)

@@ -4,6 +4,7 @@ import { getDeviceDataByPhone } from './deviceDataHandler.ts';
 import { getTrackingDataBySession } from './sessionTrackingHandler.ts';
 import { getContactName } from './helpers.ts';
 import { logSecurityEvent } from './security.ts';
+import { handleCTWACampaignLead } from './ctwaCampaignHandler.ts';
 
 export const handleDirectLead = async ({ 
   supabase, 
@@ -71,6 +72,29 @@ export const handleDirectLead = async ({
       };
       
       console.log(`🎯 [EVOLUTION TRACKING] Dados de tracking extraídos da Evolution:`, evolutionTrackingData);
+      
+      // 🎯 SE TEM CTWA_CLID, USAR HANDLER ESPECIALIZADO
+      if (evolutionTrackingData.ctwa_clid) {
+        console.log(`🎯 [CTWA] Processando com handler especializado CTWA: ${evolutionTrackingData.ctwa_clid}`);
+        const ctwaCampaignLead = await handleCTWACampaignLead({
+          supabase,
+          message,
+          realPhoneNumber,
+          instanceName,
+          ctwaCLid: evolutionTrackingData.ctwa_clid
+        });
+        
+        if (ctwaCampaignLead) {
+          console.log(`✅ [CTWA] Lead CTWA processado com sucesso:`, {
+            lead_id: ctwaCampaignLead.id,
+            name: ctwaCampaignLead.name,
+            campaign: ctwaCampaignLead.campaign
+          });
+          return; // Retorna cedo, processamento completo
+        } else {
+          console.log(`⚠️ [CTWA] Handler CTWA falhou, continuando com fluxo normal...`);
+        }
+      }
     }
 
     // 🔍 Buscar dados do dispositivo associados ao telefone
