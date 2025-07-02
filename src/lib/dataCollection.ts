@@ -155,17 +155,23 @@ export const initializeEventTracking = () => {
 const isValidUTMValue = (value: string): boolean => {
   if (!value || value.trim() === '') return false;
   
-  // Não deve ser uma URL
+  // Não deve ser uma URL (incluindo URLs encurtadas)
   if (value.includes('http://') || value.includes('https://')) return false;
+  if (value.includes('://')) return false; // Detecta qualquer protocolo
+  if (/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(value)) return false; // Detecta domínios
+  if (value.includes('.me/') || value.includes('.ly/') || value.includes('.co/')) return false; // URLs encurtadas comuns
   
   // Não deve ser um número de telefone (55 + DDD + número)
   if (/^55\d{10,11}$/.test(value.replace(/\D/g, ''))) return false;
   
-  // Não deve ser apenas números longos (IDs)
-  if (/^\d{10,}$/.test(value)) return false;
+  // Não deve ser apenas números longos (IDs) - mais de 8 dígitos
+  if (/^\d{9,}$/.test(value)) return false;
   
   // Deve ter tamanho razoável (não muito longo)
   if (value.length > 100) return false;
+  
+  // Não deve conter apenas caracteres especiais
+  if (/^[^a-zA-Z0-9\s]+$/.test(value)) return false;
   
   return true;
 };
@@ -209,7 +215,15 @@ export const collectUrlParameters = (): CollectedParameters => {
         utm[param] = value.trim();
         console.log(`✅ UTM válido coletado: ${param} = ${value}`);
       } else if (value) {
-        console.warn(`⚠️ UTM inválido rejeitado: ${param} = ${value}`);
+        console.warn(`⚠️ UTM inválido rejeitado: ${param} = ${value} (será movido para tracking se aplicável)`);
+        
+        // Se é uma URL, mover para media_url ao invés de descartar
+        if (param === 'utm_term' && (value.includes('http') || value.includes('.me/') || value.includes('.ly/') || value.includes('.co/'))) {
+          if (!tracking.media_url) {
+            tracking.media_url = value.trim();
+            console.log(`🔄 URL movida de ${param} para media_url: ${value}`);
+          }
+        }
       }
     });
     
