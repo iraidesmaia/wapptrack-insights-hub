@@ -332,3 +332,17 @@ export const deleteLead = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+export const deleteAllLeads = async (): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting all leads:", error);
+    throw error;
+  }
+};

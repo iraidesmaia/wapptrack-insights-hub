@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Lead, Campaign } from '@/types';
-import { getLeads, addLead, deleteLead, updateLead } from '@/services/leadService';
+import { getLeads, addLead, deleteLead, updateLead, deleteAllLeads } from '@/services/leadService';
 import { getCampaigns } from '@/services/campaignService';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
@@ -10,6 +10,18 @@ import LeadDialog from '@/components/leads/LeadDialog';
 import { useToast } from "@/components/ui/use-toast"
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
 import MainLayout from '@/components/MainLayout';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from 'lucide-react';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -86,6 +98,23 @@ const Leads = () => {
         variant: "destructive",
         title: "Erro ao excluir lead.",
         description: "Ocorreu um problema ao excluir o lead do servidor.",
+      })
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAllLeads();
+      setLeads([]);
+      toast({
+        title: "Todos os leads foram excluídos com sucesso.",
+      })
+    } catch (error) {
+      console.error("Error deleting all leads:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir todos os leads.",
+        description: "Ocorreu um problema ao excluir os leads do servidor.",
       })
     }
   };
@@ -191,10 +220,36 @@ const Leads = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-          <Button onClick={handleOpenAddDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Lead
-          </Button>
+          <div className="flex gap-2">
+            {leads.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir Todos
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir todos os leads</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Todos os {leads.length} leads serão permanentemente excluídos.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Excluir Todos
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button onClick={handleOpenAddDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Lead
+            </Button>
+          </div>
         </div>
 
         <LeadsTable
