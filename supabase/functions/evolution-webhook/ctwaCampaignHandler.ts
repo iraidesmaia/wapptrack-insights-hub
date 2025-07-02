@@ -1,4 +1,3 @@
-import { findCTWAClickData, updateCTWADeviceDataWithPhone } from './ctwaCampaignTracker.ts';
 import { getContactName } from './helpers.ts';
 import { logSecurityEvent } from './security.ts';
 
