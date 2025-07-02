@@ -217,11 +217,19 @@ export const collectUrlParameters = (): CollectedParameters => {
       } else if (value) {
         console.warn(`⚠️ UTM inválido rejeitado: ${param} = ${value} (será movido para tracking se aplicável)`);
         
-        // Se é uma URL, mover para media_url ao invés de descartar
-        if (param === 'utm_term' && (value.includes('http') || value.includes('.me/') || value.includes('.ly/') || value.includes('.co/'))) {
+        // Se é uma URL (qualquer campo UTM), mover para media_url
+        if (value.includes('http') || value.includes('.me/') || value.includes('.ly/') || value.includes('.co/') || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(value)) {
           if (!tracking.media_url) {
             tracking.media_url = value.trim();
             console.log(`🔄 URL movida de ${param} para media_url: ${value}`);
+          }
+        }
+        
+        // Se é um ID longo (mais de 8 dígitos), mover para source_id
+        if (/^\d{9,}$/.test(value) && param === 'utm_content') {
+          if (!tracking.source_id) {
+            tracking.source_id = value.trim();
+            console.log(`🔄 ID movido de ${param} para source_id: ${value}`);
           }
         }
       }
