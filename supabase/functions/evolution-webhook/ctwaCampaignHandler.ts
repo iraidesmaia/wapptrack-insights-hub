@@ -21,6 +21,67 @@ export const handleCTWACampaignLead = async ({
   console.log(`🎯 [CTWA LEAD] Processando lead de campanha CTWA: ${ctwaCLid} - ${realPhoneNumber}`);
   
   try {
+    // 📱 PRIMEIRO: EXTRAIR E SALVAR DADOS DO DISPOSITIVO DA MENSAGEM
+    const contextInfo = message.contextInfo?.externalAdReply;
+    
+    // Construir dados básicos do dispositivo baseados na origem Facebook/Meta
+    const deviceData = {
+      phone: realPhoneNumber,
+      browser: 'Facebook App',
+      device_type: 'mobile', // CTWA geralmente vem de mobile
+      os: contextInfo?.osInfo || 'Mobile',
+      user_agent: contextInfo?.userAgent || 'Facebook/WhatsApp Integration',
+      referrer: 'facebook.com',
+      ip_address: contextInfo?.clientIp || 'Unknown',
+      location: contextInfo?.location || 'Unknown',
+      country: contextInfo?.country || 'BR',
+      city: contextInfo?.city || 'Unknown',
+      language: 'pt-BR',
+      screen_resolution: contextInfo?.screenResolution || '375x667',
+      timezone: 'America/Fortaleza',
+      utm_source: 'facebook',
+      utm_medium: 'social',
+      utm_campaign: `ctwa_${ctwaCLid.substring(0, 8)}`,
+      utm_content: contextInfo?.sourceId || '',
+      utm_term: contextInfo?.sourceUrl || '',
+      facebook_ad_id: contextInfo?.fbAdId,
+      facebook_adset_id: contextInfo?.fbAdsetId,
+      facebook_campaign_id: contextInfo?.fbCampaignId,
+      source_id: contextInfo?.sourceId,
+      media_url: contextInfo?.sourceUrl,
+      ctwa_clid: ctwaCLid
+    };
+    
+    console.log(`📱 [CTWA DEVICE] Dados do dispositivo construídos:`, {
+      phone: deviceData.phone,
+      device_type: deviceData.device_type,
+      browser: deviceData.browser,
+      ctwa_clid: deviceData.ctwa_clid,
+      utm_source: deviceData.utm_source,
+      source_id: deviceData.source_id,
+      media_url: deviceData.media_url
+    });
+    
+    // 💾 SALVAR DADOS DO DISPOSITIVO
+    try {
+      const { error: deviceError } = await supabase
+        .from('device_data')
+        .upsert({
+          ...deviceData
+        }, {
+          onConflict: 'phone'
+        });
+      
+      if (deviceError) {
+        console.error('❌ [CTWA DEVICE] Erro ao salvar dados do dispositivo:', deviceError);
+      } else {
+        console.log('✅ [CTWA DEVICE] Dados do dispositivo salvos com sucesso para telefone:', realPhoneNumber);
+      }
+    } catch (deviceSaveError) {
+      console.error('❌ [CTWA DEVICE] Erro geral ao salvar device data:', deviceSaveError);
+    }
+  
+  try {
     // 1. Buscar dados do clique original usando ctwa_clid
     const clickData = await findCTWAClickData(supabase, ctwaCLid);
     

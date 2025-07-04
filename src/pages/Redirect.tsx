@@ -8,6 +8,8 @@ import BrandingSection from '@/components/BrandingSection';
 import LoadingScreen from '@/components/LoadingScreen';
 import ContactForm from '@/components/ContactForm';
 import { useCampaignData } from '@/hooks/useCampaignData';
+import { useDeviceData } from '@/hooks/useDeviceData';
+import { captureDeviceData, saveDeviceData } from '@/services/deviceDataService';
 
 const Redirect = () => {
   const [searchParams] = useSearchParams();
@@ -27,6 +29,44 @@ const Redirect = () => {
     handleFormSubmit,
     handleDirectWhatsAppRedirect
   } = useCampaignData(campaignId, debug);
+
+  // 📱 CAPTURAR DADOS DO DISPOSITIVO AUTOMATICAMENTE  
+  const { deviceData, isLoading: deviceLoading } = useDeviceData();
+
+  // 📱 EFEITO PARA CAPTURAR E SALVAR DADOS DO DISPOSITIVO IMEDIATAMENTE
+  useEffect(() => {
+    const captureAndSaveDeviceData = async () => {
+      try {
+        console.log('📱 Capturando dados do dispositivo na página de redirecionamento...');
+        const data = await captureDeviceData();
+        
+        // Log dos dados capturados para debug
+        console.log('📱 Dados capturados:', {
+          browser: data.browser,
+          device_type: data.device_type,
+          utm_source: data.utm_source,
+          utm_medium: data.utm_medium,
+          utm_campaign: data.utm_campaign,
+          utm_content: data.utm_content,
+          utm_term: data.utm_term,
+          source_id: data.source_id,
+          media_url: data.media_url,
+          ctwa_clid: data.ctwa_clid,
+          facebook_ad_id: data.facebook_ad_id
+        });
+        
+        // Salvar os dados temporariamente em sessionStorage para correlação futura
+        sessionStorage.setItem('temp_device_data', JSON.stringify(data));
+        console.log('✅ Dados do dispositivo salvos temporariamente para correlação');
+        
+      } catch (error) {
+        console.error('❌ Erro ao capturar dados do dispositivo:', error);
+      }
+    };
+
+    // Capturar dados imediatamente quando a página carrega
+    captureAndSaveDeviceData();
+  }, []); // Executar apenas uma vez quando o componente montar
 
   useEffect(() => {
     // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada
