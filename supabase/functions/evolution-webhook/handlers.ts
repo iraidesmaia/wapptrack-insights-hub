@@ -5,4 +5,3 @@ export { handlePendingLeadConversion } from './pendingLeadHandler.ts';
 export { handleDirectLead } from './directLeadHandler.ts';
 export { getUtmsFromDirectClick } from './utmHandler.ts';
 export { getDeviceDataByPhone } from './deviceDataHandler.ts';
-export { handleCTWACampaignLead } from './ctwaCampaignHandler.ts';
