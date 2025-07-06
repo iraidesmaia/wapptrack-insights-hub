@@ -243,6 +243,39 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_mappings: {
+        Row: {
+          ad_name: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          created_at: string | null
+          id: number
+          source_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string | null
+          id?: never
+          source_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string | null
+          id?: never
+          source_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       global_keywords_settings: {
         Row: {
           cancellation_keywords: string[]

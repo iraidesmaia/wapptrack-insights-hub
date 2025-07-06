@@ -427,6 +427,8 @@ export const handleDirectLead = async ({
 
     // 🆕 EXTRAIR DADOS DE TRACKING DA EVOLUTION API
     let evolutionTrackingData = null;
+    let facebookMappingData = null;
+    
     if (message.contextInfo?.externalAdReply) {
       const adReply = message.contextInfo.externalAdReply;
       evolutionTrackingData = {
@@ -437,6 +439,33 @@ export const handleDirectLead = async ({
       };
       
       console.log(`🎯 [EVOLUTION TRACKING] Dados de tracking extraídos da Evolution:`, evolutionTrackingData);
+      
+      // 🔍 BUSCAR MAPEAMENTO DETALHADO DO FACEBOOK
+      if (evolutionTrackingData.source_id) {
+        console.log(`🔍 [FACEBOOK MAPPING] Buscando dados detalhados para source_id: ${evolutionTrackingData.source_id}`);
+        
+        try {
+          const { data: mappingData, error: mappingError } = await supabase
+            .from('facebook_mappings')
+            .select('*')
+            .eq('source_id', evolutionTrackingData.source_id)
+            .single();
+          
+          if (!mappingError && mappingData) {
+            facebookMappingData = mappingData;
+            console.log(`✅ [FACEBOOK MAPPING] Dados detalhados encontrados:`, {
+              campaign_name: mappingData.campaign_name,
+              ad_name: mappingData.ad_name,
+              adset_id: mappingData.adset_id,
+              campaign_id: mappingData.campaign_id
+            });
+          } else {
+            console.log(`❌ [FACEBOOK MAPPING] Nenhum mapeamento encontrado para source_id: ${evolutionTrackingData.source_id}`);
+          }
+        } catch (mappingSearchError) {
+          console.error(`💥 [FACEBOOK MAPPING] Erro ao buscar mapeamento:`, mappingSearchError);
+        }
+      }
       
       // 🎯 SE TEM CTWA_CLID, USAR HANDLER ESPECIALIZADO
       if (evolutionTrackingData.ctwa_clid) {
@@ -479,7 +508,26 @@ export const handleDirectLead = async ({
     let trackingMethod = 'organic';
     
     // 🆕 PRIORIZAR DADOS DA EVOLUTION SE DISPONÍVEIS
-    if (evolutionTrackingData?.ctwa_clid) {
+    if (evolutionTrackingData?.source_id && facebookMappingData) {
+      console.log(`🎯 [FACEBOOK MAPPING] USANDO DADOS DETALHADOS DO MAPEAMENTO!`, facebookMappingData);
+      
+      campaignSource = facebookMappingData.campaign_name;
+      trackingMethod = 'facebook_mapping_enriched';
+      
+      finalUtms = {
+        utm_source: 'facebook',
+        utm_medium: 'social',
+        utm_campaign: facebookMappingData.campaign_name.toLowerCase().replace(/\s+/g, '-'),
+        utm_content: evolutionTrackingData.source_id,
+        utm_term: facebookMappingData.ad_name || evolutionTrackingData.media_url || ''
+      };
+      
+      console.log(`✅ [FACEBOOK MAPPING] Usando dados enriquecidos do mapeamento Facebook:`, {
+        campaign_name: campaignSource,
+        ad_name: facebookMappingData.ad_name,
+        utm_campaign: finalUtms.utm_campaign
+      });
+    } else if (evolutionTrackingData?.ctwa_clid) {
       console.log(`🎯 [EVOLUTION] TRACKING PAGO DETECTADO pela Evolution API!`, evolutionTrackingData);
       
       campaignSource = `Meta Ads - ${evolutionTrackingData.source_type || 'ad'}`;
@@ -577,7 +625,7 @@ export const handleDirectLead = async ({
       return;
     }
 
-    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${facebookMappingData ? 'FACEBOOK MAPEADO' : evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
 
     // 🆕 Criar novo lead direto
     const leadData = {
@@ -595,12 +643,17 @@ export const handleDirectLead = async ({
       utm_content: finalUtms.utm_content || null,
       utm_term: finalUtms.utm_term || null,
       tracking_method: trackingMethod,
-      // 🆕 INCLUIR DADOS DA EVOLUTION API
-      ...(evolutionTrackingData && {
-        source_id: evolutionTrackingData.source_id,
-        media_url: evolutionTrackingData.media_url,
-        ctwa_clid: evolutionTrackingData.ctwa_clid
-      }),
+       // 🆕 INCLUIR DADOS DA EVOLUTION API
+       ...(evolutionTrackingData && {
+         source_id: evolutionTrackingData.source_id,
+         media_url: evolutionTrackingData.media_url,
+         ctwa_clid: evolutionTrackingData.ctwa_clid
+       }),
+       // 🎯 INCLUIR DADOS DO MAPEAMENTO FACEBOOK
+       ...(facebookMappingData && {
+         ad_set_name: facebookMappingData.adset_id,
+         ad_name: facebookMappingData.ad_name
+       }),
       // 🎯 Dados do dispositivo se disponíveis
       ...(deviceData && {
         location: deviceData.location,
@@ -620,8 +673,8 @@ export const handleDirectLead = async ({
       })
     };
 
-    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS via Evolution' : trackingCorrelation ? 'PAGO' : 'orgânico'}:`, {
-      metodo_atribuicao: evolutionTrackingData?.ctwa_clid ? 'evolution_meta_ads' : trackingCorrelation ? 'correlacao_paga' : 'organico',
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${facebookMappingData ? 'FACEBOOK MAPEADO' : evolutionTrackingData?.ctwa_clid ? 'META ADS via Evolution' : trackingCorrelation ? 'PAGO' : 'orgânico'}:`, {
+      metodo_atribuicao: facebookMappingData ? 'facebook_mapping_enriched' : evolutionTrackingData?.ctwa_clid ? 'evolution_meta_ads' : trackingCorrelation ? 'correlacao_paga' : 'organico',
       campaign_id: leadData.campaign_id,
       nome_campanha_do_banco: leadData.campaign,
       status: leadData.status,
@@ -629,6 +682,7 @@ export const handleDirectLead = async ({
       instance_name: instanceName,
       utms: finalUtms,
       evolution_data: evolutionTrackingData,
+      facebook_mapping: facebookMappingData,
       tem_dados_dispositivo: !!deviceData,
       tracking_method: leadData.tracking_method,
       confidence_score: trackingCorrelation?.confidence_score || 0
@@ -654,17 +708,18 @@ export const handleDirectLead = async ({
       return;
     }
 
-    console.log(`✅ [LEAD DIRETO] Novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}"`, {
+    console.log(`✅ [LEAD DIRETO] Novo lead ${facebookMappingData ? 'FACEBOOK MAPEADO' : evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}"`, {
       lead_id: newLead.id,
       name: newLead.name,
       user_id: responsibleUserId,
       instance_name: instanceName,
       evolution_tracking: evolutionTrackingData,
-      was_paid_traffic: !!(evolutionTrackingData?.ctwa_clid || trackingCorrelation),
+      facebook_mapping: facebookMappingData,
+      was_paid_traffic: !!(facebookMappingData || evolutionTrackingData?.ctwa_clid || trackingCorrelation),
       confidence_score: trackingCorrelation?.confidence_score || 0
     });
 
-    logSecurityEvent(`${evolutionTrackingData?.ctwa_clid ? 'Meta Ads' : trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
+    logSecurityEvent(`${facebookMappingData ? 'Facebook Mapped' : evolutionTrackingData?.ctwa_clid ? 'Meta Ads' : trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
       lead_id: newLead.id,
       phone: realPhoneNumber,
       instance: instanceName,
@@ -672,6 +727,7 @@ export const handleDirectLead = async ({
       campaign_id: campaignId,
       tracking_method: leadData.tracking_method,
       evolution_data: evolutionTrackingData,
+      facebook_mapping: facebookMappingData,
       confidence_score: trackingCorrelation?.confidence_score || 0
     }, 'low');
 
