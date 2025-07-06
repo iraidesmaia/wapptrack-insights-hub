@@ -656,6 +656,10 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_user_by_instance: {
+        Args: { instance_name_param: string }
+        Returns: string
+      }
       insert_tracking_session: {
         Args: {
           session_id: string
