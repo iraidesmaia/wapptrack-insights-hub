@@ -516,16 +516,18 @@ export const handleDirectLead = async ({
       
       finalUtms = {
         utm_source: 'facebook',
-        utm_medium: 'social',
-        utm_campaign: facebookMappingData.campaign_name.toLowerCase().replace(/\s+/g, '-'),
-        utm_content: evolutionTrackingData.source_id,
-        utm_term: facebookMappingData.ad_name || evolutionTrackingData.media_url || ''
+        utm_medium: facebookMappingData.ad_name || 'social', // Nome do conjunto/anúncio
+        utm_campaign: facebookMappingData.campaign_name || 'unknown', // Nome exato da campanha
+        utm_content: facebookMappingData.ad_name || evolutionTrackingData.source_id, // Nome específico do criativo
+        utm_term: evolutionTrackingData.source_id || '' // Source ID para rastreamento técnico
       };
       
-      console.log(`✅ [FACEBOOK MAPPING] Usando dados enriquecidos do mapeamento Facebook:`, {
+      console.log(`✅ [FACEBOOK MAPPING] UTMs corrigidos com dados reais do Facebook:`, {
         campaign_name: campaignSource,
-        ad_name: facebookMappingData.ad_name,
-        utm_campaign: finalUtms.utm_campaign
+        utm_campaign: finalUtms.utm_campaign,
+        utm_medium: finalUtms.utm_medium,
+        utm_content: finalUtms.utm_content,
+        utm_term: finalUtms.utm_term
       });
     } else if (evolutionTrackingData?.ctwa_clid) {
       console.log(`🎯 [EVOLUTION] TRACKING PAGO DETECTADO pela Evolution API!`, evolutionTrackingData);
