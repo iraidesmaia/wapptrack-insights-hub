@@ -511,7 +511,8 @@ export const handleDirectLead = async ({
     if (evolutionTrackingData?.source_id && facebookMappingData) {
       console.log(`🎯 [FACEBOOK MAPPING] USANDO DADOS DETALHADOS DO MAPEAMENTO!`, facebookMappingData);
       
-      campaignSource = facebookMappingData.campaign_name;
+      // 🔧 MANTER O NOME DA CAMPANHA DO USUÁRIO, não sobrescrever com dados do Facebook
+      // campaignSource já foi definido como 'WhatsApp Orgânico' acima, não alteramos
       trackingMethod = 'facebook_mapping_enriched';
       
       finalUtms = {
