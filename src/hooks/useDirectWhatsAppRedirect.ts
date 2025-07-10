@@ -1,23 +1,29 @@
+
 import { trackRedirect } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
-import { collectUrlParameters, UTMParameters, TrackingParameters } from '@/lib/dataCollection';
-import { useCTWATracking } from './useCTWATracking';
+import { collectUrlParameters } from '@/lib/dataCollection';
+import { saveTrackingData } from '@/services/sessionTrackingService';
 
-type CombinedTrackingData = UTMParameters & TrackingParameters;
+type UTMVars = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+};
 
 export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
   pixelInitialized: boolean
 ) => {
-  const { isCTWACampaign, captureClickData, getCTWAStatus } = useCTWATracking();
   const handleDirectWhatsAppRedirect = async (
     campaignData: Campaign,
     options?: {
       phone?: string;
       name?: string;
-      utms?: CombinedTrackingData;
+      utms?: UTMVars;
     }
   ) => {
     try {
@@ -26,30 +32,6 @@ export const useDirectWhatsAppRedirect = (
         name: options?.name,
         utms: options?.utms
       });
-
-      // ✅ COLETA UTMs DA URL ATUAL SE NÃO FORAM FORNECIDOS
-      let currentUtms: CombinedTrackingData;
-      if (options?.utms) {
-        currentUtms = options.utms;
-      } else {
-        const { utm, tracking } = collectUrlParameters();
-        currentUtms = { ...utm, ...tracking };
-      }
-      
-      // 🎯 PRIORIDADE PARA CTWA_CLID
-      if (currentUtms.ctwa_clid) {
-        console.log('🎯 [CTWA] CTWA_CLID DETECTADO NO REDIRECIONAMENTO:', currentUtms.ctwa_clid);
-        
-        // Garantir que está salvo no localStorage
-        localStorage.setItem('_ctwa_clid', currentUtms.ctwa_clid);
-        
-        // Adicionar informações específicas do Meta Ads
-        currentUtms.utm_source = currentUtms.utm_source || 'facebook';
-        currentUtms.utm_medium = currentUtms.utm_medium || 'cpc';
-        currentUtms.utm_campaign = currentUtms.utm_campaign || `ctwa_${currentUtms.ctwa_clid.substring(0, 8)}`;
-      }
-      
-      console.log('🌐 UTMs para redirecionamento direto com CTWA:', currentUtms);
 
       // Inicializa tracking avançado se necessário
       if (campaignData.event_type && pixelInitialized) {
@@ -60,10 +42,7 @@ export const useDirectWhatsAppRedirect = (
 
           await trackEnhancedCustomEvent(campaignData.event_type, {
             redirect_type: 'direct_whatsapp',
-            campaign_name: campaignData.name,
-            // 🆕 INCLUIR DADOS DO CTWA
-            has_ctwa_clid: !!currentUtms.ctwa_clid,
-            ctwa_clid: currentUtms.ctwa_clid?.substring(0, 16) || null
+            campaign_name: campaignData.name
           });
           console.log('✅ Enhanced event tracked successfully');
         } catch (trackingError) {
@@ -71,51 +50,35 @@ export const useDirectWhatsAppRedirect = (
         }
       }
 
-      // 🎯 CAPTURA COMPLETA DE DADOS CTWA NO CLIQUE (SE APLICÁVEL)
-      if (isCTWACampaign) {
-        console.log('🎯 [CTWA] Campanha CTWA detectada, capturando dados completos...');
-        try {
-          const clickData = await captureClickData(campaignId!);
-          if (clickData) {
-            console.log('✅ [CTWA] Dados completos do clique capturados:', {
-              ctwa_clid: clickData.ctwa_clid,
-              campaign_id: clickData.campaign_id,
-              ip_address: clickData.ip_address,
-              device_type: clickData.device_type
-            });
-          }
-        } catch (trackingError) {
-          console.warn('⚠️ Erro ao capturar dados CTWA, continuando...:', trackingError);
+      // ✅ COLETA UTMs DA URL ATUAL SE NÃO FORAM FORNECIDOS
+      const currentUtms = options?.utms || collectUrlParameters();
+      console.log('🌐 UTMs para redirecionamento direto:', currentUtms);
+
+      // 🆕 SALVAR DADOS DE TRACKING COM IDENTIFICADORES ÚNICOS
+      try {
+        const trackingResult = await saveTrackingData(currentUtms, campaignId!);
+        if (trackingResult.success) {
+          console.log('✅ Dados de tracking salvos:', {
+            session_id: trackingResult.session_id,
+            browser_fingerprint: trackingResult.browser_fingerprint,
+            campaign_id: campaignId
+          });
         }
+      } catch (trackingError) {
+        console.warn('⚠️ Erro ao salvar tracking data, continuando...:', trackingError);
       }
 
-      // ✅ SALVAR O REDIRECIONAMENTO DIRETO (PÚBLICO - COM CTWA_CLID)
+      // ✅ SALVAR O REDIRECIONAMENTO DIRETO (PÚBLICO - SEM TELEFONE)
       try {
         const result = await trackRedirect(
           campaignId!, 
           'Redirecionamento Direto', // Sem telefone ainda
           options?.name || 'Visitante',
           campaignData.event_type,
-          {
-            // UTMs validados
-            utm_source: currentUtms.utm_source,
-            utm_medium: currentUtms.utm_medium,
-            utm_campaign: currentUtms.utm_campaign,
-            utm_content: currentUtms.utm_content,
-            utm_term: currentUtms.utm_term,
-            // Parâmetros de tracking separados
-            gclid: currentUtms.gclid,
-            fbclid: currentUtms.fbclid,
-            ctwa_clid: currentUtms.ctwa_clid,
-            source_id: currentUtms.source_id,
-            media_url: currentUtms.media_url
-          }
+          currentUtms
         );
         
-        console.log('✅ Redirecionamento direto salvo com CTWA (PUBLIC):', {
-          ...result,
-          ctwa_clid: currentUtms.ctwa_clid || 'none'
-        });
+        console.log('✅ Redirecionamento direto salvo com sucesso (PUBLIC):', result);
         
         // Pega o número de destino do WhatsApp
         const targetPhone = result.targetPhone || campaignData.whatsapp_number;

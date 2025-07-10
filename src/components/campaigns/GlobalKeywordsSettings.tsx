@@ -1,31 +1,86 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, RefreshCw, Settings } from 'lucide-react';
-import { useGlobalKeywords } from '@/hooks/useGlobalKeywords';
+import { X, Plus } from 'lucide-react';
+import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 interface GlobalKeywordsSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const GlobalKeywordsSettings: React.FC<GlobalKeywordsSettingsProps> = ({ open, onOpenChange }) => {
-  const {
-    keywords,
-    loading,
-    hasSettings,
-    setKeywords,
-    saveGlobalKeywords,
-    applyToAllCampaigns,
-    resetToDefaults
-  } = useGlobalKeywords();
+interface GlobalKeywords {
+  conversionKeywords: string[];
+  cancellationKeywords: string[];
+}
 
+const GlobalKeywordsSettings: React.FC<GlobalKeywordsSettingsProps> = ({ open, onOpenChange }) => {
+  const [keywords, setKeywords] = useState<GlobalKeywords>({
+    conversionKeywords: [],
+    cancellationKeywords: []
+  });
   const [newConversionKeyword, setNewConversionKeyword] = useState('');
   const [newCancellationKeyword, setNewCancellationKeyword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const defaultConversionKeywords = [
+    'obrigado pela compra',
+    'obrigada pela compra', 
+    'venda confirmada',
+    'pedido aprovado',
+    'parabéns pela aquisição',
+    'compra realizada',
+    'vendido',
+    'venda fechada',
+    'negócio fechado',
+    'parabéns pela compra',
+    'obrigado por comprar',
+    'obrigada por comprar',
+    'sua compra foi',
+    'compra efetuada',
+    'pedido confirmado'
+  ];
+
+  const defaultCancellationKeywords = [
+    'compra cancelada',
+    'pedido cancelado',
+    'cancelamento',
+    'desistiu da compra',
+    'não quer mais',
+    'mudou de ideia',
+    'cancelar pedido',
+    'estorno',
+    'devolver',
+    'não conseguiu pagar'
+  ];
+
+  useEffect(() => {
+    if (open) {
+      loadGlobalKeywords();
+    }
+  }, [open]);
+
+  const loadGlobalKeywords = async () => {
+    try {
+      setLoading(true);
+      // Para este exemplo, vamos usar as palavras-chave padrão
+      // Em uma implementação real, você poderia armazenar isso em uma tabela de configurações globais
+      setKeywords({
+        conversionKeywords: defaultConversionKeywords,
+        cancellationKeywords: defaultCancellationKeywords
+      });
+    } catch (error: any) {
+      console.error('Error loading global keywords:', error);
+      toast.error('Erro ao carregar configurações globais');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const addConversionKeyword = () => {
     if (newConversionKeyword.trim() && !keywords.conversionKeywords.includes(newConversionKeyword.trim())) {
@@ -61,38 +116,45 @@ const GlobalKeywordsSettings: React.FC<GlobalKeywordsSettingsProps> = ({ open, o
     }));
   };
 
-  const handleSave = async () => {
-    const success = await saveGlobalKeywords(keywords);
-    if (success) {
+  const saveGlobalKeywords = async () => {
+    try {
+      setLoading(true);
+      
+      // Atualizar todas as campanhas com as novas palavras-chave globais
+      const { error } = await supabase
+        .from('campaigns')
+        .update({
+          conversion_keywords: keywords.conversionKeywords,
+          cancellation_keywords: keywords.cancellationKeywords
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Atualizar todas as campanhas
+
+      if (error) throw error;
+
+      toast.success('Configurações globais de tags salvas e aplicadas a todas as campanhas!');
       onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error saving global keywords:', error);
+      toast.error('Erro ao salvar configurações globais');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaveAndApply = async () => {
-    const saveSuccess = await saveGlobalKeywords(keywords);
-    if (saveSuccess) {
-      const applySuccess = await applyToAllCampaigns();
-      if (applySuccess) {
-        onOpenChange(false);
-      }
-    }
+  const resetToDefaults = () => {
+    setKeywords({
+      conversionKeywords: [...defaultConversionKeywords],
+      cancellationKeywords: [...defaultCancellationKeywords]
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Configurações Globais de Tags
-          </DialogTitle>
+          <DialogTitle>Configurações Globais de Tags</DialogTitle>
           <DialogDescription>
-            Configure as palavras-chave que serão aplicadas automaticamente a todas as campanhas novas.
-            {hasSettings ? (
-              <span className="text-green-600 font-medium"> ✓ Configurações salvas</span>
-            ) : (
-              <span className="text-orange-600 font-medium"> ⚠ Usando configurações padrão</span>
-            )}
+            Configure as palavras-chave que serão aplicadas a todas as campanhas para detectar conversões e cancelamentos automaticamente.
           </DialogDescription>
         </DialogHeader>
         
@@ -174,22 +236,18 @@ const GlobalKeywordsSettings: React.FC<GlobalKeywordsSettingsProps> = ({ open, o
           </div>
 
           <div className="flex justify-center pt-4 border-t">
-            <Button variant="outline" onClick={resetToDefaults} className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="outline" onClick={resetToDefaults}>
               Restaurar Padrões
             </Button>
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading} variant="secondary">
-            {loading ? 'Salvando...' : 'Salvar Configurações'}
-          </Button>
-          <Button onClick={handleSaveAndApply} disabled={loading}>
-            {loading ? 'Aplicando...' : 'Salvar e Aplicar a Todas'}
+          <Button onClick={saveGlobalKeywords} disabled={loading}>
+            {loading ? 'Salvando...' : 'Salvar e Aplicar a Todas as Campanhas'}
           </Button>
         </DialogFooter>
       </DialogContent>

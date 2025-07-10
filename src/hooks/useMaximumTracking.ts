@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Campaign } from '@/types';
 import {
@@ -45,8 +46,7 @@ export const useMaximumTracking = (campaign?: Campaign | null) => {
       initializeEventTracking();
       
       // Collect all data immediately available
-      const urlParametersData = collectUrlParameters();
-      const urlParameters = { ...urlParametersData.utm, ...urlParametersData.tracking };
+      const urlParameters = collectUrlParameters();
       const deviceData = collectDeviceData();
       const sessionData = collectSessionData();
       const contextData = collectContextData();
@@ -60,10 +60,10 @@ export const useMaximumTracking = (campaign?: Campaign | null) => {
         facebookData
       });
       
-      // Store UTM parameters for persistence (only valid UTMs)
-      if (Object.keys(urlParametersData.utm).length > 0) {
-        localStorage.setItem('utm_data', JSON.stringify(urlParametersData.utm));
-        console.log('💾 UTM parameters stored:', urlParametersData.utm);
+      // Store UTM parameters for persistence
+      if (Object.keys(urlParameters).length > 0) {
+        localStorage.setItem('utm_data', JSON.stringify(urlParameters));
+        console.log('💾 UTM parameters stored:', urlParameters);
       }
       
       // Update state with immediately available data

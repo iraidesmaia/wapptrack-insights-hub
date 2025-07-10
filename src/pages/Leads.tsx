@@ -1,292 +1,252 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { Lead, Campaign } from '@/types';
-import { getLeads, addLead, deleteLead, updateLead, deleteAllLeads } from '@/services/leadService';
-import { getCampaigns } from '@/services/campaignService';
-import LeadsTable from '@/components/leads/LeadsTable';
-import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
-import LeadDialog from '@/components/leads/LeadDialog';
-import { useToast } from "@/components/ui/use-toast"
-import { formatBrazilianPhone } from '@/lib/phoneUtils';
+
+import React, { useEffect, useState } from 'react';
 import MainLayout from '@/components/MainLayout';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getLeads, getCampaigns } from '@/services/dataService';
+import { Lead, Campaign } from '@/types';
+import { Plus } from 'lucide-react';
+import { useLeadOperations } from '@/hooks/useLeadOperations';
+import LeadsTable from '@/components/leads/LeadsTable';
+import LeadDialog from '@/components/leads/LeadDialog';
+import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
+import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [currentLead, setCurrentLead] = useState<Partial<Lead>>({
-    name: '',
-    phone: '',
-    campaign: '',
-    status: 'new',
-    notes: '',
-    first_contact_date: '',
-    last_contact_date: ''
-  });
-  const [isLeadDialogOpen, setIsLeadDialogOpen] = useState(false);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    handleRefresh();
-    fetchCampaigns();
-  }, []);
+  const {
+    isDialogOpen,
+    setIsDialogOpen,
+    isDetailDialogOpen,
+    setIsDetailDialogOpen,
+    dialogMode,
+    currentLead,
+    selectedLead,
+    handleInputChange,
+    handlePhoneChange,
+    handleSelectChange,
+    handleOpenAddDialog,
+    handleOpenEditDialog,
+    handleOpenViewDialog,
+    handleSaveLead,
+    handleSaveFromDetailDialog,
+    handleDeleteLead,
+    openWhatsApp
+  } = useLeadOperations(leads, setLeads);
 
-  const fetchCampaigns = async () => {
+  const fetchData = async () => {
     try {
-      const campaignsData = await getCampaigns();
+      setIsLoading(true);
+      console.log('🔄 Iniciando busca de dados...');
+      
+      const [leadsData, campaignsData] = await Promise.all([
+        getLeads(),
+        getCampaigns()
+      ]);
+      
+      console.log('📋 Dados brutos do getLeads():', leadsData);
+      
+      // Garantir que os dados estão sendo processados corretamente
+      const processedLeads = leadsData.map(lead => {
+        console.log(`🔍 Processando lead ${lead.name}:`, {
+          id: lead.id,
+          last_message: lead.last_message,
+          last_message_type: typeof lead.last_message,
+          last_message_raw: JSON.stringify(lead.last_message)
+        });
+        
+        return {
+          ...lead,
+          last_message: lead.last_message || null
+        };
+      });
+      
+      console.log('✅ Leads processados:', processedLeads);
+      setLeads(processedLeads);
       setCampaigns(campaignsData);
+      
+      console.log('📊 Estado final dos leads:', processedLeads.map(lead => ({
+        name: lead.name,
+        phone: lead.phone,
+        last_message: lead.last_message,
+        status: lead.status
+      })));
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    try {
-      const leadsData = await getLeads();
-      setLeads(leadsData);
-    } catch (error) {
-      console.error("Error fetching leads:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao carregar leads.",
-        description: "Ocorreu um problema ao buscar os leads do servidor.",
-      })
+      console.error('Error fetching leads data:', error);
+      toast.error('Erro ao carregar dados dos leads');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleView = (lead: Lead) => {
-    setSelectedLead(lead);
-    setIsDetailDialogOpen(true);
-  };
+  useEffect(() => {
+    fetchData();
 
-  const handleEdit = (lead: Lead) => {
-    setSelectedLead(lead);
-    setCurrentLead(lead);
-    setDialogMode('edit');
-    setIsLeadDialogOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteLead(id);
-      setLeads(leads.filter(lead => lead.id !== id));
-      toast({
-        title: "Lead excluído com sucesso.",
-      })
-    } catch (error) {
-      console.error("Error deleting lead:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao excluir lead.",
-        description: "Ocorreu um problema ao excluir o lead do servidor.",
-      })
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    try {
-      await deleteAllLeads();
-      setLeads([]);
-      toast({
-        title: "Todos os leads foram excluídos com sucesso.",
-      })
-    } catch (error) {
-      console.error("Error deleting all leads:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao excluir todos os leads.",
-        description: "Ocorreu um problema ao excluir os leads do servidor.",
-      })
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentLead(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const formatted = formatBrazilianPhone(value);
-    setCurrentLead(prev => ({ ...prev, phone: formatted }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setCurrentLead(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = async () => {
-    try {
-      if (!currentLead.name || !currentLead.phone || !currentLead.campaign || !currentLead.status) {
-        toast({
-          variant: "destructive",
-          title: "Campos obrigatórios",
-          description: "Preencha todos os campos obrigatórios.",
-        });
-        return;
-      }
-
-      if (dialogMode === 'add') {
-        const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'created_at'>);
-        setLeads([...leads, newLead]);
-        toast({
-          title: "Lead criado com sucesso.",
-        });
-      } else {
-        if (selectedLead) {
-          const updatedLead = await updateLead(selectedLead.id, currentLead);
-          setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
-          toast({
-            title: "Lead atualizado com sucesso.",
-          });
+    // Configurar escuta em tempo real para mudanças na tabela de leads
+    console.log('🎧 Configurando escuta em tempo real para leads...');
+    const channel = supabase
+      .channel('leads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'leads'
+        },
+        (payload) => {
+          console.log('📡 Mudança detectada na tabela leads:', payload);
+          console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('➕ Novo lead adicionado:', payload.new);
+            const newLead = payload.new as Lead;
+            console.log('➕ Detalhes da mensagem no INSERT:', {
+              last_message: newLead.last_message,
+              type: typeof newLead.last_message,
+              raw: JSON.stringify(newLead.last_message)
+            });
+            
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...newLead,
+              last_message: newLead.last_message || null
+            };
+            console.log('➕ Lead processado para insert:', processedLead);
+            
+            setLeads(prev => {
+              const newLeads = [processedLead, ...prev];
+              console.log('➕ Estado atualizado após INSERT:', newLeads);
+              return newLeads;
+            });
+            toast.success(`Novo lead adicionado: ${processedLead.name}`);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            console.log('📝 Lead atualizado:', payload.new);
+            console.log('📝 Lead anterior:', payload.old);
+            
+            const updatedLead = payload.new as Lead;
+            const oldLead = payload.old as Lead;
+            
+            console.log('📝 Comparação de mensagens:', {
+              old_message: oldLead.last_message,
+              new_message: updatedLead.last_message,
+              old_type: typeof oldLead.last_message,
+              new_type: typeof updatedLead.last_message,
+              old_raw: JSON.stringify(oldLead.last_message),
+              new_raw: JSON.stringify(updatedLead.last_message)
+            });
+            
+            // Garantir que a mensagem seja preservada
+            const processedLead = {
+              ...updatedLead,
+              last_message: updatedLead.last_message || null
+            };
+            
+            console.log('📝 Lead processado para update:', processedLead);
+            
+            setLeads(prev => {
+              const updatedLeads = prev.map(lead => 
+                lead.id === processedLead.id ? processedLead : lead
+              );
+              console.log('📝 Estado atualizado após UPDATE:', updatedLeads);
+              return updatedLeads;
+            });
+            
+            // Se uma mensagem foi adicionada, mostrar notificação
+            if (processedLead.last_message && processedLead.last_message !== oldLead.last_message) {
+              console.log('💬 Nova mensagem detectada:', processedLead.last_message);
+              toast.info(`Nova mensagem de ${processedLead.name}: ${processedLead.last_message.substring(0, 50)}${processedLead.last_message.length > 50 ? '...' : ''}`);
+            }
+          }
+          else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ Lead removido:', payload.old);
+            const deletedLead = payload.old as Lead;
+            setLeads(prev => prev.filter(lead => lead.id !== deletedLead.id));
+            toast.info(`Lead removido: ${deletedLead.name}`);
+          }
         }
-      }
-      
-      setIsLeadDialogOpen(false);
-      resetCurrentLead();
-    } catch (error) {
-      console.error("Error saving lead:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar lead.",
-        description: "Ocorreu um problema ao salvar o lead no servidor.",
-      });
-    }
-  };
+      )
+      .subscribe();
 
-  const resetCurrentLead = () => {
-    setCurrentLead({
-      name: '',
-      phone: '',
-      campaign: '',
-      status: 'new',
-      notes: '',
-      first_contact_date: '',
-      last_contact_date: ''
-    });
-    setSelectedLead(null);
-  };
+    // Cleanup: remover a escuta quando o componente for desmontado
+    return () => {
+      console.log('🔌 Removendo escuta em tempo real...');
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
-  const handleOpenAddDialog = () => {
-    resetCurrentLead();
-    setDialogMode('add');
-    setIsLeadDialogOpen(true);
-  };
+  const filteredLeads = leads.filter((lead) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      lead.name.toLowerCase().includes(searchLower) ||
+      lead.phone.toLowerCase().includes(searchLower) ||
+      lead.campaign.toLowerCase().includes(searchLower) ||
+      lead.status.toLowerCase().includes(searchLower) ||
+      (lead.last_message && lead.last_message.toLowerCase().includes(searchLower))
+    );
+  });
 
-  const handleUpdate = async (id: string, updatedData: Partial<Lead>) => {
-    try {
-      const updatedLead = await updateLead(id, updatedData);
-      setLeads(leads.map(lead => lead.id === id ? updatedLead : lead));
-      setIsDetailDialogOpen(false);
-      toast({
-        title: "Lead atualizado com sucesso.",
-      })
-    } catch (error) {
-      console.error("Error updating lead:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao atualizar lead.",
-        description: "Ocorreu um problema ao atualizar o lead no servidor.",
-      })
-    }
-  };
-
-  const handleOpenWhatsApp = (phone: string) => {
-    const formattedPhone = formatBrazilianPhone(phone);
-    window.open(`https://wa.me/${formattedPhone}`, '_blank');
-  };
+  console.log('🎯 Leads filtrados sendo passados para a tabela:', filteredLeads.map(lead => ({
+    name: lead.name,
+    last_message: lead.last_message,
+    type: typeof lead.last_message
+  })));
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Leads</h1>
+            <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
+          </div>
           <div className="flex gap-2">
-            {leads.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Excluir Todos
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir todos os leads</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Todos os {leads.length} leads serão permanentemente excluídos.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Excluir Todos
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
             <Button onClick={handleOpenAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Lead
+              <Plus className="mr-2 h-4 w-4" /> Novo Lead
             </Button>
           </div>
         </div>
 
+        <div className="flex items-center">
+          <Input
+            placeholder="Buscar leads por nome, telefone, campanha, status ou mensagem..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-lg"
+          />
+        </div>
+
         <LeadsTable
-          leads={leads}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onOpenWhatsApp={handleOpenWhatsApp}
-          onRefresh={handleRefresh}
+          leads={filteredLeads}
+          isLoading={isLoading}
+          onView={handleOpenViewDialog}
+          onDelete={handleDeleteLead}
+          onOpenWhatsApp={openWhatsApp}
         />
 
         <LeadDialog
-          isOpen={isLeadDialogOpen}
-          onClose={() => {
-            setIsLeadDialogOpen(false);
-            resetCurrentLead();
-          }}
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
           mode={dialogMode}
           currentLead={currentLead}
           campaigns={campaigns}
-          onSave={handleSave}
+          onSave={handleSaveLead}
           onInputChange={handleInputChange}
           onPhoneChange={handlePhoneChange}
           onSelectChange={handleSelectChange}
         />
 
         <LeadDetailDialog
-          lead={selectedLead}
           isOpen={isDetailDialogOpen}
           onClose={() => setIsDetailDialogOpen(false)}
-          onSave={(updatedData: Partial<Lead>) => {
-            if (selectedLead) {
-              return handleUpdate(selectedLead.id, updatedData);
-            }
-            return Promise.resolve();
-          }}
-          onOpenWhatsApp={handleOpenWhatsApp}
+          lead={selectedLead}
+          onSave={handleSaveFromDetailDialog}
+          onOpenWhatsApp={openWhatsApp}
         />
       </div>
     </MainLayout>

@@ -27,14 +27,10 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* Redirect root to dashboard */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              
-              {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/ir" element={<Redirect />} />
               
-              {/* Protected routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -65,7 +61,6 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* Catch all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
