@@ -565,6 +565,7 @@ export type Database = {
         Row: {
           browser_fingerprint: string | null
           campaign_id: string | null
+          click_id: string | null
           created_at: string
           ctwa_clid: string | null
           current_url: string | null
@@ -587,6 +588,7 @@ export type Database = {
         Insert: {
           browser_fingerprint?: string | null
           campaign_id?: string | null
+          click_id?: string | null
           created_at?: string
           ctwa_clid?: string | null
           current_url?: string | null
@@ -609,6 +611,7 @@ export type Database = {
         Update: {
           browser_fingerprint?: string | null
           campaign_id?: string | null
+          click_id?: string | null
           created_at?: string
           ctwa_clid?: string | null
           current_url?: string | null
