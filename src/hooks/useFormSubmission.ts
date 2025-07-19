@@ -10,7 +10,8 @@ import { collectUrlParameters } from '@/lib/dataCollection';
 export const useFormSubmission = (
   campaignId: string | null,
   campaign: Campaign | null,
-  pixelInitialized: boolean
+  pixelInitialized: boolean,
+  clickId?: string | null
 ) => {
   const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
 
@@ -93,7 +94,8 @@ export const useFormSubmission = (
       utm_content: utms.utm_content,
       utm_term: utms.utm_term,
       ad_id: utms.ad_id,
-      facebook_ad_id: utms.facebook_ad_id
+      facebook_ad_id: utms.facebook_ad_id,
+      click_id: clickId
     });
 
     console.log('📱 Processando formulário via trackRedirect...');
@@ -110,7 +112,8 @@ export const useFormSubmission = (
           utm_campaign: utms.utm_campaign,
           utm_content: utms.utm_content,
           utm_term: utms.utm_term
-        }
+        },
+        clickId || undefined
       );
       
       console.log('✅ trackRedirect executado:', result);

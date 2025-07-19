@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       campaigns: {
@@ -14,6 +19,7 @@ export type Database = {
           active: boolean | null
           advanced_matching_enabled: boolean | null
           cancellation_keywords: string[] | null
+          click_id: string | null
           company_subtitle: string | null
           company_title: string | null
           conversion_api_enabled: boolean | null
@@ -49,6 +55,7 @@ export type Database = {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
           cancellation_keywords?: string[] | null
+          click_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -84,6 +91,7 @@ export type Database = {
           active?: boolean | null
           advanced_matching_enabled?: boolean | null
           cancellation_keywords?: string[] | null
+          click_id?: string | null
           company_subtitle?: string | null
           company_title?: string | null
           conversion_api_enabled?: boolean | null
@@ -159,6 +167,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string
+          ctwa_clid: string | null
           device_model: string | null
           device_type: string | null
           facebook_ad_id: string | null
@@ -168,10 +177,12 @@ export type Database = {
           ip_address: string | null
           language: string | null
           location: string | null
+          media_url: string | null
           os: string | null
           phone: string
           referrer: string | null
           screen_resolution: string | null
+          source_id: string | null
           timezone: string | null
           user_agent: string | null
           utm_campaign: string | null
@@ -185,6 +196,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -194,10 +206,12 @@ export type Database = {
           ip_address?: string | null
           language?: string | null
           location?: string | null
+          media_url?: string | null
           os?: string | null
           phone: string
           referrer?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -211,6 +225,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -220,10 +235,12 @@ export type Database = {
           ip_address?: string | null
           language?: string | null
           location?: string | null
+          media_url?: string | null
           os?: string | null
           phone?: string
           referrer?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -231,6 +248,66 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+        }
+        Relationships: []
+      }
+      facebook_mappings: {
+        Row: {
+          ad_name: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          created_at: string | null
+          id: number
+          source_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string | null
+          id?: never
+          source_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ad_name?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_at?: string | null
+          id?: never
+          source_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      global_keywords_settings: {
+        Row: {
+          cancellation_keywords: string[]
+          conversion_keywords: string[]
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancellation_keywords?: string[]
+          conversion_keywords?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cancellation_keywords?: string[]
+          conversion_keywords?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -245,6 +322,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          ctwa_clid: string | null
           custom_fields: Json | null
           device_model: string | null
           device_type: string | null
@@ -260,12 +338,14 @@ export type Database = {
           last_message: string | null
           last_whatsapp_attempt: string | null
           location: string | null
+          media_url: string | null
           name: string
           notes: string | null
           os: string | null
           phone: string
           project_id: string | null
           screen_resolution: string | null
+          source_id: string | null
           status: string | null
           timezone: string | null
           tracking_method: string | null
@@ -287,6 +367,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          ctwa_clid?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
@@ -302,12 +383,14 @@ export type Database = {
           last_message?: string | null
           last_whatsapp_attempt?: string | null
           location?: string | null
+          media_url?: string | null
           name: string
           notes?: string | null
           os?: string | null
           phone: string
           project_id?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
@@ -329,6 +412,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          ctwa_clid?: string | null
           custom_fields?: Json | null
           device_model?: string | null
           device_type?: string | null
@@ -344,12 +428,14 @@ export type Database = {
           last_message?: string | null
           last_whatsapp_attempt?: string | null
           location?: string | null
+          media_url?: string | null
           name?: string
           notes?: string | null
           os?: string | null
           phone?: string
           project_id?: string | null
           screen_resolution?: string | null
+          source_id?: string | null
           status?: string | null
           timezone?: string | null
           tracking_method?: string | null
@@ -480,13 +566,16 @@ export type Database = {
           browser_fingerprint: string | null
           campaign_id: string | null
           created_at: string
+          ctwa_clid: string | null
           current_url: string | null
           id: string
           ip_address: string | null
           language: string | null
+          media_url: string | null
           referrer: string | null
           screen_resolution: string | null
           session_id: string
+          source_id: string | null
           timezone: string | null
           user_agent: string | null
           utm_campaign: string | null
@@ -499,13 +588,16 @@ export type Database = {
           browser_fingerprint?: string | null
           campaign_id?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           current_url?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
+          media_url?: string | null
           referrer?: string | null
           screen_resolution?: string | null
           session_id: string
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -518,13 +610,16 @@ export type Database = {
           browser_fingerprint?: string | null
           campaign_id?: string | null
           created_at?: string
+          ctwa_clid?: string | null
           current_url?: string | null
           id?: string
           ip_address?: string | null
           language?: string | null
+          media_url?: string | null
           referrer?: string | null
           screen_resolution?: string | null
           session_id?: string
+          source_id?: string | null
           timezone?: string | null
           user_agent?: string | null
           utm_campaign?: string | null
@@ -540,6 +635,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_global_keywords_to_campaign: {
+        Args: { campaign_id_param: string }
+        Returns: undefined
+      }
       create_default_project_settings: {
         Args: { project_id_param: string }
         Returns: undefined
@@ -564,6 +663,10 @@ export type Database = {
           utm_term: string
           created_at: string
         }[]
+      }
+      get_user_by_instance: {
+        Args: { instance_name_param: string }
+        Returns: string
       }
       insert_tracking_session: {
         Args: {
@@ -612,21 +715,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -644,14 +751,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -667,14 +776,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -690,14 +801,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -705,14 +818,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

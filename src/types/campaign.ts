@@ -2,6 +2,7 @@
 export interface Campaign {
   id: string;
   name: string;
+  click_id?: string;
   pixel_id?: string;
   facebook_access_token?: string;
   whatsapp_number?: string;

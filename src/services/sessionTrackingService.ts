@@ -55,7 +55,7 @@ export const getPublicIP = async (): Promise<string> => {
 };
 
 // Salvar dados de tracking com identificadores únicos
-export const saveTrackingData = async (utms: any, campaignId: string) => {
+export const saveTrackingData = async (utms: any, campaignId: string, clickId?: string) => {
   try {
     console.log('💾 Salvando dados de tracking com identificadores únicos...');
     
@@ -78,7 +78,8 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       utm_medium: utms.utm_medium,
       utm_campaign: utms.utm_campaign,
       utm_content: utms.utm_content,
-      utm_term: utms.utm_term
+      utm_term: utms.utm_term,
+      ...(clickId && { click_id: clickId })
     };
     
     console.log('📊 Dados de tracking preparados:', {
@@ -86,29 +87,33 @@ export const saveTrackingData = async (utms: any, campaignId: string) => {
       browser_fingerprint: browserFingerprint,
       ip_address: publicIP,
       campaign_id: campaignId,
-      utm_campaign: utms.utm_campaign
+      utm_campaign: utms.utm_campaign,
+      click_id: clickId
     });
     
     // Inserir diretamente na tabela tracking_sessions
+    const insertData = {
+      session_id: trackingData.session_id,
+      browser_fingerprint: trackingData.browser_fingerprint,
+      ip_address: trackingData.ip_address,
+      user_agent: trackingData.user_agent,
+      screen_resolution: trackingData.screen_resolution,
+      language: trackingData.language,
+      timezone: trackingData.timezone,
+      referrer: trackingData.referrer,
+      current_url: trackingData.current_url,
+      campaign_id: trackingData.campaign_id,
+      utm_source: trackingData.utm_source,
+      utm_medium: trackingData.utm_medium,
+      utm_campaign: trackingData.utm_campaign,
+      utm_content: trackingData.utm_content,
+      utm_term: trackingData.utm_term,
+      ...(clickId && { click_id: clickId })
+    };
+    
     const { error } = await supabase
       .from('tracking_sessions')
-      .insert({
-        session_id: trackingData.session_id,
-        browser_fingerprint: trackingData.browser_fingerprint,
-        ip_address: trackingData.ip_address,
-        user_agent: trackingData.user_agent,
-        screen_resolution: trackingData.screen_resolution,
-        language: trackingData.language,
-        timezone: trackingData.timezone,
-        referrer: trackingData.referrer,
-        current_url: trackingData.current_url,
-        campaign_id: trackingData.campaign_id,
-        utm_source: trackingData.utm_source,
-        utm_medium: trackingData.utm_medium,
-        utm_campaign: trackingData.utm_campaign,
-        utm_content: trackingData.utm_content,
-        utm_term: trackingData.utm_term
-      });
+      .insert(insertData);
     
     if (error) {
       console.error('❌ Erro ao salvar dados de tracking:', error);

@@ -12,6 +12,7 @@ import { useCampaignData } from '@/hooks/useCampaignData';
 const Redirect = () => {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('id');
+  const clickId = searchParams.get('click_id');
   const debug = searchParams.get('debug') === 'true';
   
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ const Redirect = () => {
     companyBranding,
     handleFormSubmit,
     handleDirectWhatsAppRedirect
-  } = useCampaignData(campaignId, debug);
+  } = useCampaignData(campaignId, clickId, debug);
 
   useEffect(() => {
     // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada

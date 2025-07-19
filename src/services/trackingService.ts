@@ -19,7 +19,8 @@ export const trackRedirect = async (
     utm_term?: string
     gclid?: string
     fbclid?: string
-  }
+  },
+  clickId?: string
 ): Promise<{targetPhone?: string}> => {
   try {
     console.log('➡️ [TRACK REDIRECT] Iniciado com parâmetros:', {
@@ -48,7 +49,7 @@ export const trackRedirect = async (
     // 💾 NOVA FUNCIONALIDADE: Salvar dados de tracking para correlação futura
     if (utms && Object.keys(utms).length > 0) {
       console.log('💾 Salvando dados de tracking para correlação futura...');
-      await saveTrackingData(utms, campaignId);
+      await saveTrackingData(utms, campaignId, clickId);
     }
 
     // Para campanhas de redirecionamento WhatsApp

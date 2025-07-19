@@ -4,7 +4,7 @@ import { useFormSubmission } from './useFormSubmission';
 import { useDirectWhatsAppRedirect } from './useDirectWhatsAppRedirect';
 import { CompanyBranding } from '@/types/campaign';
 
-export const useCampaignData = (campaignId: string | null, debug: boolean) => {
+export const useCampaignData = (campaignId: string | null, clickId: string | null, debug: boolean) => {
   const {
     campaign,
     isLoading,
@@ -15,11 +15,11 @@ export const useCampaignData = (campaignId: string | null, debug: boolean) => {
   const {
     handleFormSubmit,
     updateLeadWhatsAppStatus
-  } = useFormSubmission(campaignId, campaign, pixelInitialized);
+  } = useFormSubmission(campaignId, campaign, pixelInitialized, clickId);
 
   const {
     handleDirectWhatsAppRedirect
-  } = useDirectWhatsAppRedirect(campaignId, pixelInitialized);
+  } = useDirectWhatsAppRedirect(campaignId, pixelInitialized, clickId);
 
   // Default company branding
   const defaultCompanyBranding = {

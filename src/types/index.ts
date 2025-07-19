@@ -53,6 +53,7 @@ export interface Lead {
 export interface Campaign {
   id: string;
   name: string;
+  click_id?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;

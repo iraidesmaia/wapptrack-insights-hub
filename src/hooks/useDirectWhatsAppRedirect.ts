@@ -16,7 +16,8 @@ type UTMVars = {
 
 export const useDirectWhatsAppRedirect = (
   campaignId: string | null,
-  pixelInitialized: boolean
+  pixelInitialized: boolean,
+  clickId?: string | null
 ) => {
   const handleDirectWhatsAppRedirect = async (
     campaignData: Campaign,
@@ -52,16 +53,20 @@ export const useDirectWhatsAppRedirect = (
 
       // ✅ COLETA UTMs DA URL ATUAL SE NÃO FORAM FORNECIDOS
       const currentUtms = options?.utms || collectUrlParameters();
-      console.log('🌐 UTMs para redirecionamento direto:', currentUtms);
+      console.log('🌐 UTMs para redirecionamento direto:', {
+        ...currentUtms,
+        click_id: clickId
+      });
 
       // 🆕 SALVAR DADOS DE TRACKING COM IDENTIFICADORES ÚNICOS
       try {
-        const trackingResult = await saveTrackingData(currentUtms, campaignId!);
+        const trackingResult = await saveTrackingData(currentUtms, campaignId!, clickId || undefined);
         if (trackingResult.success) {
           console.log('✅ Dados de tracking salvos:', {
             session_id: trackingResult.session_id,
             browser_fingerprint: trackingResult.browser_fingerprint,
-            campaign_id: campaignId
+            campaign_id: campaignId,
+            click_id: clickId
           });
         }
       } catch (trackingError) {
@@ -75,7 +80,8 @@ export const useDirectWhatsAppRedirect = (
           'Redirecionamento Direto', // Sem telefone ainda
           options?.name || 'Visitante',
           campaignData.event_type,
-          currentUtms
+          currentUtms,
+          clickId || undefined
         );
         
         console.log('✅ Redirecionamento direto salvo com sucesso (PUBLIC):', result);

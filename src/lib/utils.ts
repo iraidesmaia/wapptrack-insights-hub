@@ -50,14 +50,22 @@ export function generateWhatsAppLink(phone: string, message?: string): string {
   return `https://wa.me/${formattedPhone}${encodedMessage ? `?text=${encodedMessage}` : ''}`
 }
 
-// Generate tracking URL
-export function generateTrackingUrl(baseUrl: string, campaignId: string): string {
-  return `${baseUrl}/ir?id=${campaignId}`
+// Generate tracking URL with click_id
+export function generateTrackingUrl(baseUrl: string, campaignId: string, clickId?: string): string {
+  const url = `${baseUrl}/ir?id=${campaignId}`
+  return clickId ? `${url}&click_id=${clickId}` : url
 }
 
 // Generate a unique ID
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 11)
+}
+
+// Generate a unique click_id for campaigns
+export function generateClickId(): string {
+  const timestamp = Date.now().toString(36)
+  const random = Math.random().toString(36).substring(2, 10)
+  return `${timestamp}${random}`.toUpperCase()
 }
 
 // Parse a URL's query parameters
