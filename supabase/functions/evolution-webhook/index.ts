@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getMessageContent, getContactName } from "./helpers.ts";
 import { createPhoneSearchVariations } from "./phoneVariations.ts";
 import { processComercialMessage, processClientMessage, handleDirectLead } from "./handlers.ts";
+import { cleanupExpiredUtmSessions } from "./utmPending.ts";
 import { 
   corsHeaders, 
   checkRateLimit, 
@@ -106,6 +107,11 @@ serve(async (req) => {
         }
 
         console.log(`📱 Processando mensagem de: ${realPhoneNumber} (instância: ${instanceName})`);
+
+        // Periodic cleanup of expired UTM sessions (run occasionally)
+        if (Math.random() < 0.1) { // 10% chance to run cleanup
+          cleanupExpiredUtmSessions(supabase);
+        }
 
         // Create phone variations and look for matching leads
         const phoneVariations = createPhoneSearchVariations(realPhoneNumber);

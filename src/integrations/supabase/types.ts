@@ -320,10 +320,12 @@ export type Database = {
           campaign: string
           campaign_id: string | null
           city: string | null
+          confidence_score: number | null
           country: string | null
           created_at: string | null
           ctwa_clid: string | null
           custom_fields: Json | null
+          data_sources: string[] | null
           device_model: string | null
           device_type: string | null
           facebook_ad_id: string | null
@@ -333,6 +335,7 @@ export type Database = {
           id: string
           initial_message: string | null
           ip_address: string | null
+          landing_page: string | null
           language: string | null
           last_contact_date: string | null
           last_message: string | null
@@ -344,6 +347,7 @@ export type Database = {
           os: string | null
           phone: string
           project_id: string | null
+          referrer: string | null
           screen_resolution: string | null
           source_id: string | null
           status: string | null
@@ -353,6 +357,7 @@ export type Database = {
           utm_campaign: string | null
           utm_content: string | null
           utm_medium: string | null
+          utm_session_id: string | null
           utm_source: string | null
           utm_term: string | null
           whatsapp_delivery_attempts: number | null
@@ -365,10 +370,12 @@ export type Database = {
           campaign: string
           campaign_id?: string | null
           city?: string | null
+          confidence_score?: number | null
           country?: string | null
           created_at?: string | null
           ctwa_clid?: string | null
           custom_fields?: Json | null
+          data_sources?: string[] | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -378,6 +385,7 @@ export type Database = {
           id?: string
           initial_message?: string | null
           ip_address?: string | null
+          landing_page?: string | null
           language?: string | null
           last_contact_date?: string | null
           last_message?: string | null
@@ -389,6 +397,7 @@ export type Database = {
           os?: string | null
           phone: string
           project_id?: string | null
+          referrer?: string | null
           screen_resolution?: string | null
           source_id?: string | null
           status?: string | null
@@ -398,6 +407,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
+          utm_session_id?: string | null
           utm_source?: string | null
           utm_term?: string | null
           whatsapp_delivery_attempts?: number | null
@@ -410,10 +420,12 @@ export type Database = {
           campaign?: string
           campaign_id?: string | null
           city?: string | null
+          confidence_score?: number | null
           country?: string | null
           created_at?: string | null
           ctwa_clid?: string | null
           custom_fields?: Json | null
+          data_sources?: string[] | null
           device_model?: string | null
           device_type?: string | null
           facebook_ad_id?: string | null
@@ -423,6 +435,7 @@ export type Database = {
           id?: string
           initial_message?: string | null
           ip_address?: string | null
+          landing_page?: string | null
           language?: string | null
           last_contact_date?: string | null
           last_message?: string | null
@@ -434,6 +447,7 @@ export type Database = {
           os?: string | null
           phone?: string
           project_id?: string | null
+          referrer?: string | null
           screen_resolution?: string | null
           source_id?: string | null
           status?: string | null
@@ -443,6 +457,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_content?: string | null
           utm_medium?: string | null
+          utm_session_id?: string | null
           utm_source?: string | null
           utm_term?: string | null
           whatsapp_delivery_attempts?: number | null
@@ -633,6 +648,66 @@ export type Database = {
         }
         Relationships: []
       }
+      utm_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          ip_address: string | null
+          landing_page: string | null
+          matched_lead_id: string | null
+          phone: string | null
+          referrer: string | null
+          session_id: string
+          status: string | null
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          landing_page?: string | null
+          matched_lead_id?: string | null
+          phone?: string | null
+          referrer?: string | null
+          session_id: string
+          status?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          landing_page?: string | null
+          matched_lead_id?: string | null
+          phone?: string | null
+          referrer?: string | null
+          session_id?: string
+          status?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -640,6 +715,10 @@ export type Database = {
     Functions: {
       apply_global_keywords_to_campaign: {
         Args: { campaign_id_param: string }
+        Returns: undefined
+      }
+      cleanup_expired_utm_sessions: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       create_default_project_settings: {
