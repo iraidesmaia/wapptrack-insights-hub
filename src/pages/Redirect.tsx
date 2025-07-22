@@ -9,6 +9,13 @@ import LoadingScreen from '@/components/LoadingScreen';
 import ContactForm from '@/components/ContactForm';
 import { useCampaignData } from '@/hooks/useCampaignData';
 
+// Declaração de tipo para o WappTrackUTMCapture
+declare global {
+  interface Window {
+    WappTrackUTMCapture: any;
+  }
+}
+
 const Redirect = () => {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('id');
@@ -28,6 +35,22 @@ const Redirect = () => {
     handleFormSubmit,
     handleDirectWhatsAppRedirect
   } = useCampaignData(campaignId, clickId, debug);
+
+  // Capturar UTMs automaticamente quando a página carregar
+  useEffect(() => {
+    // Inicializar captura UTM
+    if (window.WappTrackUTMCapture) {
+      const wappTrack = new window.WappTrackUTMCapture({
+        apiEndpoint: 'https://gbrpboxxhlwmenrajdji.supabase.co/functions/v1/utm-capture',
+        debug: debug,
+        autoCapture: true
+      });
+      
+      console.log('🎯 WappTrack inicializado na página de redirecionamento');
+    } else {
+      console.warn('⚠️ WappTrackUTMCapture não encontrado');
+    }
+  }, [debug]);
 
   useEffect(() => {
     // Handle direct WhatsApp redirect - só executar uma vez quando a campanha for carregada
