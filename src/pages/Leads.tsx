@@ -10,6 +10,7 @@ import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
+import { TestOrganicCorrelation } from '@/components/TestOrganicCorrelation';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -220,6 +221,8 @@ const Leads = () => {
             className="max-w-lg"
           />
         </div>
+
+        <TestOrganicCorrelation />
 
         <LeadsTable
           leads={filteredLeads}

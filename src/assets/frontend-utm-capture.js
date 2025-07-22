@@ -116,10 +116,8 @@ class WappTrackUTMCapture {
       
       this.log('Dados UTM capturados', this.utmData);
       
-      // Se há parâmetros UTM, enviar imediatamente
-      if (Object.keys(utmParams).length > 0) {
-        this.sendUTMData();
-      }
+      // Enviar dados sempre (com ou sem UTMs) para capturar tráfego orgânico
+      this.sendUTMData();
       
       return this.utmData;
       

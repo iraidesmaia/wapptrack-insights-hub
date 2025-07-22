@@ -101,7 +101,13 @@ export async function handleDirectLead({
       const utmSession = await getUtmsFromPendingSessions(supabase, realPhoneNumber);
       
       if (utmSession) {
-        console.log(`🎯 Enriquecendo lead existente com dados UTM`);
+        const isOrganic = !utmSession.utm_source;
+        const sourceType = isOrganic ? 'ORGÂNICO' : 'UTM';
+        console.log(`🎯 Enriquecendo lead existente com dados ${sourceType}:`, {
+          utm_source: utmSession.utm_source || 'orgânico',
+          landing_page: utmSession.landing_page,
+          referrer: utmSession.referrer
+        });
         
         const dataSources = [...(existingLeads[0].data_sources || [])];
         if (!dataSources.includes('utm_sessions')) {
