@@ -10,7 +10,6 @@ import { useLeadOperations } from '@/hooks/useLeadOperations';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
-import { TestOrganicCorrelation } from '@/components/TestOrganicCorrelation';
 import { LeadCorrelationDialog } from '@/components/leads/LeadCorrelationDialog';
 import { CorrelationDashboard } from '@/components/leads/CorrelationDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -240,8 +239,6 @@ const Leads = () => {
                 <Plus className="mr-2 h-4 w-4" /> Novo Lead
               </Button>
             </div>
-
-            <TestOrganicCorrelation />
 
             <LeadsTable
               leads={filteredLeads}
