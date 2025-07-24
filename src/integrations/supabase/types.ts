@@ -787,6 +787,10 @@ export type Database = {
           created_at: string
         }[]
       }
+      validate_evolution_webhook: {
+        Args: { instance_name_param: string; api_key_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
