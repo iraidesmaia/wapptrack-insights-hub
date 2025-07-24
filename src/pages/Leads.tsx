@@ -11,6 +11,9 @@ import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDialog from '@/components/leads/LeadDialog';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import { TestOrganicCorrelation } from '@/components/TestOrganicCorrelation';
+import { LeadCorrelationDialog } from '@/components/leads/LeadCorrelationDialog';
+import { CorrelationDashboard } from '@/components/leads/CorrelationDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +22,7 @@ const Leads = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [correlationLead, setCorrelationLead] = useState<{id: string, name: string} | null>(null);
 
   const {
     isDialogOpen,
@@ -39,6 +43,14 @@ const Leads = () => {
     handleDeleteLead,
     openWhatsApp
   } = useLeadOperations(leads, setLeads);
+
+  const handleOpenCorrelation = (lead: Lead) => {
+    setCorrelationLead({ id: lead.id, name: lead.name });
+  };
+
+  const handleCorrelationApplied = () => {
+    fetchData(); // Recarregar dados após correlação
+  };
 
   const fetchData = async () => {
     try {
@@ -206,31 +218,45 @@ const Leads = () => {
             <h1 className="text-2xl font-bold">Leads</h1>
             <p className="text-muted-foreground">Gerencie todos os seus leads de WhatsApp</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleOpenAddDialog}>
-              <Plus className="mr-2 h-4 w-4" /> Novo Lead
-            </Button>
-          </div>
         </div>
 
-        <div className="flex items-center">
-          <Input
-            placeholder="Buscar leads por nome, telefone, campanha, status ou mensagem..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-lg"
-          />
-        </div>
+        <Tabs defaultValue="leads" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="leads">Gerenciar Leads</TabsTrigger>
+            <TabsTrigger value="correlation">Dashboard de Correlação</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="leads" className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="Buscar leads por nome, telefone, campanha, status ou mensagem..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-lg"
+                />
+              </div>
+              <Button onClick={handleOpenAddDialog}>
+                <Plus className="mr-2 h-4 w-4" /> Novo Lead
+              </Button>
+            </div>
 
-        <TestOrganicCorrelation />
+            <TestOrganicCorrelation />
 
-        <LeadsTable
-          leads={filteredLeads}
-          isLoading={isLoading}
-          onView={handleOpenViewDialog}
-          onDelete={handleDeleteLead}
-          onOpenWhatsApp={openWhatsApp}
-        />
+            <LeadsTable
+              leads={filteredLeads}
+              isLoading={isLoading}
+              onView={handleOpenViewDialog}
+              onDelete={handleDeleteLead}
+              onOpenWhatsApp={openWhatsApp}
+              onOpenCorrelation={handleOpenCorrelation}
+            />
+          </TabsContent>
+
+          <TabsContent value="correlation">
+            <CorrelationDashboard />
+          </TabsContent>
+        </Tabs>
 
         <LeadDialog
           isOpen={isDialogOpen}
@@ -251,6 +277,16 @@ const Leads = () => {
           onSave={handleSaveFromDetailDialog}
           onOpenWhatsApp={openWhatsApp}
         />
+
+        {correlationLead && (
+          <LeadCorrelationDialog
+            open={!!correlationLead}
+            onOpenChange={(open) => !open && setCorrelationLead(null)}
+            leadId={correlationLead.id}
+            leadName={correlationLead.name}
+            onCorrelationApplied={handleCorrelationApplied}
+          />
+        )}
       </div>
     </MainLayout>
   );

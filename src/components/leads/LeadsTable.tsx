@@ -3,7 +3,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, ExternalLink } from "lucide-react";
+import { Eye, Trash2, ExternalLink, Target } from "lucide-react";
 import { Lead } from '@/types';
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ interface LeadsTableProps {
   onView: (lead: Lead) => void;
   onDelete: (id: string) => void;
   onOpenWhatsApp: (phone: string) => void;
+  onOpenCorrelation?: (lead: Lead) => void;
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({
@@ -22,7 +23,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
   isLoading,
   onView,
   onDelete,
-  onOpenWhatsApp
+  onOpenWhatsApp,
+  onOpenCorrelation
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,6 +128,17 @@ const LeadsTable: React.FC<LeadsTableProps> = ({
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {(lead.campaign === 'Contato Direto WhatsApp' || lead.tracking_method === 'organic') && onOpenCorrelation && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onOpenCorrelation(lead)}
+                        title="Analisar correlação"
+                        className="text-orange-600 hover:text-orange-700"
+                      >
+                        <Target className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
