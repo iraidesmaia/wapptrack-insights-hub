@@ -2,4 +2,4 @@
 project_id = "gbrpboxxhlwmenrajdji"
 
 [functions.evolution-webhook]
-verify_jwt = false
+verify_jwt = true

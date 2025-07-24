@@ -21,6 +21,22 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication - webhook now requires JWT
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logSecurityEvent('Missing or invalid authorization header', { 
+        method: req.method,
+        hasAuth: !!authHeader 
+      }, 'high');
+      return new Response(
+        JSON.stringify({ error: 'Authorization required - webhook is now secured' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Rate limiting based on IP
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
