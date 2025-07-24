@@ -576,6 +576,39 @@ export type Database = {
           },
         ]
       }
+      security_audit_logs: {
+        Row: {
+          created_at: string
+          event_details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          severity: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       tracking_sessions: {
         Row: {
           browser_fingerprint: string | null
@@ -721,9 +754,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_old_audit_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_default_project_settings: {
         Args: { project_id_param: string }
         Returns: undefined
+      }
+      decrypt_sensitive_data: {
+        Args: { encrypted_data: string; key_name?: string }
+        Returns: string
+      }
+      encrypt_sensitive_data: {
+        Args: { data: string; key_name?: string }
+        Returns: string
       }
       get_tracking_by_identifiers: {
         Args: {
@@ -767,6 +812,17 @@ export type Database = {
           utm_campaign?: string
           utm_content?: string
           utm_term?: string
+        }
+        Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          event_type_param: string
+          severity_param: string
+          user_id_param?: string
+          ip_address_param?: unknown
+          user_agent_param?: string
+          event_details_param?: Json
         }
         Returns: undefined
       }
