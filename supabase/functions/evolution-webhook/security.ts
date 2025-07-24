@@ -4,30 +4,45 @@
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Security-Policy': "default-src 'self'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'none';",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block'
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
-// Rate limiting store (simple in-memory for now)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+// Enhanced rate limiting with progressive delays
+const rateLimitStore = new Map<string, { count: number; resetTime: number; violations: number }>();
 
-export function checkRateLimit(identifier: string, maxRequests = 100, windowMs = 60000): boolean {
+export function checkRateLimit(identifier: string, maxRequests = 50, windowMs = 60000): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   const record = rateLimitStore.get(identifier);
   
   if (!record || now > record.resetTime) {
-    rateLimitStore.set(identifier, { count: 1, resetTime: now + windowMs });
-    return true;
+    rateLimitStore.set(identifier, { count: 1, resetTime: now + windowMs, violations: 0 });
+    return { allowed: true };
   }
   
   if (record.count >= maxRequests) {
-    return false;
+    // Progressive delay based on violations
+    record.violations++;
+    const delay = Math.min(record.violations * 60000, 600000); // Max 10 minutes
+    logSecurityEvent('Rate limit exceeded', { 
+      identifier, 
+      violations: record.violations, 
+      delay 
+    }, 'high');
+    
+    return { 
+      allowed: false, 
+      retryAfter: Math.ceil((record.resetTime - now + delay) / 1000) 
+    };
   }
   
   record.count++;
-  return true;
+  return { allowed: true };
 }
 
 export function sanitizePhoneNumber(phone: string): string {
