@@ -49,12 +49,17 @@ export function processBrazilianPhone(phone: string): string {
 }
 
 /**
- * Validates Brazilian phone number format
+ * Validates Brazilian phone number format with enhanced security
  * @param phone - Phone number to validate
  * @returns true if valid Brazilian phone format
  */
 export function validateBrazilianPhone(phone: string): boolean {
-  if (!phone) return false;
+  if (!phone || typeof phone !== 'string') return false;
+  
+  // Block suspicious patterns and potential injection attempts
+  if (phone.includes('<script>') || phone.includes('javascript:') || phone.includes('data:')) {
+    return false;
+  }
   
   const digits = phone.replace(/\D/g, '');
   
@@ -63,10 +68,43 @@ export function validateBrazilianPhone(phone: string): boolean {
   // Phone: 8 digits (old format) or 9 digits (mobile with 9)
   if (digits.length !== 10 && digits.length !== 11) return false;
   
+  // Block suspicious patterns (all same digit, etc.)
+  if (/^(\d)\1{9,}$/.test(digits)) return false;
+  
   const ddd = parseInt(digits.slice(0, 2));
   
-  // Validate DDD (Brazilian area codes)
-  if (ddd < 11 || ddd > 99) return false;
+  // Validate DDD (Brazilian area codes) - enhanced with more comprehensive validation
+  const validDDDs = [
+    11, 12, 13, 14, 15, 16, 17, 18, 19, // São Paulo
+    21, 22, 24, // Rio de Janeiro
+    27, 28, // Espírito Santo
+    31, 32, 33, 34, 35, 37, 38, // Minas Gerais
+    41, 42, 43, 44, 45, 46, // Paraná
+    47, 48, 49, // Santa Catarina
+    51, 53, 54, 55, // Rio Grande do Sul
+    61, // Distrito Federal
+    62, 64, // Goiás
+    63, // Tocantins
+    65, 66, // Mato Grosso
+    67, // Mato Grosso do Sul
+    68, // Acre
+    69, // Rondônia
+    71, 73, 74, 75, 77, // Bahia
+    79, // Sergipe
+    81, 87, // Pernambuco
+    82, // Alagoas
+    83, // Paraíba
+    84, // Rio Grande do Norte
+    85, 88, // Ceará
+    86, 89, // Piauí
+    91, 93, 94, // Pará
+    92, 97, // Amazonas
+    95, // Roraima
+    96, // Amapá
+    98, 99 // Maranhão
+  ];
+  
+  if (!validDDDs.includes(ddd)) return false;
   
   // For 11 digits, first digit should be 9 (mobile)
   if (digits.length === 11) {

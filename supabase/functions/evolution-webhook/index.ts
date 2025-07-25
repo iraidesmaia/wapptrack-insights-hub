@@ -6,7 +6,8 @@ import { createPhoneSearchVariations } from "./phoneVariations.ts";
 import { processComercialMessage, processClientMessage, handleDirectLead } from "./handlers.ts";
 import { 
   corsHeaders, 
-  checkRateLimit, 
+  checkRateLimit,
+  checkRateLimitFallback,
   sanitizePhoneNumber, 
   sanitizeMessageContent, 
   sanitizeInstanceName,
@@ -20,10 +21,31 @@ serve(async (req) => {
   }
 
   try {
-    // Rate limiting based on IP
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Enhanced rate limiting with database backend and fallback
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    if (!checkRateLimit(clientIP)) {
-      logSecurityEvent('Rate limit exceeded', { ip: clientIP }, 'medium');
+    const userAgent = req.headers.get('user-agent') || '';
+    const rateLimitIdentifier = `${clientIP}:${userAgent.slice(0, 50)}`;
+    
+    // Try database-backed rate limiting first, fallback to in-memory
+    let rateLimitPassed: boolean;
+    try {
+      rateLimitPassed = await checkRateLimit(supabase, rateLimitIdentifier, 100, 60);
+    } catch (error) {
+      console.warn('Database rate limit failed, using fallback:', error);
+      rateLimitPassed = checkRateLimitFallback(rateLimitIdentifier, 50, 60000);
+    }
+    
+    if (!rateLimitPassed) {
+      logSecurityEvent('Rate limit exceeded', { 
+        ip: clientIP, 
+        userAgent: userAgent.slice(0, 100),
+        identifier: rateLimitIdentifier 
+      }, 'medium');
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded' }),
         { 
@@ -32,11 +54,6 @@ serve(async (req) => {
         }
       );
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
     
     const body = await req.json();
     
