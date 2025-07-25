@@ -55,7 +55,7 @@ export const getPublicIP = async (): Promise<string> => {
 };
 
 // Salvar dados de tracking com identificadores únicos
-export const saveTrackingData = async (utms: any, campaignId: string, clickId?: string) => {
+export const saveTrackingData = async (utms: any, campaignId: string) => {
   try {
     console.log('💾 Salvando dados de tracking com identificadores únicos...');
     
@@ -79,48 +79,54 @@ export const saveTrackingData = async (utms: any, campaignId: string, clickId?: 
       utm_campaign: utms.utm_campaign,
       utm_content: utms.utm_content,
       utm_term: utms.utm_term,
-      ...(clickId && { click_id: clickId })
+      // 🆕 NOVOS PARÂMETROS
+      source_id: utms.source_id,
+      media_url: utms.media_url,
+      ctwa_clid: utms.ctwa_clid,
     };
     
-    console.log('📊 Dados de tracking preparados:', {
+    console.log('📊 Dados de tracking preparados com novos parâmetros:', {
       session_id: sessionId,
       browser_fingerprint: browserFingerprint,
       ip_address: publicIP,
       campaign_id: campaignId,
       utm_campaign: utms.utm_campaign,
-      click_id: clickId
+      source_id: utms.source_id,
+      media_url: utms.media_url,
+      ctwa_clid: utms.ctwa_clid
     });
     
     // Inserir diretamente na tabela tracking_sessions
-    const insertData = {
-      session_id: trackingData.session_id,
-      browser_fingerprint: trackingData.browser_fingerprint,
-      ip_address: trackingData.ip_address,
-      user_agent: trackingData.user_agent,
-      screen_resolution: trackingData.screen_resolution,
-      language: trackingData.language,
-      timezone: trackingData.timezone,
-      referrer: trackingData.referrer,
-      current_url: trackingData.current_url,
-      campaign_id: trackingData.campaign_id,
-      utm_source: trackingData.utm_source,
-      utm_medium: trackingData.utm_medium,
-      utm_campaign: trackingData.utm_campaign,
-      utm_content: trackingData.utm_content,
-      utm_term: trackingData.utm_term,
-      ...(clickId && { click_id: clickId })
-    };
-    
     const { error } = await supabase
       .from('tracking_sessions')
-      .insert(insertData);
+      .insert({
+        session_id: trackingData.session_id,
+        browser_fingerprint: trackingData.browser_fingerprint,
+        ip_address: trackingData.ip_address,
+        user_agent: trackingData.user_agent,
+        screen_resolution: trackingData.screen_resolution,
+        language: trackingData.language,
+        timezone: trackingData.timezone,
+        referrer: trackingData.referrer,
+        current_url: trackingData.current_url,
+        campaign_id: trackingData.campaign_id,
+        utm_source: trackingData.utm_source,
+        utm_medium: trackingData.utm_medium,
+        utm_campaign: trackingData.utm_campaign,
+        utm_content: trackingData.utm_content,
+        utm_term: trackingData.utm_term,
+        // 🆕 NOVOS CAMPOS
+        source_id: trackingData.source_id,
+        media_url: trackingData.media_url,
+        ctwa_clid: trackingData.ctwa_clid,
+      });
     
     if (error) {
       console.error('❌ Erro ao salvar dados de tracking:', error);
       return { success: false, error };
     }
     
-    console.log('✅ Dados de tracking salvos com identificadores únicos');
+    console.log('✅ Dados de tracking salvos com identificadores únicos e novos parâmetros');
     
     // Também salvar no localStorage para redundância
     localStorage.setItem('last_tracking_data', JSON.stringify({
@@ -128,6 +134,9 @@ export const saveTrackingData = async (utms: any, campaignId: string, clickId?: 
       browser_fingerprint: browserFingerprint,
       campaign_id: campaignId,
       utm_campaign: utms.utm_campaign,
+      source_id: utms.source_id,
+      media_url: utms.media_url,  
+      ctwa_clid: utms.ctwa_clid,
       timestamp: Date.now()
     }));
     

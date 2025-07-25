@@ -34,25 +34,68 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   const presetRanges = [
     {
       label: 'Hoje',
-      range: { startDate: today, endDate: today }
+      range: { 
+        startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()), 
+        endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()) 
+      }
     },
     {
       label: 'Ontem',
-      range: { startDate: yesterday, endDate: yesterday }
+      range: { 
+        startDate: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()), 
+        endDate: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()) 
+      }
     },
     {
       label: 'Últimos 7 dias',
-      range: { startDate: lastWeekStart, endDate: today }
+      range: { 
+        startDate: new Date(lastWeekStart.getFullYear(), lastWeekStart.getMonth(), lastWeekStart.getDate()), 
+        endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()) 
+      }
     },
     {
       label: 'Este mês',
-      range: { startDate: currentMonthStart, endDate: today }
+      range: { 
+        startDate: new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth(), currentMonthStart.getDate()), 
+        endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()) 
+      }
     },
     {
       label: 'Últimos 30 dias',
-      range: { startDate: lastMonthStart, endDate: today }
+      range: { 
+        startDate: new Date(lastMonthStart.getFullYear(), lastMonthStart.getMonth(), lastMonthStart.getDate()), 
+        endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()) 
+      }
     }
   ];
+
+  const handlePresetClick = (preset: typeof presetRanges[0]) => {
+    console.log('🎯 DateRangeFilter - Selected preset:', preset.label, preset.range);
+    onDateRangeChange(preset.range);
+  };
+
+  const handleDateSelect = (field: 'startDate' | 'endDate', date: Date | undefined) => {
+    if (!date) return;
+    
+    const newRange = { ...dateRange, [field]: date };
+    console.log('📅 DateRangeFilter - Manual date selection:', { field, date, newRange });
+    onDateRangeChange(newRange);
+  };
+
+  // Normalize dates for comparison (remove time component)
+  const normalizeDate = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  };
+
+  const isPresetActive = (preset: typeof presetRanges[0]) => {
+    const normalizedCurrentStart = normalizeDate(dateRange.startDate);
+    const normalizedCurrentEnd = normalizeDate(dateRange.endDate);
+    const normalizedPresetStart = normalizeDate(preset.range.startDate);
+    const normalizedPresetEnd = normalizeDate(preset.range.endDate);
+    
+    return normalizedCurrentStart.getTime() === normalizedPresetStart.getTime() &&
+           normalizedCurrentEnd.getTime() === normalizedPresetEnd.getTime();
+  };
 
   return (
     <Card>
@@ -65,11 +108,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
               key={preset.label}
               variant="outline"
               size="sm"
-              onClick={() => onDateRangeChange(preset.range)}
+              onClick={() => handlePresetClick(preset)}
               className={cn(
                 "h-8",
-                dateRange.startDate.toDateString() === preset.range.startDate.toDateString() &&
-                dateRange.endDate.toDateString() === preset.range.endDate.toDateString()
+                isPresetActive(preset)
                   ? "bg-primary text-primary-foreground"
                   : ""
               )}
@@ -93,8 +135,8 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
                     <Calendar
                       mode="single"
                       selected={dateRange.startDate}
-                      onSelect={(date) => date && onDateRangeChange({ ...dateRange, startDate: date })}
-                      className="pointer-events-auto"
+                      onSelect={(date) => handleDateSelect('startDate', date)}
+                      className={cn("pointer-events-auto")}
                     />
                   </div>
                   <div>
@@ -102,8 +144,8 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
                     <Calendar
                       mode="single"
                       selected={dateRange.endDate}
-                      onSelect={(date) => date && onDateRangeChange({ ...dateRange, endDate: date })}
-                      className="pointer-events-auto"
+                      onSelect={(date) => handleDateSelect('endDate', date)}
+                      className={cn("pointer-events-auto")}
                     />
                   </div>
                 </div>

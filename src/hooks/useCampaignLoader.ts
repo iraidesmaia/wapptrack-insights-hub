@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getCampaignById } from '@/services/dataService';
+import { getCampaigns } from '@/services/dataService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
@@ -26,13 +26,13 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
       }
 
       try {
-        const targetCampaign = await getCampaignById(campaignId);
+        const campaigns = await getCampaigns();
+        const targetCampaign = campaigns.find(c => c.id === campaignId);
         
         if (targetCampaign) {
           console.log('📋 Campaign loaded:', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
           setCampaign(targetCampaign);
         } else {
-          console.log('❌ Campaign not found:', campaignId);
           toast.warning('Campanha não encontrada. O contato será registrado em uma campanha padrão.');
         }
       } catch (err) {

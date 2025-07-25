@@ -50,63 +50,6 @@ export const getCampaigns = async (): Promise<Campaign[]> => {
   }
 };
 
-// Function to get a single campaign by ID (public access - no authentication needed)
-export const getCampaignById = async (id: string): Promise<Campaign | null> => {
-  try {
-    const { data: campaign, error } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('id', id)
-      .eq('active', true) // Only get active campaigns
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-
-    if (!campaign) {
-      return null;
-    }
-
-    return {
-      id: campaign.id,
-      name: campaign.name,
-      utm_source: campaign.utm_source,
-      utm_medium: campaign.utm_medium,
-      utm_campaign: campaign.utm_campaign,
-      utm_content: campaign.utm_content,
-      utm_term: campaign.utm_term,
-      pixel_id: campaign.pixel_id,
-      facebook_access_token: campaign.facebook_access_token,
-      whatsapp_number: campaign.whatsapp_number,
-      event_type: campaign.event_type as 'contact' | 'lead' | 'page_view' | 'sale',
-      active: campaign.active,
-      created_at: campaign.created_at,
-      custom_message: campaign.custom_message,
-      company_title: campaign.company_title,
-      company_subtitle: campaign.company_subtitle,
-      logo_url: campaign.logo_url,
-      redirect_type: (campaign.redirect_type as 'whatsapp' | 'form') || 'whatsapp',
-      pixel_integration_type: (campaign.pixel_integration_type as 'direct' | 'form') || 'direct',
-      conversion_keywords: campaign.conversion_keywords || [],
-      cancellation_keywords: campaign.cancellation_keywords || [],
-      conversion_api_enabled: campaign.conversion_api_enabled || false,
-      advanced_matching_enabled: campaign.advanced_matching_enabled || false,
-      server_side_api_enabled: campaign.server_side_api_enabled || false,
-      test_event_code: campaign.test_event_code,
-      custom_audience_pixel_id: campaign.custom_audience_pixel_id,
-      tracking_domain: campaign.tracking_domain,
-      external_id: campaign.external_id,
-      data_processing_options: campaign.data_processing_options || [],
-      data_processing_options_country: campaign.data_processing_options_country || 0,
-      data_processing_options_state: campaign.data_processing_options_state || 0
-    };
-  } catch (error) {
-    console.error("Error fetching campaign by ID:", error);
-    return null;
-  }
-};
-
 export const addCampaign = async (campaign: Omit<Campaign, 'id' | 'created_at'>): Promise<Campaign> => {
   try {
     const insertData: any = {

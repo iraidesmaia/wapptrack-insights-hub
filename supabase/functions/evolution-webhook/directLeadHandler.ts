@@ -1,48 +1,27 @@
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getContactName } from "./helpers.ts";
-import { getDeviceDataByPhone } from "./deviceDataHandler.ts";
-import { getUtmsFromPendingSessions, markUtmSessionAsMatched, findUtmSessionsByCorrelation } from "./utmPending.ts";
+
+import { getUtmsFromDirectClick } from './utmHandler.ts';
+import { getDeviceDataByPhone } from './deviceDataHandler.ts';
+import { getTrackingDataBySession } from './sessionTrackingHandler.ts';
+import { getContactName } from './helpers.ts';
 import { logSecurityEvent } from './security.ts';
 
-interface DirectLeadParams {
-  supabase: SupabaseClient;
-  message: any;
-  realPhoneNumber: string;
-  instanceName: string;
-}
-
-/**
- * Calcula score de confiança baseado nas fontes de dados disponíveis
- */
-function calculateConfidenceScore(dataSources: string[], utmData?: any): number {
-  let score = 30; // Base score para leads diretos
-  
-  // Boost por fonte de dados
-  if (dataSources.includes('utm_sessions')) score += 40;
-  if (dataSources.includes('device_data')) score += 15;
-  if (dataSources.includes('correlation')) score += 20;
-  if (dataSources.includes('whatsapp_direct')) score += 10;
-  
-  // Boost por qualidade dos UTMs
-  if (utmData) {
-    if (utmData.utm_source) score += 5;
-    if (utmData.utm_campaign) score += 5;
-    if (utmData.utm_medium) score += 5;
-  }
-  
-  return Math.min(score, 100); // Cap at 100
-}
-
-export async function handleDirectLead({ 
+export const handleDirectLead = async ({ 
   supabase, 
   message, 
   realPhoneNumber, 
   instanceName 
-}: DirectLeadParams) {
+}: {
+  supabase: any;
+  message: any;
+  realPhoneNumber: string;
+  instanceName: string;
+}) => {
+  console.log(`🆕 [LEAD DIRETO] Novo contato direto de: ${realPhoneNumber} (instância: ${instanceName})`);
+  
   try {
-    console.log(`🆕 Processando lead direto para: ${realPhoneNumber} (instância: ${instanceName})`);
-    
     // 🔍 Buscar usuário responsável pela instância
+    console.log(`🔍 [LEAD DIRETO] Buscando usuário para instância: ${instanceName}`);
+    
     const { data: userData, error: userError } = await supabase.rpc('get_user_by_instance', {
       instance_name_param: instanceName
     });
@@ -50,9 +29,10 @@ export async function handleDirectLead({
     let responsibleUserId = userData;
 
     if (userError || !responsibleUserId) {
-      console.log(`❌ Nenhum usuário encontrado para instância: ${instanceName}`);
+      console.log(`❌ [LEAD DIRETO] Nenhum usuário encontrado para instância: ${instanceName}`);
       
-      // Fallback: buscar pela primeira campanha ativa
+      // Fallback: buscar pela primeira campanha ativa (método de fallback)
+      console.log(`🔄 [LEAD DIRETO] Tentando buscar usuário pela primeira campanha ativa encontrada...`);
       const { data: fallbackCampaign } = await supabase
         .from('campaigns')
         .select('user_id')
@@ -62,7 +42,7 @@ export async function handleDirectLead({
 
       if (fallbackCampaign?.user_id) {
         responsibleUserId = fallbackCampaign.user_id;
-        console.log(`✅ Usando usuário da primeira campanha ativa: ${responsibleUserId}`);
+        console.log(`✅ [LEAD DIRETO] Usando usuário da primeira campanha ativa: ${responsibleUserId}`);
         
         logSecurityEvent('Fallback user assignment for organic lead', {
           instance: instanceName,
@@ -70,7 +50,7 @@ export async function handleDirectLead({
           fallback_user_id: responsibleUserId
         }, 'medium');
       } else {
-        console.log(`❌ Não foi possível determinar usuário responsável`);
+        console.log(`❌ [LEAD DIRETO] Não foi possível determinar usuário responsável para instância: ${instanceName}`);
         logSecurityEvent('No user found for organic lead', {
           instance: instanceName,
           phone: realPhoneNumber
@@ -78,10 +58,116 @@ export async function handleDirectLead({
         return;
       }
     }
+
+    // 🆕 EXTRAIR DADOS DE TRACKING DA EVOLUTION API
+    let evolutionTrackingData = null;
+    if (message.contextInfo?.externalAdReply) {
+      const adReply = message.contextInfo.externalAdReply;
+      evolutionTrackingData = {
+        source_id: adReply.sourceId || null,
+        media_url: adReply.sourceUrl || null,
+        ctwa_clid: adReply.ctwaClid || null,
+        source_type: adReply.sourceType || null
+      };
+      
+      console.log(`🎯 [EVOLUTION TRACKING] Dados de tracking extraídos da Evolution:`, evolutionTrackingData);
+    }
+
+    // 🔍 Buscar dados do dispositivo associados ao telefone
+    console.log(`🔍 [LEAD DIRETO] Buscando dados do dispositivo no banco para: ${realPhoneNumber}`);
+    const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
     
-    const contactName = getContactName(message);
+    // 🔄 SISTEMA DE CORRELAÇÃO MELHORADO
+    console.log(`🔄 [CORRELAÇÃO] Iniciando correlação melhorada com dados de tracking...`);
+    const trackingCorrelation = await getTrackingDataBySession(supabase, {
+      ...deviceData,
+      phone: realPhoneNumber
+    });
     
-    // Check if this lead already exists
+    let finalUtms;
+    let campaignSource = 'WhatsApp Orgânico';
+    let campaignId = null;
+    let trackingMethod = 'organic';
+    
+    // 🆕 PRIORIZAR DADOS DA EVOLUTION SE DISPONÍVEIS
+    if (evolutionTrackingData?.ctwa_clid) {
+      console.log(`🎯 [EVOLUTION] TRACKING PAGO DETECTADO pela Evolution API!`, evolutionTrackingData);
+      
+      campaignSource = `Meta Ads - ${evolutionTrackingData.source_type || 'ad'}`;
+      trackingMethod = 'evolution_api_meta';
+      
+      finalUtms = {
+        utm_source: 'facebook',
+        utm_medium: 'social',
+        utm_campaign: `ctwa_${evolutionTrackingData.ctwa_clid.substring(0, 8)}`,
+        utm_content: evolutionTrackingData.source_id || '',
+        utm_term: evolutionTrackingData.media_url || ''
+      };
+      
+      console.log(`✅ [EVOLUTION] Usando dados de tracking do Meta via Evolution API`);
+    } else if (trackingCorrelation && trackingCorrelation.confidence_score >= 60) {
+      console.log(`🎯 [CORRELAÇÃO] CORRELAÇÃO ENCONTRADA! Lead veio de tráfego pago:`, {
+        campaign_id: trackingCorrelation.campaign_id,
+        utm_source: trackingCorrelation.utm_source,
+        utm_medium: trackingCorrelation.utm_medium,
+        utm_campaign: trackingCorrelation.utm_campaign,
+        match_type: trackingCorrelation.match_type,
+        confidence_score: trackingCorrelation.confidence_score
+      });
+      
+      // Buscar dados da campanha para obter o nome correto
+      if (trackingCorrelation.campaign_id) {
+        const { data: campaignData } = await supabase
+          .from('campaigns')
+          .select('name')
+          .eq('id', trackingCorrelation.campaign_id)
+          .single();
+        
+        if (campaignData) {
+          campaignSource = campaignData.name;
+          campaignId = trackingCorrelation.campaign_id;
+        }
+      }
+      
+      finalUtms = {
+        utm_source: trackingCorrelation.utm_source,
+        utm_medium: trackingCorrelation.utm_medium,
+        utm_campaign: trackingCorrelation.utm_campaign,
+        utm_content: trackingCorrelation.utm_content,
+        utm_term: trackingCorrelation.utm_term
+      };
+      
+      trackingMethod = `${trackingCorrelation.match_type}_${trackingCorrelation.confidence_score}`;
+      
+      console.log(`✅ [CORRELAÇÃO] Usando UTMs da campanha paga correlacionada com ${trackingCorrelation.confidence_score}% de confiança`);
+    } else if (trackingCorrelation && trackingCorrelation.confidence_score < 60) {
+      console.log(`⚠️ [CORRELAÇÃO] Correlação encontrada mas com baixa confiança (${trackingCorrelation.confidence_score}%), tratando como orgânico`);
+      
+      // Buscar UTMs de clicks diretos (método legado)
+      const utms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
+      
+      finalUtms = utms || {
+        utm_source: 'whatsapp',
+        utm_medium: 'organic', 
+        utm_campaign: 'organic'
+      };
+      
+      trackingMethod = `low_confidence_${trackingCorrelation.confidence_score}`;
+    } else {
+      console.log(`❌ [CORRELAÇÃO] Nenhuma correlação encontrada, usando UTMs orgânicos`);
+      
+      // 🎯 Buscar UTMs de clicks diretos (método legado)
+      const utms = await getUtmsFromDirectClick(supabase, realPhoneNumber);
+      
+      // 📋 Usar UTMs padrão se não encontrar nenhum
+      finalUtms = utms || {
+        utm_source: 'whatsapp',
+        utm_medium: 'organic', 
+        utm_campaign: 'organic'
+      };
+    }
+
+    // 📞 Verificar se já existe um lead para este telefone antes de criar
     const phoneVariations = [
       realPhoneNumber,
       realPhoneNumber.slice(-10),
@@ -89,183 +175,123 @@ export async function handleDirectLead({
       `5585${realPhoneNumber.slice(-8)}`
     ];
     
-    const { data: existingLeads } = await supabase
-      .from('leads')
-      .select('*')
-      .in('phone', phoneVariations);
+    console.log(`📞 [LEAD DIRETO] Buscando lead existente com variações do telefone: ${JSON.stringify(phoneVariations)}`);
     
-    if (existingLeads && existingLeads.length > 0) {
-      console.log(`✅ Lead já existe para ${realPhoneNumber}, verificando se há UTMs pendentes para enriquecimento`);
-      
-      // Tentar buscar UTMs pendentes para enriquecer o lead existente
-      const utmSession = await getUtmsFromPendingSessions(supabase, realPhoneNumber);
-      
-      if (utmSession) {
-        const isOrganic = !utmSession.utm_source;
-        const sourceType = isOrganic ? 'ORGÂNICO' : 'UTM';
-        console.log(`🎯 Enriquecendo lead existente com dados ${sourceType}:`, {
-          utm_source: utmSession.utm_source || 'orgânico',
-          landing_page: utmSession.landing_page,
-          referrer: utmSession.referrer
-        });
-        
-        const dataSources = [...(existingLeads[0].data_sources || [])];
-        if (!dataSources.includes('utm_sessions')) {
-          dataSources.push('utm_sessions');
-        }
-        
-        // Update existing lead with UTM data
-        await supabase
-          .from('leads')
-          .update({
-            utm_source: utmSession.utm_source,
-            utm_medium: utmSession.utm_medium,
-            utm_campaign: utmSession.utm_campaign,
-            utm_content: utmSession.utm_content,
-            utm_term: utmSession.utm_term,
-            utm_session_id: utmSession.session_id,
-            landing_page: utmSession.landing_page,
-            referrer: utmSession.referrer,
-            tracking_method: 'utm_correlation',
-            data_sources: dataSources,
-            confidence_score: calculateConfidenceScore(dataSources, utmSession),
-            last_contact_date: new Date().toISOString(),
-            last_message: message.message?.conversation || 'Mensagem recebida'
-          })
-          .eq('phone', realPhoneNumber);
-        
-        // Mark UTM session as matched
-        await markUtmSessionAsMatched(supabase, utmSession.session_id, existingLeads[0].id);
-        
-        console.log(`✅ Lead existente enriquecido com UTMs`);
-      } else {
-        // Just update last contact without UTM data
-        await supabase
-          .from('leads')
-          .update({
-            last_contact_date: new Date().toISOString(),
-            last_message: message.message?.conversation || 'Mensagem recebida'
-          })
-          .eq('phone', realPhoneNumber);
-        
-        console.log(`✅ Lead existente atualizado (sem UTMs pendentes)`);
-      }
-      
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('id, name, phone')
+      .in('phone', phoneVariations)
+      .limit(1);
+
+    if (existingLead && existingLead.length > 0) {
+      console.log(`⚠️ [LEAD DIRETO] Lead já existe para este telefone: ${existingLead[0].name} (${existingLead[0].phone})`);
       return;
     }
-    
-    // Lead doesn't exist, create new one
-    console.log(`🆕 Criando novo lead para ${realPhoneNumber}`);
-    
-    // First, try to find UTM session by phone
-    let utmSession = await getUtmsFromPendingSessions(supabase, realPhoneNumber);
-    let trackingMethod = 'organic';
-    let dataSources = ['whatsapp_direct'];
-    
-    // If no direct UTM found, try correlation by other factors
-    if (!utmSession) {
-      console.log(`🔍 Tentando correlação por outros fatores...`);
-      
-      // Get device data for correlation
-      const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
-      
-      if (deviceData?.ip_address || deviceData?.user_agent) {
-        const correlatedSessions = await findUtmSessionsByCorrelation(supabase, {
-          ip_address: deviceData.ip_address,
-          user_agent: deviceData.user_agent,
-          timeWindow: 120 // 2 hours window for correlation
-        });
-        
-        if (correlatedSessions.length > 0) {
-          utmSession = correlatedSessions[0]; // Take the most recent one
-          trackingMethod = 'utm_correlation';
-          dataSources.push('correlation');
-          console.log(`🎯 Correlação encontrada por IP/User-Agent`);
-        }
-      }
-    } else {
-      trackingMethod = 'utm_direct';
-      dataSources.push('utm_sessions');
-      console.log(`🎯 UTM direto encontrado`);
-    }
-    
-    // Get additional device data if available
-    const deviceData = await getDeviceDataByPhone(supabase, realPhoneNumber);
-    if (deviceData) {
-      dataSources.push('device_data');
-    }
-    
-    // Build new lead object
-    const newLead = {
-      name: contactName,
+
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} (nenhum lead existente encontrado)...`);
+
+    // 🆕 Criar novo lead direto
+    const leadData = {
+      name: getContactName(message),
       phone: realPhoneNumber,
-      campaign: utmSession?.utm_campaign || 'Contato Direto WhatsApp',
-      status: 'new',
+      campaign: campaignSource,
+      campaign_id: campaignId,
       user_id: responsibleUserId,
-      initial_message: message.message?.conversation || 'Primeiro contato',
+      status: 'lead',
       first_contact_date: new Date().toISOString(),
-      last_contact_date: new Date().toISOString(),
-      last_message: message.message?.conversation || 'Mensagem recebida',
+      last_message: message.message?.conversation || message.message?.extendedTextMessage?.text || 'Mensagem recebida',
+      utm_source: finalUtms.utm_source,
+      utm_medium: finalUtms.utm_medium,
+      utm_campaign: finalUtms.utm_campaign,
+      utm_content: finalUtms.utm_content || null,
+      utm_term: finalUtms.utm_term || null,
       tracking_method: trackingMethod,
-      data_sources: dataSources,
-      confidence_score: calculateConfidenceScore(dataSources, utmSession),
-      // UTM data from session (if available)
-      utm_source: utmSession?.utm_source || null,
-      utm_medium: utmSession?.utm_medium || null,
-      utm_campaign: utmSession?.utm_campaign || null,
-      utm_content: utmSession?.utm_content || null,
-      utm_term: utmSession?.utm_term || null,
-      utm_session_id: utmSession?.session_id || null,
-      landing_page: utmSession?.landing_page || null,
-      referrer: utmSession?.referrer || null,
-      // Device/tracking data
-      ...deviceData
+      // 🆕 INCLUIR DADOS DA EVOLUTION API
+      ...(evolutionTrackingData && {
+        source_id: evolutionTrackingData.source_id,
+        media_url: evolutionTrackingData.media_url,
+        ctwa_clid: evolutionTrackingData.ctwa_clid
+      }),
+      // 🎯 Dados do dispositivo se disponíveis
+      ...(deviceData && {
+        location: deviceData.location,
+        ip_address: deviceData.ip_address,
+        browser: deviceData.browser,
+        os: deviceData.os,
+        device_type: deviceData.device_type,
+        device_model: deviceData.device_model,
+        country: deviceData.country,
+        city: deviceData.city,
+        screen_resolution: deviceData.screen_resolution,
+        timezone: deviceData.timezone,
+        language: deviceData.language,
+        facebook_ad_id: deviceData.facebook_ad_id,
+        facebook_adset_id: deviceData.facebook_adset_id,
+        facebook_campaign_id: deviceData.facebook_campaign_id
+      })
     };
-    
-    const { data: createdLead, error } = await supabase
+
+    console.log(`🆕 [LEAD DIRETO] Criando novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS via Evolution' : trackingCorrelation ? 'PAGO' : 'orgânico'}:`, {
+      metodo_atribuicao: evolutionTrackingData?.ctwa_clid ? 'evolution_meta_ads' : trackingCorrelation ? 'correlacao_paga' : 'organico',
+      campaign_id: leadData.campaign_id,
+      nome_campanha_do_banco: leadData.campaign,
+      status: leadData.status,
+      user_id: leadData.user_id,
+      instance_name: instanceName,
+      utms: finalUtms,
+      evolution_data: evolutionTrackingData,
+      tem_dados_dispositivo: !!deviceData,
+      tracking_method: leadData.tracking_method,
+      confidence_score: trackingCorrelation?.confidence_score || 0
+    });
+
+    const { data: newLead, error: leadError } = await supabase
       .from('leads')
-      .insert([newLead])
-      .select();
-    
-    if (error) {
-      console.error('❌ Erro ao criar lead direto:', error);
+      .insert(leadData)
+      .select()
+      .single();
+
+    if (leadError) {
+      console.error(`❌ [LEAD DIRETO] Erro ao criar lead:`, leadError);
       logSecurityEvent('Failed to create lead', {
-        error: error,
+        error: leadError,
         phone: realPhoneNumber,
         instance: instanceName,
-        user_id: responsibleUserId
+        user_id: responsibleUserId,
+        evolution_tracking: evolutionTrackingData,
+        was_paid_traffic: !!(evolutionTrackingData?.ctwa_clid || trackingCorrelation),
+        confidence_score: trackingCorrelation?.confidence_score || 0
       }, 'high');
       return;
     }
-    
-    console.log('✅ Lead direto criado com sucesso:', {
-      id: createdLead[0]?.id,
-      name: contactName,
-      phone: realPhoneNumber,
-      utm_source: utmSession?.utm_source || 'organic',
-      confidence_score: newLead.confidence_score,
-      tracking_method: trackingMethod
+
+    console.log(`✅ [LEAD DIRETO] Novo lead ${evolutionTrackingData?.ctwa_clid ? 'META ADS' : trackingCorrelation ? 'PAGO' : 'orgânico'} criado: "${leadData.campaign}"`, {
+      lead_id: newLead.id,
+      name: newLead.name,
+      user_id: responsibleUserId,
+      instance_name: instanceName,
+      evolution_tracking: evolutionTrackingData,
+      was_paid_traffic: !!(evolutionTrackingData?.ctwa_clid || trackingCorrelation),
+      confidence_score: trackingCorrelation?.confidence_score || 0
     });
-    
-    // Mark UTM session as matched if we used one
-    if (utmSession && createdLead[0]) {
-      await markUtmSessionAsMatched(supabase, utmSession.session_id, createdLead[0].id);
-    }
-    
-    logSecurityEvent('Lead created successfully', {
-      lead_id: createdLead[0]?.id,
+
+    logSecurityEvent(`${evolutionTrackingData?.ctwa_clid ? 'Meta Ads' : trackingCorrelation ? 'Paid' : 'Organic'} lead created successfully`, {
+      lead_id: newLead.id,
       phone: realPhoneNumber,
       instance: instanceName,
       user_id: responsibleUserId,
-      tracking_method: trackingMethod
+      campaign_id: campaignId,
+      tracking_method: leadData.tracking_method,
+      evolution_data: evolutionTrackingData,
+      confidence_score: trackingCorrelation?.confidence_score || 0
     }, 'low');
-    
+
   } catch (error) {
-    console.error('💥 Erro no handleDirectLead:', error);
+    console.error(`💥 [LEAD DIRETO] Erro em handleDirectLead:`, error);
     logSecurityEvent('Error in handleDirectLead', {
       error: error.message,
       phone: realPhoneNumber,
       instance: instanceName
     }, 'high');
   }
-}
+};

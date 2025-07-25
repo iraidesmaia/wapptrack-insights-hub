@@ -56,10 +56,49 @@ export const useCampaignKeywords = (campaignId: string) => {
       if (error) throw error;
 
       setKeywords(newKeywords);
-      toast.success('Palavras-chave salvas com sucesso!');
+      toast.success('Palavras-chave da campanha salvas com sucesso!');
+      return true;
     } catch (error: any) {
       console.error('Error saving campaign keywords:', error);
       toast.error('Erro ao salvar palavras-chave da campanha');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyGlobalKeywords = async () => {
+    if (!campaignId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Buscar configurações globais
+      const { data: globalSettings, error: globalError } = await supabase
+        .from('global_keywords_settings')
+        .select('conversion_keywords, cancellation_keywords')
+        .single();
+
+      if (globalError && globalError.code !== 'PGRST116') {
+        throw globalError;
+      }
+
+      if (globalSettings) {
+        const globalKeywords = {
+          conversionKeywords: globalSettings.conversion_keywords || [],
+          cancellationKeywords: globalSettings.cancellation_keywords || []
+        };
+
+        const success = await saveKeywords(globalKeywords);
+        if (success) {
+          toast.success('Configurações globais aplicadas à campanha!');
+        }
+      } else {
+        toast.warning('Nenhuma configuração global encontrada');
+      }
+    } catch (error: any) {
+      console.error('Error applying global keywords:', error);
+      toast.error('Erro ao aplicar configurações globais');
     } finally {
       setLoading(false);
     }
@@ -73,6 +112,7 @@ export const useCampaignKeywords = (campaignId: string) => {
     keywords,
     loading,
     saveKeywords,
+    applyGlobalKeywords,
     setConversionKeywords: (keywords: string[]) => 
       setKeywords(prev => ({ ...prev, conversionKeywords: keywords })),
     setCancellationKeywords: (keywords: string[]) => 

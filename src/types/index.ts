@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name?: string;
@@ -44,16 +43,19 @@ export interface Lead {
   screen_resolution?: string;
   timezone?: string;
   language?: string;
-  // 🎯 NOVOS CAMPOS DO FACEBOOK ADS
+  // 🎯 CAMPOS DO FACEBOOK ADS
   facebook_ad_id?: string;
   facebook_adset_id?: string;
   facebook_campaign_id?: string;
+  // 🆕 NOVOS CAMPOS IMPLEMENTADOS
+  source_id?: string;
+  media_url?: string;
+  ctwa_clid?: string;
 }
 
 export interface Campaign {
   id: string;
   name: string;
-  click_id?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;

@@ -8,11 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Eye, EyeOff } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Campaign } from '@/types/campaign';
-import { validateFormData, validateTokenFormat, logSecurityEvent } from '@/lib/securityValidation';
 
 interface CampaignFormProps {
   isOpen: boolean;
@@ -36,23 +35,10 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   onBaseUrlChange
 }) => {
   const [uploading, setUploading] = useState(false);
-  const [showToken, setShowToken] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // Validate and sanitize form data
-    const formValidation = validateFormData({ [name]: value });
-    if (formValidation.sanitizedData && formValidation.sanitizedData[name] !== undefined) {
-      onCampaignChange({ ...campaign, [name]: formValidation.sanitizedData[name] });
-    } else {
-      onCampaignChange({ ...campaign, [name]: value });
-    }
-    
-    // Special validation for Facebook token
-    if (name === 'facebook_access_token' && value && !validateTokenFormat(value, 'facebook')) {
-      logSecurityEvent('Invalid Facebook token format detected', { field: name }, 'medium');
-    }
+    onCampaignChange({ ...campaign, [name]: value });
   };
 
   const handleSwitchChange = (checked: boolean) => {
@@ -299,33 +285,14 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
 
               <div className="grid gap-2">
                 <Label htmlFor="facebook_access_token">Facebook Access Token</Label>
-                <div className="relative">
-                  <Input
-                    id="facebook_access_token"
-                    name="facebook_access_token"
-                    type={showToken ? "text" : "password"}
-                    value={campaign.facebook_access_token || ''}
-                    onChange={handleInputChange}
-                    placeholder="Ex: EAABwzLixn..."
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowToken(!showToken)}
-                  >
-                    {showToken ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Token será armazenado de forma segura e criptografado
-                </p>
+                <Input
+                  id="facebook_access_token"
+                  name="facebook_access_token"
+                  type="password"
+                  value={campaign.facebook_access_token || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: EAABwzLixn..."
+                />
               </div>
 
               <div className="grid gap-2">

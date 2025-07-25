@@ -1,4 +1,3 @@
-
 import { trackRedirect, updateLead } from '@/services/dataService';
 import { toast } from 'sonner';
 import { sendWebhookData } from '@/services/webhookService';
@@ -6,13 +5,27 @@ import { Lead } from '@/types';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
 import { collectUrlParameters } from '@/lib/dataCollection';
-import { validateFormData, logSecurityEvent } from '@/lib/securityValidation';
+
+type UTMVars = {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  gclid?: string;
+  fbclid?: string;
+  ctwa_clid?: string;
+  source_id?: string;
+  media_url?: string;
+  ad_id?: string;
+  facebook_ad_id?: string;
+  ttclid?: string;
+};
 
 export const useFormSubmission = (
   campaignId: string | null,
   campaign: Campaign | null,
-  pixelInitialized: boolean,
-  clickId?: string | null
+  pixelInitialized: boolean
 ) => {
   const { trackEnhancedLead } = useEnhancedPixelTracking(campaign);
 
@@ -35,23 +48,13 @@ export const useFormSubmission = (
   const handleFormSubmit = async (phone: string, name: string, email?: string) => {
     if (!campaignId) {
       console.error('❌ ID da campanha não encontrado');
-      logSecurityEvent('Campaign ID not found', { campaignId }, 'medium');
       throw new Error('ID da campanha não encontrado');
     }
 
-    // Validate and sanitize form data
-    const formValidation = validateFormData({ name, phone, email });
-    if (!formValidation.isValid) {
-      logSecurityEvent('Form validation failed in submission', { errors: formValidation.errors }, 'medium');
-      throw new Error(formValidation.errors[0]);
-    }
-
-    const sanitizedData = formValidation.sanitizedData!;
-
     console.log('📝 Processing form submission...', {
       campaignId,
-      phone: sanitizedData.phone,
-      name: sanitizedData.name,
+      phone,
+      name,
       campaign: campaign?.name
     });
 
@@ -60,13 +63,12 @@ export const useFormSubmission = (
       try {
         console.log('📊 Tracking enhanced lead event...');
         await trackEnhancedLead({
-          name: sanitizedData.name,
-          phone: sanitizedData.phone,
-          email: sanitizedData.email,
+          name,
+          phone,
+          email,
           value: 100
         });
         console.log('✅ Enhanced lead tracking completed');
-        logSecurityEvent('Enhanced lead tracking completed', { campaignId }, 'low');
       } catch (trackingError) {
         console.warn('⚠️ Enhanced lead tracking failed, continuing with form processing:', trackingError);
       }
@@ -81,9 +83,9 @@ export const useFormSubmission = (
           const webhookData = {
             campaign_id: campaignId,
             campaign_name: campaign?.name,
-            lead_name: sanitizedData.name,
-            lead_phone: sanitizedData.phone,
-            lead_email: sanitizedData.email,
+            lead_name: name,
+            lead_phone: phone,
+            lead_email: email,
             timestamp: new Date().toISOString(),
             event_type: campaign?.event_type,
             user_id: 'public_form' // Identificador para formulários públicos
@@ -97,7 +99,7 @@ export const useFormSubmission = (
       console.error('❌ Error sending data via external webhook:', error);
     }
 
-    // 🎯 COLETA UTMs E PARÂMETROS FACEBOOK ATUALIZADOS
+    // 🎯 COLETA UTMS E PARÂMETROS FACEBOOK ATUALIZADOS
     const utms = collectUrlParameters();
     console.log('🌐 UTMs e parâmetros Facebook obtidos da URL:', {
       utm_source: utms.utm_source,
@@ -106,8 +108,7 @@ export const useFormSubmission = (
       utm_content: utms.utm_content,
       utm_term: utms.utm_term,
       ad_id: utms.ad_id,
-      facebook_ad_id: utms.facebook_ad_id,
-      click_id: clickId
+      facebook_ad_id: utms.facebook_ad_id
     });
 
     console.log('📱 Processando formulário via trackRedirect...');
@@ -115,8 +116,8 @@ export const useFormSubmission = (
     try {
       const result = await trackRedirect(
         campaignId, 
-        sanitizedData.phone, 
-        sanitizedData.name, 
+        phone, 
+        name, 
         campaign?.event_type,
         {
           utm_source: utms.utm_source,
@@ -124,8 +125,7 @@ export const useFormSubmission = (
           utm_campaign: utms.utm_campaign,
           utm_content: utms.utm_content,
           utm_term: utms.utm_term
-        },
-        clickId || undefined
+        }
       );
       
       console.log('✅ trackRedirect executado:', result);
@@ -144,10 +144,10 @@ export const useFormSubmission = (
       
       if (campaign?.custom_message) {
         let message = campaign.custom_message;
-        if (sanitizedData.name) {
-          message = message.replace(/\{nome\}/gi, sanitizedData.name);
+        if (name) {
+          message = message.replace(/\{nome\}/gi, name);
         }
-        message = message.replace(/\{telefone\}/gi, sanitizedData.phone);
+        message = message.replace(/\{telefone\}/gi, phone);
         
         const encodedMessage = encodeURIComponent(message);
         whatsappUrl += `?text=${encodedMessage}`;

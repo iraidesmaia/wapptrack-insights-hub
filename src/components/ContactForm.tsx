@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { formatBrazilianPhone, processBrazilianPhone, validateBrazilianPhone } from '@/lib/phoneUtils';
 import { useDeviceData } from '@/hooks/useDeviceData';
-import { checkFormRateLimit, validateFormData, logSecurityEvent } from '@/lib/securityValidation';
 
 interface ContactFormProps {
   onSubmit: (phone: string, name: string) => Promise<void>;
@@ -33,26 +32,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Rate limiting check
-    const clientIP = 'client_ip'; // In production, get real IP
-    if (!checkFormRateLimit(clientIP)) {
-      setError('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
-      logSecurityEvent('Form rate limit exceeded', { clientIP }, 'medium');
+    if (!phone) {
+      setError('Por favor, informe seu WhatsApp');
       return;
     }
-    
-    // Validate and sanitize form data
-    const formValidation = validateFormData({ name, phone });
-    if (!formValidation.isValid) {
-      setError(formValidation.errors[0]);
-      logSecurityEvent('Form validation failed', { errors: formValidation.errors }, 'low');
-      return;
-    }
-    
-    const sanitizedData = formValidation.sanitizedData!;
-    
+
     // Validate Brazilian phone format
-    if (!validateBrazilianPhone(sanitizedData.phone)) {
+    if (!validateBrazilianPhone(phone)) {
       setError('Por favor, informe um número válido (DDD + 8 ou 9 dígitos)');
       return;
     }
@@ -60,18 +46,15 @@ const ContactForm: React.FC<ContactFormProps> = ({ onSubmit, loading }) => {
     setError('');
     try {
       // Process phone to add Brazil country code (55)
-      const processedPhone = processBrazilianPhone(sanitizedData.phone);
+      const processedPhone = processBrazilianPhone(phone);
       
       // 💾 SALVAR DADOS DO DISPOSITIVO COM O TELEFONE
       console.log('💾 Salvando dados do dispositivo com telefone:', processedPhone);
       await captureAndSave(processedPhone);
       
-      await onSubmit(processedPhone, sanitizedData.name);
-      
-      logSecurityEvent('Form submitted successfully', { phone: processedPhone }, 'low');
+      await onSubmit(processedPhone, name);
     } catch (err) {
       setError('Erro ao processar redirecionamento');
-      logSecurityEvent('Form submission error', { error: err }, 'medium');
     }
   };
 

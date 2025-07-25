@@ -3,7 +3,7 @@ import MainLayout from '@/components/MainLayout';
 import { Button } from "@/components/ui/button";
 import { getCampaigns, addCampaign, updateCampaign, deleteCampaign } from '@/services/campaignService';
 import { Campaign } from '@/types';
-import { buildUtmUrl, generateTrackingUrl, generateClickId } from '@/lib/utils';
+import { buildUtmUrl, generateTrackingUrl } from '@/lib/utils';
 import { Plus, Tags } from 'lucide-react';
 import { toast } from "sonner";
 import GlobalKeywordsSettings from '@/components/campaigns/GlobalKeywordsSettings';
@@ -161,22 +161,12 @@ const Campaigns = () => {
       }
 
       if (dialogMode === 'add') {
-        // Generate unique click_id for new campaigns
-        const campaignWithClickId = {
-          ...currentCampaign,
-          click_id: generateClickId()
-        };
-        const newCampaign = await addCampaign(campaignWithClickId as Omit<Campaign, 'id' | 'created_at'>);
+        const newCampaign = await addCampaign(currentCampaign as Omit<Campaign, 'id' | 'created_at'>);
         setCampaigns([...campaigns, newCampaign]);
         toast.success('Campanha adicionada com sucesso');
       } else {
         if (!currentCampaign.id) return;
-        // Generate click_id if it doesn't exist (for existing campaigns)
-        const campaignToUpdate = {
-          ...currentCampaign,
-          click_id: currentCampaign.click_id || generateClickId()
-        };
-        const updatedCampaign = await updateCampaign(currentCampaign.id, campaignToUpdate);
+        const updatedCampaign = await updateCampaign(currentCampaign.id, currentCampaign);
         setCampaigns(campaigns.map(campaign => campaign.id === updatedCampaign.id ? updatedCampaign : campaign));
         toast.success('Campanha atualizada com sucesso');
       }
@@ -212,10 +202,10 @@ const Campaigns = () => {
       });
   };
 
-  // Função para gerar URL LIMPA (sem UTMs) com click_id
+  // Função para gerar URL LIMPA (sem UTMs)
   const getTrackingUrl = (campaign: Campaign) => {
     const currentUrl = window.location.origin;
-    return generateTrackingUrl(currentUrl, campaign.id, campaign.click_id);
+    return `${currentUrl}/ir?id=${campaign.id}`;
   };
 
   // Função para gerar URL com UTMs customizados (incluindo gclid e fbclid)
@@ -223,7 +213,6 @@ const Campaigns = () => {
     const currentUrl = window.location.origin;
     const params = new URLSearchParams();
     params.append("id", campaign.id);
-    if (campaign.click_id) params.append("click_id", campaign.click_id);
     if (utms.utm_source) params.append("utm_source", utms.utm_source);
     if (utms.utm_medium) params.append("utm_medium", utms.utm_medium);
     if (utms.utm_campaign) params.append("utm_campaign", utms.utm_campaign);
