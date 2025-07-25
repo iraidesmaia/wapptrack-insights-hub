@@ -58,14 +58,14 @@ export const getCampaignById = async (id: string): Promise<Campaign | null> => {
       .select('*')
       .eq('id', id)
       .eq('active', true) // Only get active campaigns
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows found
-        return null;
-      }
       throw error;
+    }
+
+    if (!campaign) {
+      return null;
     }
 
     return {
