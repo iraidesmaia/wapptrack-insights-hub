@@ -9,6 +9,7 @@ export {
 
 export {
   getCampaigns,
+  getCampaignById,
   addCampaign,
   updateCampaign,
   deleteCampaign
