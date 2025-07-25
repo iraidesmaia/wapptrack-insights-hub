@@ -76,6 +76,7 @@ export const trackRedirect = async (
         campaign: campaign.name,
         campaign_id: campaignId,
         status: 'new' as const,
+        user_id: campaign.user_id, // Usar o user_id da campanha
         utm_source: utms?.utm_source || '',
         utm_medium: utms?.utm_medium || '',
         utm_campaign: utms?.utm_campaign || '',
