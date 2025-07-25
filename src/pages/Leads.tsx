@@ -7,11 +7,10 @@ import { getCampaigns } from '@/services/campaignService';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
 import LeadDialog from '@/components/leads/LeadDialog';
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast";
 import { formatBrazilianPhone } from '@/lib/phoneUtils';
 import MainLayout from '@/components/MainLayout';
 import CtwaClidDebugPanel from '@/components/leads/CtwaClidDebugPanel';
-
 const Leads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -30,13 +29,13 @@ const Leads = () => {
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [isLoading, setIsLoading] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     handleRefresh();
     fetchCampaigns();
   }, []);
-
   const fetchCampaigns = async () => {
     try {
       const campaignsData = await getCampaigns();
@@ -45,7 +44,6 @@ const Leads = () => {
       console.error("Error fetching campaigns:", error);
     }
   };
-
   const handleRefresh = async () => {
     setIsLoading(true);
     try {
@@ -56,84 +54,87 @@ const Leads = () => {
       toast({
         variant: "destructive",
         title: "Erro ao carregar leads.",
-        description: "Ocorreu um problema ao buscar os leads do servidor.",
-      })
+        description: "Ocorreu um problema ao buscar os leads do servidor."
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleView = (lead: Lead) => {
     setSelectedLead(lead);
     setIsDetailDialogOpen(true);
   };
-
   const handleEdit = (lead: Lead) => {
     setSelectedLead(lead);
     setCurrentLead(lead);
     setDialogMode('edit');
     setIsLeadDialogOpen(true);
   };
-
   const handleDelete = async (id: string) => {
     try {
       await deleteLead(id);
       setLeads(leads.filter(lead => lead.id !== id));
       toast({
-        title: "Lead excluído com sucesso.",
-      })
+        title: "Lead excluído com sucesso."
+      });
     } catch (error) {
       console.error("Error deleting lead:", error);
       toast({
         variant: "destructive",
         title: "Erro ao excluir lead.",
-        description: "Ocorreu um problema ao excluir o lead do servidor.",
-      })
+        description: "Ocorreu um problema ao excluir o lead do servidor."
+      });
     }
   };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentLead(prev => ({ ...prev, [name]: value }));
+    const {
+      name,
+      value
+    } = e.target;
+    setCurrentLead(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const formatted = formatBrazilianPhone(value);
-    setCurrentLead(prev => ({ ...prev, phone: formatted }));
+    setCurrentLead(prev => ({
+      ...prev,
+      phone: formatted
+    }));
   };
-
   const handleSelectChange = (name: string, value: string) => {
-    setCurrentLead(prev => ({ ...prev, [name]: value }));
+    setCurrentLead(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
   const handleSave = async () => {
     try {
       if (!currentLead.name || !currentLead.phone || !currentLead.campaign || !currentLead.status) {
         toast({
           variant: "destructive",
           title: "Campos obrigatórios",
-          description: "Preencha todos os campos obrigatórios.",
+          description: "Preencha todos os campos obrigatórios."
         });
         return;
       }
-
       if (dialogMode === 'add') {
         const newLead = await addLead(currentLead as Omit<Lead, 'id' | 'created_at'>);
         setLeads([...leads, newLead]);
         toast({
-          title: "Lead criado com sucesso.",
+          title: "Lead criado com sucesso."
         });
       } else {
         if (selectedLead) {
           const updatedLead = await updateLead(selectedLead.id, currentLead);
           setLeads(leads.map(lead => lead.id === updatedLead.id ? updatedLead : lead));
           toast({
-            title: "Lead atualizado com sucesso.",
+            title: "Lead atualizado com sucesso."
           });
         }
       }
-      
       setIsLeadDialogOpen(false);
       resetCurrentLead();
     } catch (error) {
@@ -141,11 +142,10 @@ const Leads = () => {
       toast({
         variant: "destructive",
         title: "Erro ao salvar lead.",
-        description: "Ocorreu um problema ao salvar o lead no servidor.",
+        description: "Ocorreu um problema ao salvar o lead no servidor."
       });
     }
   };
-
   const resetCurrentLead = () => {
     setCurrentLead({
       name: '',
@@ -158,49 +158,38 @@ const Leads = () => {
     });
     setSelectedLead(null);
   };
-
   const handleOpenAddDialog = () => {
     resetCurrentLead();
     setDialogMode('add');
     setIsLeadDialogOpen(true);
   };
-
   const handleUpdate = async (id: string, updatedData: Partial<Lead>) => {
     try {
       const updatedLead = await updateLead(id, updatedData);
       setLeads(leads.map(lead => lead.id === id ? updatedLead : lead));
       setIsDetailDialogOpen(false);
       toast({
-        title: "Lead atualizado com sucesso.",
-      })
+        title: "Lead atualizado com sucesso."
+      });
     } catch (error) {
       console.error("Error updating lead:", error);
       toast({
         variant: "destructive",
         title: "Erro ao atualizar lead.",
-        description: "Ocorreu um problema ao atualizar o lead no servidor.",
-      })
+        description: "Ocorreu um problema ao atualizar o lead no servidor."
+      });
     }
   };
-
   const handleOpenWhatsApp = (phone: string) => {
     const formattedPhone = formatBrazilianPhone(phone);
     window.open(`https://wa.me/${formattedPhone}`, '_blank');
   };
-
-  return (
-    <MainLayout>
+  return <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
-              className="text-xs"
-            >
-              {showDebugPanel ? 'Ocultar' : 'Debug ctwa_clid'}
-            </Button>
+            
             <Button onClick={handleOpenAddDialog}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Lead
@@ -209,52 +198,24 @@ const Leads = () => {
         </div>
 
         {/* 🆕 PAINEL DE DEBUG */}
-        {showDebugPanel && (
-          <div className="mb-6">
+        {showDebugPanel && <div className="mb-6">
             <CtwaClidDebugPanel />
-          </div>
-        )}
+          </div>}
 
-        <LeadsTable
-          leads={leads}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onOpenWhatsApp={handleOpenWhatsApp}
-          onRefresh={handleRefresh}
-          isLoading={isLoading}
-        />
+        <LeadsTable leads={leads} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} onOpenWhatsApp={handleOpenWhatsApp} onRefresh={handleRefresh} isLoading={isLoading} />
 
-        <LeadDialog
-          isOpen={isLeadDialogOpen}
-          onClose={() => {
-            setIsLeadDialogOpen(false);
-            resetCurrentLead();
-          }}
-          mode={dialogMode}
-          currentLead={currentLead}
-          campaigns={campaigns}
-          onSave={handleSave}
-          onInputChange={handleInputChange}
-          onPhoneChange={handlePhoneChange}
-          onSelectChange={handleSelectChange}
-        />
+        <LeadDialog isOpen={isLeadDialogOpen} onClose={() => {
+        setIsLeadDialogOpen(false);
+        resetCurrentLead();
+      }} mode={dialogMode} currentLead={currentLead} campaigns={campaigns} onSave={handleSave} onInputChange={handleInputChange} onPhoneChange={handlePhoneChange} onSelectChange={handleSelectChange} />
 
-        <LeadDetailDialog
-          lead={selectedLead}
-          isOpen={isDetailDialogOpen}
-          onClose={() => setIsDetailDialogOpen(false)}
-          onSave={(updatedData: Partial<Lead>) => {
-            if (selectedLead) {
-              return handleUpdate(selectedLead.id, updatedData);
-            }
-            return Promise.resolve();
-          }}
-          onOpenWhatsApp={handleOpenWhatsApp}
-        />
+        <LeadDetailDialog lead={selectedLead} isOpen={isDetailDialogOpen} onClose={() => setIsDetailDialogOpen(false)} onSave={(updatedData: Partial<Lead>) => {
+        if (selectedLead) {
+          return handleUpdate(selectedLead.id, updatedData);
+        }
+        return Promise.resolve();
+      }} onOpenWhatsApp={handleOpenWhatsApp} />
       </div>
-    </MainLayout>
-  );
+    </MainLayout>;
 };
-
 export default Leads;
