@@ -222,6 +222,7 @@ const Leads = () => {
           onDelete={handleDelete}
           onOpenWhatsApp={handleOpenWhatsApp}
           onRefresh={handleRefresh}
+          isLoading={isLoading}
         />
 
         <LeadDialog
