@@ -1,5 +1,5 @@
 
-import { trackRedirect } from '@/services/dataService';
+import { trackRedirect } from '@/services/trackingService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
