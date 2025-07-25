@@ -529,6 +529,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          requests_count: number | null
+          updated_at: string | null
+          violations_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          requests_count?: number | null
+          updated_at?: string | null
+          violations_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          requests_count?: number | null
+          updated_at?: string | null
+          violations_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           campaign: string

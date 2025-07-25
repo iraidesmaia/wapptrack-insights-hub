@@ -13,36 +13,49 @@ export const corsHeaders = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
-// Enhanced rate limiting with progressive delays
-const rateLimitStore = new Map<string, { count: number; resetTime: number; violations: number }>();
-
-export function checkRateLimit(identifier: string, maxRequests = 50, windowMs = 60000): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const record = rateLimitStore.get(identifier);
-  
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(identifier, { count: 1, resetTime: now + windowMs, violations: 0 });
-    return { allowed: true };
-  }
-  
-  if (record.count >= maxRequests) {
-    // Progressive delay based on violations
-    record.violations++;
-    const delay = Math.min(record.violations * 60000, 600000); // Max 10 minutes
-    logSecurityEvent('Rate limit exceeded', { 
-      identifier, 
-      violations: record.violations, 
-      delay 
-    }, 'high');
+// Enhanced rate limiting with database persistence
+export async function checkRateLimit(identifier: string, maxRequests = 50, windowMinutes = 60): Promise<{ allowed: boolean; retryAfter?: number }> {
+  try {
+    // Import supabase client within function to avoid issues
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.50.0');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Call the database function for rate limiting
+    const { data, error } = await supabase.rpc('check_rate_limit_db', {
+      identifier_param: identifier,
+      max_requests: maxRequests,
+      window_minutes: windowMinutes
+    });
+    
+    if (error) {
+      console.error('Rate limit check failed:', error);
+      logSecurityEvent('Rate limit check failed', { identifier, error: error.message }, 'medium');
+      // Fail open for now to avoid breaking functionality
+      return { allowed: true };
+    }
+    
+    const result = data as { allowed: boolean; retry_after?: number; reason?: string };
+    
+    if (!result.allowed) {
+      logSecurityEvent('Rate limit exceeded', { 
+        identifier, 
+        reason: result.reason,
+        retry_after: result.retry_after 
+      }, 'high');
+    }
     
     return { 
-      allowed: false, 
-      retryAfter: Math.ceil((record.resetTime - now + delay) / 1000) 
+      allowed: result.allowed, 
+      retryAfter: result.retry_after 
     };
+  } catch (error) {
+    console.error('Rate limiting error:', error);
+    logSecurityEvent('Rate limiting system error', { identifier, error: error.message }, 'high');
+    // Fail open to avoid breaking functionality
+    return { allowed: true };
   }
-  
-  record.count++;
-  return { allowed: true };
 }
 
 export function sanitizePhoneNumber(phone: string): string {

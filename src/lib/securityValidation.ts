@@ -18,8 +18,8 @@ export const sanitizeHtml = (input: string): string => {
     .slice(0, 1000); // Limit length
 };
 
-// Rate limiting for form submissions
-const submissionTracker = new Map<string, { count: number; lastReset: number }>();
+// Rate limiting for form submissions (Enhanced security implementation)
+const submissionTracker = new Map<string, { count: number; lastReset: number; violations: number }>();
 
 export const checkFormRateLimit = (identifier: string, maxAttempts = 5, windowMs = 300000): boolean => {
   const now = Date.now();
@@ -27,11 +27,17 @@ export const checkFormRateLimit = (identifier: string, maxAttempts = 5, windowMs
   const record = submissionTracker.get(key);
   
   if (!record || now - record.lastReset > windowMs) {
-    submissionTracker.set(key, { count: 1, lastReset: now });
+    submissionTracker.set(key, { count: 1, lastReset: now, violations: 0 });
     return true;
   }
   
   if (record.count >= maxAttempts) {
+    record.violations++;
+    logSecurityEvent('Form rate limit exceeded', { 
+      identifier, 
+      violations: record.violations,
+      maxAttempts 
+    }, 'high');
     return false;
   }
   
