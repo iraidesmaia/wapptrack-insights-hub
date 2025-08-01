@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Lead, Campaign } from '@/types';
-import { getLeads, addLead, deleteLead, updateLead } from '@/services/leadService';
+import { getLeads, addLead, deleteLead, updateLead, deleteAllLeads } from '@/services/leadService';
 import { getCampaigns } from '@/services/campaignService';
 import LeadsTable from '@/components/leads/LeadsTable';
 import LeadDetailDialog from '@/components/leads/LeadDetailDialog';
@@ -83,6 +83,27 @@ const Leads = () => {
         variant: "destructive",
         title: "Erro ao excluir lead.",
         description: "Ocorreu um problema ao excluir o lead do servidor."
+      });
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Tem certeza que deseja excluir TODOS os leads? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+    
+    try {
+      await deleteAllLeads();
+      setLeads([]);
+      toast({
+        title: "Todos os leads foram excluídos com sucesso."
+      });
+    } catch (error) {
+      console.error("Error deleting all leads:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir leads.",
+        description: "Ocorreu um problema ao excluir os leads do servidor."
       });
     }
   };
@@ -202,7 +223,7 @@ const Leads = () => {
             <CtwaClidDebugPanel />
           </div>}
 
-        <LeadsTable leads={leads} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} onOpenWhatsApp={handleOpenWhatsApp} onRefresh={handleRefresh} isLoading={isLoading} />
+        <LeadsTable leads={leads} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} onDeleteAll={handleDeleteAll} onOpenWhatsApp={handleOpenWhatsApp} onRefresh={handleRefresh} isLoading={isLoading} />
 
         <LeadDialog isOpen={isLeadDialogOpen} onClose={() => {
         setIsLeadDialogOpen(false);
