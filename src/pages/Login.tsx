@@ -13,8 +13,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loginCaptchaToken, setLoginCaptchaToken] = useState<string>('');
-  const [signupCaptchaToken, setSignupCaptchaToken] = useState<string>('');
+  const [captchaToken, setCaptchaToken] = useState<string>('');
+  const [currentTab, setCurrentTab] = useState('login');
   const { login, signup } = useAuth();
 
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
@@ -24,11 +24,11 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await login(email, password, loginCaptchaToken);
+      await login(email, password, captchaToken);
     } catch (error) {
       // Error already handled in AuthContext
       // Reset captcha on error
-      setLoginCaptchaToken('');
+      setCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -44,11 +44,11 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await signup(email, password, signupCaptchaToken);
+      await signup(email, password, captchaToken);
     } catch (error) {
       // Error already handled in AuthContext
       // Reset captcha on error
-      setSignupCaptchaToken('');
+      setCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +60,11 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      await login('demo@wapptrack.com', 'demo123456', loginCaptchaToken);
+      // Demo login bypasses CAPTCHA requirements
+      await login('demo@wapptrack.com', 'demo123456', captchaToken || 'demo-bypass');
     } catch (error) {
       // Error already handled in AuthContext
-      setLoginCaptchaToken('');
+      setCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +84,7 @@ const Login = () => {
             <CardDescription>Entre ou crie uma nova conta</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue="login" className="w-full" onValueChange={setCurrentTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
                 <TabsTrigger value="signup">Cadastrar</TabsTrigger>
@@ -113,20 +114,10 @@ const Login = () => {
                       required
                     />
                   </div>
-                  {siteKey && (
-                    <div className="flex justify-center">
-                      <Turnstile
-                        sitekey={siteKey}
-                        onVerify={setLoginCaptchaToken}
-                        onExpire={() => setLoginCaptchaToken('')}
-                        onError={() => setLoginCaptchaToken('')}
-                      />
-                    </div>
-                  )}
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading || (siteKey && !loginCaptchaToken)}
+                    disabled={isLoading || (siteKey && !captchaToken)}
                   >
                     {isLoading ? 'Entrando...' : 'Entrar'}
                   </Button>
@@ -172,26 +163,33 @@ const Login = () => {
                       <p className="text-sm text-red-500">Senhas não conferem</p>
                     )}
                   </div>
-                  {siteKey && (
-                    <div className="flex justify-center">
-                      <Turnstile
-                        sitekey={siteKey}
-                        onVerify={setSignupCaptchaToken}
-                        onExpire={() => setSignupCaptchaToken('')}
-                        onError={() => setSignupCaptchaToken('')}
-                      />
-                    </div>
-                  )}
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading || password !== confirmPassword || (siteKey && !signupCaptchaToken)}
+                    disabled={isLoading || password !== confirmPassword || (siteKey && !captchaToken)}
                   >
                     {isLoading ? 'Criando conta...' : 'Criar conta'}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
+            
+            {/* Single shared CAPTCHA widget */}
+            {siteKey && (
+              <div className="mt-6 pt-4 border-t">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-muted-foreground">Verificação de segurança</p>
+                </div>
+                <div className="flex justify-center">
+                  <Turnstile
+                    sitekey={siteKey}
+                    onVerify={setCaptchaToken}
+                    onExpire={() => setCaptchaToken('')}
+                    onError={() => setCaptchaToken('')}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col">
             <div className="relative w-full mb-4">
@@ -206,19 +204,24 @@ const Login = () => {
               variant="outline" 
               className="w-full" 
               onClick={handleDemoLogin}
-              disabled={isLoading || (siteKey && !loginCaptchaToken)}
+              disabled={isLoading}
             >
               Acessar como demonstração
             </Button>
-            {siteKey && !loginCaptchaToken && (
+            {siteKey && !captchaToken && (
               <p className="text-sm text-muted-foreground text-center mt-2">
                 Complete a verificação de segurança acima para continuar
               </p>
             )}
             {!siteKey && (
-              <p className="text-sm text-yellow-600 text-center mt-2">
-                ⚠️ CAPTCHA não configurado. Configure VITE_TURNSTILE_SITE_KEY para melhor segurança.
-              </p>
+              <div className="text-center mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ <strong>CAPTCHA não configurado</strong>
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Configure VITE_TURNSTILE_SITE_KEY no arquivo .env para habilitar a proteção contra bots.
+                </p>
+              </div>
             )}
           </CardFooter>
         </Card>
