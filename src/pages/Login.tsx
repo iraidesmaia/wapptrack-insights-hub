@@ -6,22 +6,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/context/AuthContext';
+import Turnstile from 'react-turnstile';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginCaptchaToken, setLoginCaptchaToken] = useState<string>('');
+  const [signupCaptchaToken, setSignupCaptchaToken] = useState<string>('');
   const { login, signup } = useAuth();
+
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      await login(email, password);
+      await login(email, password, loginCaptchaToken);
     } catch (error) {
       // Error already handled in AuthContext
+      // Reset captcha on error
+      setLoginCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -37,9 +44,11 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await signup(email, password);
+      await signup(email, password, signupCaptchaToken);
     } catch (error) {
       // Error already handled in AuthContext
+      // Reset captcha on error
+      setSignupCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -51,9 +60,10 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      await login('demo@wapptrack.com', 'demo123456');
+      await login('demo@wapptrack.com', 'demo123456', loginCaptchaToken);
     } catch (error) {
       // Error already handled in AuthContext
+      setLoginCaptchaToken('');
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +113,20 @@ const Login = () => {
                       required
                     />
                   </div>
+                  {siteKey && (
+                    <div className="flex justify-center">
+                      <Turnstile
+                        sitekey={siteKey}
+                        onVerify={setLoginCaptchaToken}
+                        onExpire={() => setLoginCaptchaToken('')}
+                        onError={() => setLoginCaptchaToken('')}
+                      />
+                    </div>
+                  )}
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading}
+                    disabled={isLoading || (siteKey && !loginCaptchaToken)}
                   >
                     {isLoading ? 'Entrando...' : 'Entrar'}
                   </Button>
@@ -152,10 +172,20 @@ const Login = () => {
                       <p className="text-sm text-red-500">Senhas não conferem</p>
                     )}
                   </div>
+                  {siteKey && (
+                    <div className="flex justify-center">
+                      <Turnstile
+                        sitekey={siteKey}
+                        onVerify={setSignupCaptchaToken}
+                        onExpire={() => setSignupCaptchaToken('')}
+                        onError={() => setSignupCaptchaToken('')}
+                      />
+                    </div>
+                  )}
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading || password !== confirmPassword}
+                    disabled={isLoading || password !== confirmPassword || (siteKey && !signupCaptchaToken)}
                   >
                     {isLoading ? 'Criando conta...' : 'Criar conta'}
                   </Button>
@@ -176,10 +206,20 @@ const Login = () => {
               variant="outline" 
               className="w-full" 
               onClick={handleDemoLogin}
-              disabled={isLoading}
+              disabled={isLoading || (siteKey && !loginCaptchaToken)}
             >
               Acessar como demonstração
             </Button>
+            {siteKey && !loginCaptchaToken && (
+              <p className="text-sm text-muted-foreground text-center mt-2">
+                Complete a verificação de segurança acima para continuar
+              </p>
+            )}
+            {!siteKey && (
+              <p className="text-sm text-yellow-600 text-center mt-2">
+                ⚠️ CAPTCHA não configurado. Configure VITE_TURNSTILE_SITE_KEY para melhor segurança.
+              </p>
+            )}
           </CardFooter>
         </Card>
       </div>

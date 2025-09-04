@@ -9,8 +9,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  signup: (email: string, password: string, captchaToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, captchaToken?: string): Promise<void> => {
     try {
       if (!email || !password) {
         throw new Error('Email e senha são obrigatórios');
@@ -77,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: captchaToken ? { captchaToken } : undefined,
       });
       
       if (error) throw error;
@@ -90,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string): Promise<void> => {
+  const signup = async (email: string, password: string, captchaToken?: string): Promise<void> => {
     try {
       if (!email || !password) {
         throw new Error('Email e senha são obrigatórios');
@@ -107,7 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: redirectUrl,
+          ...(captchaToken && { captchaToken })
         }
       });
       
