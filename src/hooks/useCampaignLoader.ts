@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { getCampaigns } from '@/services/dataService';
-import { getCampaignForRedirect } from '@/services/campaignService';
 import { toast } from 'sonner';
 import { Campaign } from '@/types';
 import { useEnhancedPixelTracking } from './useEnhancedPixelTracking';
@@ -27,37 +26,12 @@ export const useCampaignLoader = (campaignId: string | null, debug: boolean) => 
       }
 
       try {
-        // First try to get campaigns with authentication (for logged-in users)
-        try {
-          const campaigns = await getCampaigns();
-          const targetCampaign = campaigns.find(c => c.id === campaignId);
-          
-          if (targetCampaign) {
-            console.log('📋 Campaign loaded (authenticated):', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
-            setCampaign(targetCampaign);
-            return;
-          }
-        } catch (authError) {
-          // If authenticated call fails, try public redirect function
-          console.log('📋 Trying public campaign access for redirect...');
-        }
-
-        // Fallback to public redirect function for unauthenticated users
-        const publicCampaign = await getCampaignForRedirect(campaignId);
+        const campaigns = await getCampaigns();
+        const targetCampaign = campaigns.find(c => c.id === campaignId);
         
-        if (publicCampaign) {
-          console.log('📋 Campaign loaded (public):', publicCampaign.id, 'Redirect type:', publicCampaign.redirect_type);
-          // Create a minimal campaign object with only the data we have
-          setCampaign({
-            ...publicCampaign,
-            name: 'Campanha',
-            utm_source: '',
-            utm_medium: '',
-            utm_campaign: '',
-            utm_content: '',
-            utm_term: '',
-            active: publicCampaign.active || true
-          } as Campaign);
+        if (targetCampaign) {
+          console.log('📋 Campaign loaded:', targetCampaign.name, 'Redirect type:', targetCampaign.redirect_type);
+          setCampaign(targetCampaign);
         } else {
           toast.warning('Campanha não encontrada. O contato será registrado em uma campanha padrão.');
         }

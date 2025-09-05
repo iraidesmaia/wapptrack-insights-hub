@@ -15,7 +15,6 @@ interface LeadsTableProps {
   onView: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
-  onDeleteAll: () => void;
   onOpenWhatsApp: (phone: string) => void;
   onRefresh: () => void;
   isLoading?: boolean;
@@ -26,7 +25,6 @@ const LeadsTable = ({
   onView,
   onEdit,
   onDelete,
-  onDeleteAll,
   onOpenWhatsApp,
   onRefresh,
   isLoading = false
@@ -246,16 +244,6 @@ const LeadsTable = ({
         <p className="text-sm text-muted-foreground">
           {filteredAndSortedLeads.length} de {leads.length} leads
         </p>
-        {leads.length > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onDeleteAll}
-            className="ml-auto"
-          >
-            Excluir Todos
-          </Button>
-        )}
       </div>
 
       {/* Desktop Table */}
