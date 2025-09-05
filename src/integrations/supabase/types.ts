@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -844,25 +844,34 @@ export type Database = {
         Args: { data: string; key_name?: string }
         Returns: string
       }
+      get_campaign_for_redirect: {
+        Args: { campaign_id_param: string }
+        Returns: {
+          active: boolean
+          id: string
+          redirect_type: string
+          whatsapp_number: string
+        }[]
+      }
       get_tracking_by_identifiers: {
         Args: {
           p_browser_fingerprint?: string
-          p_session_id?: string
           p_ip_address?: string
+          p_session_id?: string
         }
         Returns: {
-          id: string
-          session_id: string
           browser_fingerprint: string
-          ip_address: string
-          user_agent: string
           campaign_id: string
-          utm_source: string
-          utm_medium: string
+          created_at: string
+          id: string
+          ip_address: string
+          session_id: string
+          user_agent: string
           utm_campaign: string
           utm_content: string
+          utm_medium: string
+          utm_source: string
           utm_term: string
-          created_at: string
         }[]
       }
       get_user_by_instance: {
@@ -871,54 +880,54 @@ export type Database = {
       }
       insert_tracking_session: {
         Args: {
-          session_id: string
           browser_fingerprint?: string
-          ip_address?: string
-          user_agent?: string
-          screen_resolution?: string
-          language?: string
-          timezone?: string
-          referrer?: string
-          current_url?: string
           campaign_id?: string
-          utm_source?: string
-          utm_medium?: string
+          current_url?: string
+          ip_address?: string
+          language?: string
+          referrer?: string
+          screen_resolution?: string
+          session_id: string
+          timezone?: string
+          user_agent?: string
           utm_campaign?: string
           utm_content?: string
+          utm_medium?: string
+          utm_source?: string
           utm_term?: string
         }
         Returns: undefined
       }
       log_security_event: {
         Args: {
-          event_type_param: string
-          severity_param: string
-          user_id_param?: string
-          ip_address_param?: unknown
-          user_agent_param?: string
           event_details_param?: Json
+          event_type_param: string
+          ip_address_param?: unknown
+          severity_param: string
+          user_agent_param?: string
+          user_id_param?: string
         }
         Returns: undefined
       }
       select_from_tracking_sessions: {
-        Args: { where_clause?: string; order_by?: string; limit_count?: number }
+        Args: { limit_count?: number; order_by?: string; where_clause?: string }
         Returns: {
-          id: string
-          session_id: string
           browser_fingerprint: string
-          ip_address: string
-          user_agent: string
           campaign_id: string
-          utm_source: string
-          utm_medium: string
+          created_at: string
+          id: string
+          ip_address: string
+          session_id: string
+          user_agent: string
           utm_campaign: string
           utm_content: string
+          utm_medium: string
+          utm_source: string
           utm_term: string
-          created_at: string
         }[]
       }
       validate_evolution_webhook: {
-        Args: { instance_name_param: string; api_key_param: string }
+        Args: { api_key_param: string; instance_name_param: string }
         Returns: boolean
       }
     }

@@ -11,7 +11,8 @@ export {
   getCampaigns,
   addCampaign,
   updateCampaign,
-  deleteCampaign
+  deleteCampaign,
+  getCampaignForRedirect
 } from './campaignService';
 
 export {

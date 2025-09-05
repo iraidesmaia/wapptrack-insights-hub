@@ -2,6 +2,31 @@
 import { Campaign } from "../types";
 import { supabase } from "../integrations/supabase/client";
 
+// Public function to get minimal campaign data for redirection (no auth required)
+export const getCampaignForRedirect = async (campaignId: string): Promise<Partial<Campaign> | null> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('get_campaign_for_redirect', { campaign_id_param: campaignId });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const campaign = data[0];
+    return {
+      id: campaign.id,
+      redirect_type: campaign.redirect_type as 'whatsapp' | 'form',
+      whatsapp_number: campaign.whatsapp_number,
+      active: campaign.active
+    };
+  } catch (error) {
+    console.error("Error fetching campaign for redirect:", error);
+    return null;
+  }
+};
+
 export const getCampaigns = async (): Promise<Campaign[]> => {
   try {
     const { data: campaigns, error } = await supabase
